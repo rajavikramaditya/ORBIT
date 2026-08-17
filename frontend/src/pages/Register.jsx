@@ -42,7 +42,7 @@ export default function Register() {
           <span className="font-display text-lg font-semibold">ORBIT</span>
         </Link>
         <div className="max-w-sm w-full">
-          <h1 className="font-display text-3xl font-semibold tracking-tight">Onboard your hotel</h1>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">Onboard your business</h1>
           <p className="mt-2 text-zinc-500 text-sm">Create your workspace. Our team completes managed setup.</p>
 
           <Button type="button" variant="outline" onClick={googleLogin} data-testid="register-google-btn"
@@ -95,8 +95,8 @@ export default function Register() {
         <img src={IMG} alt="Hotel reception" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
         <div className="absolute bottom-12 left-12 right-12 text-white">
-          <p className="font-display text-2xl font-medium leading-snug">Your AI front desk, live in days.</p>
-          <p className="mt-3 text-white/70 text-sm">Managed onboarding, strict data isolation, INR + GST billing.</p>
+          <p className="font-display text-2xl font-medium leading-snug">Your AI employee, live in days.</p>
+          <p className="mt-3 text-white/70 text-sm">Managed onboarding, strict data isolation, live business data.</p>
         </div>
       </div>
     </div>

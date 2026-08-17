@@ -30,7 +30,7 @@ export default function Channels() {
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-zinc-500">Provider</span>
-          <span className="font-medium">{c.type === "phone" ? "Exotel" : "ElevenLabs · WhatsApp"}</span>
+          <span className="font-medium">{c.type === "phone" ? "Exotel" : "WhatsApp"}</span>
         </div>
       </div>
       {c.status === "action_required" && (
@@ -48,7 +48,7 @@ export default function Channels() {
     <div className="space-y-8" data-testid="tenant-channels">
       <div>
         <h1 className="font-display text-3xl font-semibold tracking-tight">Channels</h1>
-        <p className="mt-1.5 text-zinc-500 text-sm">How guests reach your AI front desk. Connections are managed by ORBIT.</p>
+        <p className="mt-1.5 text-zinc-500 text-sm">How customers reach your AI employee. Connections are managed by ORBIT.</p>
       </div>
 
       {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}

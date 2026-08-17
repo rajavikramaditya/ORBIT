@@ -15,6 +15,9 @@ async def create_indexes():
     await db.conversations.create_index("tenant_id")
     await db.usage_ledger.create_index("event_id", unique=True)
     await db.customization_requests.create_index("tenant_id")
+    await db.business_integrations.create_index("tenant_id")
+    await db.tools.create_index("tenant_id")
+    await db.tool_invocation_log.create_index("tenant_id")
 
 
 async def _upsert(collection, doc):
@@ -74,14 +77,14 @@ async def seed_demo_data():
     await _upsert("ai_employees", {
         "id": "ae_taj_aria",
         "tenant_id": "tenant_taj_palace",
-        "name": "Aria",
-        "role_title": "Front Desk Concierge",
+        "name": "Riya",
+        "role_title": "AI Reservation Assistant",
         "provider": "elevenlabs",
         "provider_agent_id": "agent_taj_aria_001",
         "lifecycle_state": "live",
-        "voice_name": "Aria",
+        "voice_name": "Riya",
         "voice_description": "Warm, professional Indian English",
-        "config_ref": "cfg/taj/aria/v3",
+        "config_ref": "cfg/taj/riya/v3",
         "created_at": now_iso(),
         "updated_at": now_iso(),
     })
@@ -163,6 +166,40 @@ async def seed_demo_data():
         "config_ref": "cfg/leela/kai/v1",
         "created_at": now_iso(),
         "updated_at": now_iso(),
+    })
+
+    # ---- Demo business-system integration (MOCK — clearly marked, demo only) ----
+    await _upsert("business_integrations", {
+        "id": "int_taj_pms",
+        "tenant_id": "tenant_taj_palace",
+        "type": "pms",
+        "name": "Hotel PMS",
+        "provider": "mock_pms",
+        "mode": "mock",          # DEMO mock data — never presented as real live truth
+        "status": "connected",
+        "created_at": now_iso(),
+        "updated_at": now_iso(),
+    })
+    await _upsert("tools", {
+        "id": "tool_taj_avail", "tenant_id": "tenant_taj_palace", "integration_id": "int_taj_pms",
+        "key": "check_availability", "name": "Check room availability", "kind": "read",
+        "enabled": True, "requires_confirmation": False,
+        "description": "Reads live room availability for a date and room type.",
+        "created_at": now_iso(), "updated_at": now_iso(),
+    })
+    await _upsert("tools", {
+        "id": "tool_taj_bstatus", "tenant_id": "tenant_taj_palace", "integration_id": "int_taj_pms",
+        "key": "check_booking_status", "name": "Check booking status", "kind": "read",
+        "enabled": True, "requires_confirmation": False,
+        "description": "Reads the status of an existing booking.",
+        "created_at": now_iso(), "updated_at": now_iso(),
+    })
+    await _upsert("tools", {
+        "id": "tool_taj_book", "tenant_id": "tenant_taj_palace", "integration_id": "int_taj_pms",
+        "key": "create_booking", "name": "Create booking", "kind": "action",
+        "enabled": False, "requires_confirmation": True,
+        "description": "Creates a reservation. Disabled by default; requires explicit confirmation.",
+        "created_at": now_iso(), "updated_at": now_iso(),
     })
 
     # Seed a few captured conversations for the Taj demo (idempotent).

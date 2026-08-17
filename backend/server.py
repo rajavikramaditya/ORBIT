@@ -9,6 +9,7 @@ import routes_auth
 import routes_admin
 import routes_tenant
 import routes_webhooks
+import routes_business
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("orbit")
@@ -28,6 +29,7 @@ app.include_router(routes_auth.router)
 app.include_router(routes_admin.router)
 app.include_router(routes_tenant.router)
 app.include_router(routes_webhooks.router)
+app.include_router(routes_business.router)
 
 _frontend = os.environ.get("FRONTEND_URL", "").strip()
 _origins = [o for o in [_frontend, "http://localhost:3000"] if o]

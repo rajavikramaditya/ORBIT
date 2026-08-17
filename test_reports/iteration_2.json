@@ -1,0 +1,37 @@
+{
+  "summary": "ORBIT iteration-2 regression + business-integration/tool-layer testing. Backend: 12/12 NEW pytest cases in test_business_tools.py all pass (tenant integrations listing shape, tools availability, preview read/mock, disabled tool preview, action confirmation gating, action ok after confirm, live-no-connector -> unavailable (never fakes data), not_connected -> unavailable, tenant isolation of tools + 404 on cross-tenant preview, admin CRUD incl. action-tool requires_confirmation forced true, simulate-call data_mode=mock + tool_invocations + live_data_note). Prior 24/24 regression suite (backend_test.py) also re-run and all pass -> 36/36 total. Frontend (Playwright, live URL): Landing repositioned correctly - hero 'Your AI employee, built around your business.', eyebrow 'AI employees for real businesses', 'Built for your business' section with all 6 verticals (Hotels/Restaurants/Clinics/Real estate/Agencies/Retail), 'More than a chatbot' section present, 'elevenlabs' text NOT present anywhere on public landing. Taj tenant Integrations page renders MOCK notice banner, 4 system cards (Hotel PMS w/ MOCK badge, Phone Connected, WhatsApp Action Required, AI Employee Riya Live), 3 tool cards; clicking Test on check_availability returns visibly labelled 'MOCK / demo data (not real)' result. Conversations detail sheet for a simulate-call conversation shows conversation-data-source block with 'Data source: MOCK / demo', live_data_note and check_availability tool invocation payload. Admin console TenantDetailSheet for Taj shows Business Integrations section with Hotel PMS row (MOCK badge, Connected status select, Mock mode select), 3 tool rows (READ Check room availability / Enabled, READ Check booking status / Enabled, ACTION Create booking / Disabled) with per-tool toggle buttons, add-integration-btn and add-tool-btn present; verified add-integration + add-tool flows end-to-end (TEST_Clinic Calendar + Check slots + Book slot on Leela). Baseline restored (Taj PMS mock/connected, create_booking disabled).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Admin TenantDetailSheet", "issues": ["Right-side sheet content (per-tool Enabled/Disabled toggle buttons) is clipped horizontally at 1440px viewport - the buttons render but sit outside the visible sheet area (require horizontal scroll). Consider constraining the sheet width or wrapping the tool row so the toggle is always in view."]},
+      {"screen": "Admin dialogs (Add integration / Add tool / Attach AI employee / Connect channel)", "issues": ["Radix warning: DialogContent missing DialogTitle / aria-describedby - accessibility only, not blocking."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_business_tools.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/business_tools.xml"
+  ],
+  "action_items": [
+    "(design/a11y, non-blocking) Add DialogTitle to admin dialogs (Add integration / Add tool / Attach AI employee / Connect channel / Create tenant) to silence Radix a11y errors.",
+    "(design/a11y, non-blocking) Ensure per-tool toggle button in admin Business Integrations tool row stays within the sheet viewport at 1440px - currently clipped and requires horizontal scroll."
+  ],
+  "critical_code_review_comments": [
+    "tools.run_tool correctly never fabricates data: when integration.mode=='live' but LIVE_REGISTRY is empty, returns status='unavailable' (verified by test). Good.",
+    "Action tools have requires_confirmation FORCED true in both create_tool and update_tool code paths - defence in depth. Good.",
+    "Tenant preview endpoint queries tools scoped by tenant_id (find_one with {id, tenant_id}), so cross-tenant preview correctly 404s. Good.",
+    "connectors.py MockPMSConnector uses random.random() for availability - fine for demo but non-deterministic in tests; tests only assert keys, not values. OK.",
+    "routes_business.py: no pagination on list endpoints (to_list(100)/(200)); fine for demo scale.",
+    "seed.py sets create_booking enabled=false + requires_confirmation=true - matches the safety promise. Good."
+  ],
+  "updated_files": ["/app/backend/tests/test_business_tools.py"],
+  "success_rate": {"backend": "100% (36/36 = 24 regression + 12 new business-tools)", "frontend": "100% (all critical flows: landing repositioning + no ElevenLabs, tenant Integrations MOCK preview, conversation data-source, admin Business Integrations UI + add-integration + add-tool + toggle)"},
+  "test_credentials": "admin@orbit.ai / OrbitAdmin@2026; owner@tajpalace.in / Hotel@2026; owner@leela.in / Hotel@2026 - all verified.",
+  "seed_data_creation": "Test file test_business_tools.py creates one TEST_Clinic Calendar integration on Leela with 2 tools (check_slots read, book_slot action). Frontend admin add flow also creates a TEST_UI_Integration on Leela in initial browser run. Left in DB; idempotent seed unaffected. Taj integration mutations (mode/status) and create_booking enable are ALL restored to baseline (mock/connected/disabled) at end of test module via fixture teardown + a final verification script.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Business/tool layer collections: business_integrations, tools, tool_invocation_log. Taj seed IDs: int_taj_pms + tool_taj_avail/tool_taj_bstatus/tool_taj_book. Admin CRUD is under /api/admin/tenants/{tid}/integrations, /api/admin/integrations/{id}, /api/admin/integrations/{id}/tools, /api/admin/tools/{id}. Tenant read-only is /api/tenant/integrations and /api/tenant/tools, with /api/tenant/tools/{id}/preview taking {args, confirmed}. Tenant Integrations UI at /dashboard/integrations (nav-integrations). simulate-call now sets data_mode='mock'|'informational'|'live' + tool_invocations[]+ live_data_note - the conversation detail Sheet in tenant surfaces this in [data-testid=conversation-data-source]. Baseline was restored at end of run.",
+  "rca of the issue": "No bugs found."
+}

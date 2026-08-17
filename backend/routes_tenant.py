@@ -6,6 +6,7 @@ from models import (
 from security import require_tenant_user
 from providers import elevenlabs
 from ingest import ingest_post_call
+from tools import run_tool
 
 router = APIRouter(prefix="/api/tenant", tags=["tenant"])
 
@@ -113,7 +114,32 @@ async def simulate_call(body: SimulateCallBody, user=Depends(require_tenant_user
     result = await ingest_post_call(evt["data"])
     if result.get("status") != "ingested":
         raise HTTPException(status_code=409, detail=f"Call not captured: {result.get('status')}")
-    return result["conversation"]
+    conv = result["conversation"]
+
+    # Demonstrate the live business-data layer: if a live-data READ tool is
+    # available, the AI uses it; otherwise it operates in limited informational mode.
+    tool = await db.tools.find_one({"tenant_id": tid(user), "key": "check_availability", "enabled": True}, {"_id": 0})
+    invocations = []
+    data_mode = "informational"
+    if tool:
+        tool_res = await run_tool(tool, tid(user), {"room_type": "Deluxe King", "date": "tonight"}, actor=user)
+        invocations.append({"tool": tool["key"], "name": tool["name"], **tool_res})
+        if tool_res.get("status") == "ok":
+            data_mode = tool_res.get("mode", "mock")
+    if data_mode == "informational":
+        note = "Live business-data integration not connected — AI answered in limited informational mode."
+    elif data_mode == "mock":
+        note = "Answered using MOCK demo data (no real business system connected)."
+    else:
+        note = "Answered using live business data."
+    await db.conversations.update_one(
+        {"id": conv["id"]},
+        {"$set": {"data_mode": data_mode, "tool_invocations": invocations, "live_data_note": note}},
+    )
+    conv["data_mode"] = data_mode
+    conv["tool_invocations"] = invocations
+    conv["live_data_note"] = note
+    return conv
 
 
 @router.get("/customization-requests")

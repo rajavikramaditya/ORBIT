@@ -79,7 +79,7 @@ export default function Login() {
           </form>
 
           <p className="mt-6 text-sm text-zinc-500">
-            New to ORBIT? <Link to="/register" className="text-zinc-900 font-medium hover:underline" data-testid="login-to-register">Onboard your hotel</Link>
+            New to ORBIT? <Link to="/register" className="text-zinc-900 font-medium hover:underline" data-testid="login-to-register">Onboard your business</Link>
           </p>
         </div>
       </div>

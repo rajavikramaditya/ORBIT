@@ -182,6 +182,120 @@ function ConnectChannelDialog({ tenantId, aiEmployees, onDone }) {
   );
 }
 
+function AddIntegrationDialog({ tenantId, onDone }) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [f, setF] = useState({ type: "pms", name: "", provider: "mock_pms", mode: "mock", status: "connected" });
+  const submit = async () => {
+    if (!f.name) { toast.error("Name is required"); return; }
+    setSaving(true);
+    try {
+      await api.post(`/admin/tenants/${tenantId}/integrations`, f);
+      toast.success("Integration added");
+      setOpen(false);
+      setF({ type: "pms", name: "", provider: "mock_pms", mode: "mock", status: "connected" });
+      onDone();
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+    finally { setSaving(false); }
+  };
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="rounded-full h-8" data-testid="add-integration-btn"><Plus className="w-3.5 h-3.5 mr-1.5" /> Add system</Button>
+      </DialogTrigger>
+      <DialogContent data-testid="add-integration-dialog">
+        <DialogHeader><DialogTitle className="font-display">Connect a business system</DialogTitle></DialogHeader>
+        <div className="space-y-4 py-2">
+          <div><Label className="text-sm">Display name</Label>
+            <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Hotel PMS" className="mt-1.5" data-testid="ai-name" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label className="text-sm">Type</Label>
+              <Select value={f.type} onValueChange={(v) => setF({ ...f, type: v })}>
+                <SelectTrigger className="mt-1.5" data-testid="ai-type"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pms">PMS</SelectItem>
+                  <SelectItem value="pos">POS</SelectItem>
+                  <SelectItem value="calendar">Calendar</SelectItem>
+                  <SelectItem value="crm">CRM</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label className="text-sm">Mode</Label>
+              <Select value={f.mode} onValueChange={(v) => setF({ ...f, mode: v })}>
+                <SelectTrigger className="mt-1.5" data-testid="ai-mode"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mock">Mock (demo)</SelectItem>
+                  <SelectItem value="live">Live (real)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div><Label className="text-sm">Provider key</Label>
+            <Input value={f.provider} onChange={(e) => setF({ ...f, provider: e.target.value })} className="mt-1.5 font-mono text-sm" data-testid="ai-provider" /></div>
+          <p className="text-xs text-zinc-400">Live mode requires a real connector. Until one is wired, live tools safely report "not connected" instead of returning data.</p>
+        </div>
+        <DialogFooter>
+          <Button onClick={submit} disabled={saving} data-testid="ai-submit" className="rounded-full bg-zinc-900 hover:bg-zinc-800">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add system"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AddToolDialog({ integrationId, onDone }) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [f, setF] = useState({ key: "", name: "", kind: "read", enabled: true, description: "" });
+  const submit = async () => {
+    if (!f.key || !f.name) { toast.error("Key and name are required"); return; }
+    setSaving(true);
+    try {
+      await api.post(`/admin/integrations/${integrationId}/tools`, f);
+      toast.success("Tool added");
+      setOpen(false);
+      setF({ key: "", name: "", kind: "read", enabled: true, description: "" });
+      onDone();
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+    finally { setSaving(false); }
+  };
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="ghost" className="rounded-full h-8 text-xs" data-testid="add-tool-btn"><Plus className="w-3.5 h-3.5 mr-1" /> Tool</Button>
+      </DialogTrigger>
+      <DialogContent data-testid="add-tool-dialog">
+        <DialogHeader><DialogTitle className="font-display">Add a tool</DialogTitle></DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label className="text-sm">Key</Label>
+              <Input value={f.key} onChange={(e) => setF({ ...f, key: e.target.value })} placeholder="check_availability" className="mt-1.5 font-mono text-sm" data-testid="at-key" /></div>
+            <div><Label className="text-sm">Kind</Label>
+              <Select value={f.kind} onValueChange={(v) => setF({ ...f, kind: v })}>
+                <SelectTrigger className="mt-1.5" data-testid="at-kind"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="read">Read</SelectItem>
+                  <SelectItem value="action">Action</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div><Label className="text-sm">Name</Label>
+            <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Check room availability" className="mt-1.5" data-testid="at-name" /></div>
+          <p className="text-xs text-zinc-400">Action tools always require explicit confirmation before they run.</p>
+        </div>
+        <DialogFooter>
+          <Button onClick={submit} disabled={saving} data-testid="at-submit" className="rounded-full bg-zinc-900 hover:bg-zinc-800">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add tool"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
   const [d, setD] = useState(null);
   const load = useCallback(() => {
@@ -199,6 +313,14 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
   };
   const setStatus = async (status) => {
     try { await api.patch(`/admin/tenants/${tenantId}/status`, { status }); toast.success("Status updated"); refresh(); }
+    catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+  };
+  const patchIntegration = async (id, patch) => {
+    try { await api.patch(`/admin/integrations/${id}`, patch); toast.success("Integration updated"); refresh(); }
+    catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+  };
+  const toggleTool = async (tool) => {
+    try { await api.patch(`/admin/tools/${tool.id}`, { enabled: !tool.enabled }); refresh(); }
     catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
   };
 
@@ -271,6 +393,60 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
                       <span className="text-zinc-400"> · {c.connected_identifier}</span>
                     </div>
                     <StatusBadge kind="channel" value={c.status} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Business Integrations */}
+            <div className="mt-8">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-display font-semibold">Business Integrations</h3>
+                <AddIntegrationDialog tenantId={tenantId} onDone={refresh} />
+              </div>
+              <div className="space-y-3">
+                {(d.integrations || []).length === 0 && <p className="text-sm text-zinc-400">No business systems connected.</p>}
+                {(d.integrations || []).map((integ) => (
+                  <div key={integ.id} className="rounded-xl border border-black/5 p-4" data-testid="admin-integration-row">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm">
+                        <span className="font-medium">{integ.name}</span>
+                        <span className="text-zinc-400"> · {integ.type}</span>
+                        {integ.mode === "mock" && <span className="ml-2 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-700 px-2 py-0.5">MOCK</span>}
+                      </div>
+                      <StatusBadge kind="channel" value={integ.status} />
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <Select value={integ.status} onValueChange={(v) => patchIntegration(integ.id, { status: v })}>
+                        <SelectTrigger className="h-8 w-40" data-testid="integration-status-select"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="connected">Connected</SelectItem>
+                          <SelectItem value="action_required">Action Required</SelectItem>
+                          <SelectItem value="not_connected">Not Connected</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={integ.mode} onValueChange={(v) => patchIntegration(integ.id, { mode: v })}>
+                        <SelectTrigger className="h-8 w-28" data-testid="integration-mode-select"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mock">Mock</SelectItem>
+                          <SelectItem value="live">Live</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <AddToolDialog integrationId={integ.id} onDone={refresh} />
+                    </div>
+                    <div className="mt-3 space-y-1.5">
+                      {(d.tools || []).filter((t) => t.integration_id === integ.id).map((t) => (
+                        <div key={t.id} className="flex items-center justify-between gap-2 rounded-lg bg-zinc-50 px-3 py-2" data-testid="admin-tool-row">
+                          <div className="flex items-center gap-2 text-sm min-w-0">
+                            <span className={`shrink-0 text-[10px] font-semibold rounded-full px-2 py-0.5 ${t.kind === "action" ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700"}`}>{t.kind === "action" ? "ACTION" : "READ"}</span>
+                            <span className="truncate">{t.name}</span>
+                          </div>
+                          <Button size="sm" variant="outline" className="h-7 rounded-full text-xs shrink-0" onClick={() => toggleTool(t)} data-testid={`toggle-tool-${t.key}`}>
+                            {t.enabled ? "Enabled" : "Disabled"}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>

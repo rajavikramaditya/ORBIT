@@ -25,6 +25,17 @@ export default function AIEmployees() {
         </p>
       </div>
 
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="rounded-2xl border border-black/5 bg-white p-5">
+          <div className="text-sm font-semibold">Static knowledge</div>
+          <p className="mt-1.5 text-sm text-zinc-500 leading-relaxed">Business info, policies, services, hours and FAQs — curated by ORBIT and used for general answers.</p>
+        </div>
+        <div className="rounded-2xl border border-black/5 bg-white p-5">
+          <div className="text-sm font-semibold">Live business data</div>
+          <p className="mt-1.5 text-sm text-zinc-500 leading-relaxed">Availability, bookings and orders pulled live from your connected systems — configured under Integrations.</p>
+        </div>
+      </div>
+
       {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
       {items && items.length === 0 && (
         <div className="rounded-2xl border border-black/5 bg-white p-10 text-center text-sm text-zinc-500">
@@ -51,7 +62,7 @@ export default function AIEmployees() {
               <Mic className="w-4 h-4 text-zinc-400" /> {ae.voice_name} — {ae.voice_description}
             </div>
             <div className="mt-3 flex items-center gap-2 text-xs text-zinc-400">
-              <Bot className="w-3.5 h-3.5" /> Provider: {ae.provider} · Agent mapped
+              <Bot className="w-3.5 h-3.5" /> Managed by ORBIT · Voice AI configured
             </div>
           </div>
         ))}

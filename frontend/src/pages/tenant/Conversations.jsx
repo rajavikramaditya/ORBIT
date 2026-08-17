@@ -77,6 +77,24 @@ export default function Conversations() {
                 </div>
               )}
 
+              {detail.data_mode && (
+                <div className={`rounded-xl border p-3 ${detail.data_mode === "mock" ? "border-amber-200 bg-amber-50" : detail.data_mode === "live" ? "border-emerald-200 bg-emerald-50" : "border-zinc-200 bg-zinc-50"}`} data-testid="conversation-data-source">
+                  <div className="flex items-center gap-2 text-xs font-semibold">
+                    <span className={detail.data_mode === "mock" ? "text-amber-700" : detail.data_mode === "live" ? "text-emerald-700" : "text-zinc-600"}>
+                      Data source: {detail.data_mode === "mock" ? "MOCK / demo" : detail.data_mode === "live" ? "Live business data" : "Informational only"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-1">{detail.live_data_note}</p>
+                  {(detail.tool_invocations || []).map((ti, i) => (
+                    <div key={i} className="mt-2 rounded-lg bg-white/70 border border-black/5 p-2 text-xs">
+                      <span className="font-mono text-zinc-600">{ti.tool}</span>
+                      <span className="text-zinc-400"> · {ti.status}{ti.mock ? " · MOCK" : ""}</span>
+                      {ti.data && <pre className="mt-1 text-[11px] text-zinc-600 whitespace-pre-wrap break-words">{JSON.stringify(ti.data)}</pre>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="flex items-center gap-2 rounded-xl border border-black/5 px-4 py-3 text-sm text-zinc-500">
                 <Play className="w-4 h-4" /> Recording: <span className="font-mono text-xs">{detail.recording_ref}</span>
               </div>
@@ -89,7 +107,7 @@ export default function Conversations() {
                       <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                         t.role === "agent" ? "bg-zinc-100 text-zinc-800" : "bg-zinc-900 text-white"
                       }`}>
-                        <div className="text-[10px] uppercase tracking-wide opacity-50 mb-0.5">{t.role === "agent" ? "Aria" : "Guest"}</div>
+                        <div className="text-[10px] uppercase tracking-wide opacity-50 mb-0.5">{t.role === "agent" ? "AI" : "Guest"}</div>
                         {t.message}
                       </div>
                     </div>

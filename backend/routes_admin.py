@@ -74,6 +74,8 @@ async def tenant_detail(tenant_id: str, admin=Depends(require_platform_admin)):
     tenant["ai_employees"] = await db.ai_employees.find({"tenant_id": tenant_id}, {"_id": 0}).to_list(100)
     tenant["channels"] = await db.channels.find({"tenant_id": tenant_id}, {"_id": 0}).to_list(100)
     tenant["users"] = await db.users.find({"tenant_id": tenant_id}, {"_id": 0, "password_hash": 0}).to_list(100)
+    tenant["integrations"] = await db.business_integrations.find({"tenant_id": tenant_id}, {"_id": 0}).to_list(100)
+    tenant["tools"] = await db.tools.find({"tenant_id": tenant_id}, {"_id": 0}).to_list(200)
     return tenant
 
 

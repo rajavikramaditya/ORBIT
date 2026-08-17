@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   Orbit, LayoutGrid, Bot, Radio, MessagesSquare, Wand2, Settings as SettingsIcon,
-  LogOut, ChevronDown,
+  LogOut, ChevronDown, PlugZap,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -13,6 +13,7 @@ const NAV = [
   { to: "/dashboard", end: true, icon: LayoutGrid, label: "Overview", testid: "nav-overview" },
   { to: "/dashboard/ai-employees", icon: Bot, label: "AI Employees", testid: "nav-ai-employees" },
   { to: "/dashboard/channels", icon: Radio, label: "Channels", testid: "nav-channels" },
+  { to: "/dashboard/integrations", icon: PlugZap, label: "Integrations", testid: "nav-integrations" },
   { to: "/dashboard/conversations", icon: MessagesSquare, label: "Conversations", testid: "nav-conversations" },
   { to: "/dashboard/customization", icon: Wand2, label: "Customization", testid: "nav-customization" },
   { to: "/dashboard/settings", icon: SettingsIcon, label: "Settings", testid: "nav-settings" },
@@ -66,7 +67,7 @@ export default function DashboardLayout() {
             </NavLink>
           ))}
         </nav>
-        <div className="p-3 border-t border-black/5 text-xs text-zinc-400">Managed by ORBIT · ElevenLabs</div>
+        <div className="p-3 border-t border-black/5 text-xs text-zinc-400">Managed by ORBIT</div>
       </aside>
 
       {/* Main */}

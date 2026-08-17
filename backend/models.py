@@ -101,3 +101,42 @@ LIFECYCLE_TRANSITIONS = {
 }
 
 TENANT_STATUSES = {"onboarding", "live", "suspended"}
+
+
+# ---- Business Integration + Tool layer ----
+class CreateIntegrationBody(BaseModel):
+    type: str  # pms | pos | calendar | crm | custom
+    name: str
+    provider: str = "mock_pms"
+    mode: str = "mock"          # mock (demo) | live (real)
+    status: str = "connected"   # connected | action_required | not_connected
+
+
+class UpdateIntegrationBody(BaseModel):
+    name: Optional[str] = None
+    status: Optional[str] = None
+    mode: Optional[str] = None
+
+
+class CreateToolBody(BaseModel):
+    key: str
+    name: str
+    kind: str  # read | action
+    enabled: bool = True
+    requires_confirmation: bool = False
+    description: Optional[str] = ""
+
+
+class UpdateToolBody(BaseModel):
+    name: Optional[str] = None
+    enabled: Optional[bool] = None
+    requires_confirmation: Optional[bool] = None
+
+
+class ToolExecuteBody(BaseModel):
+    args: Optional[dict] = None
+    confirmed: Optional[bool] = False
+
+
+INTEGRATION_TYPES = {"pms", "pos", "calendar", "crm", "custom"}
+TOOL_KINDS = {"read", "action"}

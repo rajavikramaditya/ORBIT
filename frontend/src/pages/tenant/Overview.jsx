@@ -47,7 +47,7 @@ export default function Overview() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight">Overview</h1>
-          <p className="mt-1.5 text-zinc-500 text-sm">A live view of your AI front desk.</p>
+          <p className="mt-1.5 text-zinc-500 text-sm">A live view of your AI employee.</p>
         </div>
         <Button onClick={simulate} disabled={simulating} data-testid="simulate-call-btn"
           className="rounded-full h-11 px-5 bg-zinc-900 hover:bg-zinc-800">

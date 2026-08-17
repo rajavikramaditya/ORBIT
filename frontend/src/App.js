@@ -10,6 +10,7 @@ import DashboardLayout from "@/layouts/DashboardLayout";
 import Overview from "@/pages/tenant/Overview";
 import AIEmployees from "@/pages/tenant/AIEmployees";
 import Channels from "@/pages/tenant/Channels";
+import Integrations from "@/pages/tenant/Integrations";
 import Conversations from "@/pages/tenant/Conversations";
 import Customization from "@/pages/tenant/Customization";
 import Settings from "@/pages/tenant/Settings";
@@ -45,6 +46,7 @@ function AppRoutes() {
         <Route index element={<Overview />} />
         <Route path="ai-employees" element={<AIEmployees />} />
         <Route path="channels" element={<Channels />} />
+        <Route path="integrations" element={<Integrations />} />
         <Route path="conversations" element={<Conversations />} />
         <Route path="customization" element={<Customization />} />
         <Route path="settings" element={<Settings />} />

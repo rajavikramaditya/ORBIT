@@ -28,7 +28,7 @@ _SCENARIOS = [
         "title": "Room booking enquiry",
         "summary": "Guest asked about deluxe room availability for this weekend and was quoted tariff with GST. Booking held for 30 minutes.",
         "turns": [
-            ("agent", "Good afternoon, thank you for calling The Taj Palace. This is Aria, how may I help you today?"),
+            ("agent", "Good afternoon, thank you for calling The Taj Palace. This is Riya, how may I help you today?"),
             ("user", "Hi, do you have a deluxe room available this Saturday night?"),
             ("agent", "Let me check for you. Yes, we have a Deluxe King available this Saturday at ₹14,500 plus GST. Would you like me to hold it?"),
             ("user", "Yes please, hold it under Rohan Mehta."),
@@ -41,7 +41,7 @@ _SCENARIOS = [
         "title": "Wake-up call request",
         "summary": "In-house guest in room 412 requested a 6:00 AM wake-up call and early breakfast.",
         "turns": [
-            ("agent", "Good evening, The Taj Palace front desk, Aria speaking."),
+            ("agent", "Good evening, The Taj Palace front desk, Riya speaking."),
             ("user", "This is room 412, can I get a wake-up call at 6 AM tomorrow?"),
             ("agent", "Absolutely, a 6:00 AM wake-up call is set for room 412. Would you like breakfast arranged early as well?"),
             ("user", "Yes, 6:30 would be great."),
@@ -52,7 +52,7 @@ _SCENARIOS = [
         "title": "Restaurant reservation",
         "summary": "Guest reserved a table for four at the rooftop restaurant for 8 PM, noting one vegetarian preference.",
         "turns": [
-            ("agent", "Thank you for calling The Taj Palace, this is Aria."),
+            ("agent", "Thank you for calling The Taj Palace, this is Riya."),
             ("user", "I'd like to book a table for four at your rooftop restaurant tonight."),
             ("agent", "Wonderful. What time would suit you?"),
             ("user", "Around 8 PM. One of us is vegetarian."),
@@ -63,7 +63,7 @@ _SCENARIOS = [
         "title": "Checkout and billing query",
         "summary": "Guest requested a late checkout at 2 PM and a copy of the GST invoice by email.",
         "turns": [
-            ("agent", "The Taj Palace, Aria here. How can I assist?"),
+            ("agent", "The Taj Palace, Riya here. How can I assist?"),
             ("user", "Can I get a late checkout tomorrow, and my GST invoice on email?"),
             ("agent", "I can offer a 2:00 PM late checkout at no charge. Your GST invoice will be emailed to the address on file. Anything else?"),
             ("user", "That's perfect, thanks."),

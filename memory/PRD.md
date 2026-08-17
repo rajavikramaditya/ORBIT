@@ -38,8 +38,19 @@ Strict tenant isolation; secrets server-side; ORBIT branding; managed (no self-s
 - **P1 Privacy/Retention**: per-category configurable retention (metadata/transcript/recording/billing/audit) + configurable legal text (Terms, Privacy, AI disclosure, recording disclosure).
 - **P2 (Phase 6) Scale**: load + isolation testing at ~100-tenant target; wire real ElevenLabs/Exotel keys behind the existing provider interfaces.
 
+## Update (2026-06) — Product direction v2 (generic platform + live-data layer)
+- ✅ Repositioned as a generic **AI Employee platform for businesses** (hotels = first vertical). Landing hero, "Built for your business" verticals (Hotels/Riya, Restaurants/Aarav, Clinics/Ananya, Real estate/Kabir, Agencies/Neha, Retail), and "More than a chatbot" live-data section.
+- ✅ Removed **ElevenLabs from all public marketing** (hero/footer/positioning) and from the tenant dashboard. Kept only in the ORBIT platform-admin console (operationally required). Provider abstraction & backend integration unchanged.
+- ✅ **Business Integration + Tool Layer** (generic, tenant-scoped): `business_integrations` (pms/pos/calendar/crm/custom; status connected/action_required/not_connected; mode mock/live) + `tools` (READ vs ACTION, enable-gated, actions force confirmation) + `tool_invocation_log`. Connector abstraction (`connectors.py`) + safe runner (`tools.py`).
+- ✅ **Never fakes live data**: unconnected/live-without-real-connector → `unavailable`; mock data is DEV/DEMO only and clearly labelled MOCK everywhere (UI + API). ACTION tools require explicit confirmation; LLM never touches the DB directly.
+- ✅ Admin manages integrations/tools per tenant; tenant sees a read-only unified "Business Integrations" surface + can safely test READ tools. Conversations show data source (Live/MOCK/Informational) + tool invocations. simulate-call demonstrates intent → tool → labelled result.
+- ✅ Demo: Taj seeded with a clearly-MOCK "Hotel PMS" + check_availability/check_booking_status (read) + create_booking (action, disabled). Verified by testing agent (36/36 backend, all frontend flows, 0 bugs).
+
+## Architecture (updated)
+Tenant → AI Employee → Tool (READ/ACTION) → Business Integration (connector) → external business system → live data / action → AI. Real connectors plug into `connectors.LIVE_REGISTRY` when a customer's actual PMS/POS/CRM is identified; until then live mode safely reports unavailable.
+
 ## Next Tasks
-1. Phase 3 billing (rates/markup/GST + Razorpay invoices + reconciliation + caps).
-2. Configurable retention + ORBIT legal text.
-3. Real WhatsApp managed-onboarding workflow.
-4. Swap mock providers for real ElevenLabs/Exotel wiring.
+1. First real connector: implement `LIVE_REGISTRY` entry for the chosen hotel PMS/booking system (availability + booking status read, create/cancel booking actions).
+2. Static knowledge base management (separate from live data) per AI employee.
+3. Phase 3 billing (rates/markup/GST + Razorpay invoices + reconciliation + caps).
+4. Configurable retention + ORBIT legal text; real WhatsApp managed onboarding.
