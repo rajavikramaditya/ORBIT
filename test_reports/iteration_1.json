@@ -1,0 +1,28 @@
+{
+  "summary": "Comprehensive Phase 1-2 testing of ORBIT backend + frontend. Backend: 24/24 pytest cases passed (auth, JWT+cookie, register creates tenant, tenant isolation across Taj/Leela, webhook HMAC verify/idempotency/quarantine, admin CRUD + AI-employee lifecycle enforcement, tenant dashboard incl. read-only ai-employees without config_ref, simulate-call ingest, profile whitelist). Frontend (Playwright, cinematic landing -> tenant flow -> admin flow): landing loads with hero copy 'The AI front desk that never sleeps.', nav to /login and /register works, tenant owner login lands on /dashboard, simulate-call adds row, sidebar navigation to /dashboard/ai-employees, /channels (phone Connected + WhatsApp Action Required banner), /conversations (row -> detail sheet with transcript), /customization (new request dialog -> submit -> card list), /settings (brand swatch + name save). Admin login lands on /admin, tenant card opens tenant-detail-sheet, tabs (tenants/queue/quarantine) render, create-tenant dialog end-to-end succeeds and new tenant is visible, admin-logout returns to /login. Role-based redirect on login verified for both roles.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "CORS: When FRONTEND_URL is set (as it is), allow_credentials=True + explicit origin works. Fine.",
+    "Tenant profile PATCH: extras like tenant_id/config_ref are ignored by the Pydantic model (TenantProfileBody has no such fields), and update dict is built from a fixed whitelist — good.",
+    "Overview endpoint iterates usage_ledger with async for; consider a $sum aggregation for scale but fine for current volume.",
+    "Landing page uses a canvas ParticleField — non-blocking warning about willReadFrequently in console (perf hint only)."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100% (24/24)", "frontend": "100% (all critical flows)"},
+  "test_credentials": "admin@orbit.ai / OrbitAdmin@2026; owner@tajpalace.in / Hotel@2026; owner@leela.in / Hotel@2026 — all verified working.",
+  "seed_data_creation": "Backend tests created TEST_ prefixed tenants + owner accounts and one UI-created tenant (TEST_UI_Hotel_*). Test data left in DB (idempotent seed unaffected).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Frontend tenant subroutes are nested under /dashboard/* (e.g. /dashboard/ai-employees), NOT top-level. Backend WEBHOOK_SECRET matches env. Overview.recent_conversations is capped at 6 by API so simulate-call may not increment the visible list if already at cap — verify via /dashboard/conversations for full list. Admin tenants list is sorted desc by created_at so the first admin-tenant-card is the newest (often a TEST_ tenant without AI employees); to see lifecycle buttons pick Taj/Leela cards.",
+  "rca of the issue": "None — no bugs found."
+}

@@ -1,0 +1,105 @@
+{
+  "theme": "Light mode by default, premium high-contrast (dark mode supported but secondary)",
+  "typography": {
+    "headings": {
+      "font_family": "Cabinet Grotesk, General Sans, or Outfit",
+      "weights": ["300", "400", "500"],
+      "tracking": "tracking-tight to tracking-tighter",
+      "description": "Apple-level refinement. Never use Inter for headings. Keep it cinematic and crisp."
+    },
+    "body": {
+      "font_family": "Inter, SF Pro Text, or Manrope",
+      "weights": ["400"],
+      "leading": "leading-relaxed",
+      "description": "Highly legible, clean geometric sans for UI and body copy."
+    }
+  },
+  "colors": {
+    "background": {
+      "primary": "#FFFFFF",
+      "secondary": "#FAFAFA",
+      "tertiary": "#F4F4F5"
+    },
+    "text": {
+      "primary": "#09090B",
+      "secondary": "#52525B",
+      "tertiary": "#A1A1AA"
+    },
+    "accent": {
+      "primary": "#18181B",
+      "hover": "#27272A",
+      "subtle": "#E4E4E7"
+    },
+    "forbidden_colors": [
+      "#7351B7",
+      "Generic AI purple gradients",
+      "Excessive neon",
+      "#1B93A4"
+    ],
+    "description": "Premium white/light surfaces with deep black/charcoal typography. 'Apple product-page refinement'. Colors should feel structural, relying on grayscale hierarchy and subtle warmth."
+  },
+  "visual_enhancers": {
+    "surfaces": "Use 'Crystal Glass' (backdrop-blur-xl with bg-white/70 and a delicate border-white/20 inner stroke) for sticky headers and floating UI. Never use fully transparent backgrounds behind text.",
+    "borders": "1px solid border-black/5 for soft definition. Avoid heavy shadows; use diffuse ambient shadow (shadow-sm or custom 0 8px 32px rgba(0,0,0,0.04)).",
+    "textures": "Subtle digital neural network particle backgrounds in hero, but keep it extremely minimal so it doesn't distract from the typography."
+  },
+  "motion": {
+    "scroll": "MANDATORY: Use Lenis for buttery smooth scrolling to achieve that premium cinematic feel.",
+    "interactions": "Smooth 60fps-feeling motion on hover. Buttons should have subtle scale (active:scale-95) and elegant transitions.",
+    "scroll_driven": "Use framer-motion for scroll-driven reveals (opacity and slight Y-axis translation). Content should smoothly transform as user scrolls.",
+    "accessibility": "Respect prefers-reduced-motion for all animations."
+  },
+  "3d_libraries": {
+    "particles": {
+      "library": "@tsparticles/react and @tsparticles/slim",
+      "usage": "Use for the 'subtle animated particle field / intelligent network motion' in the background of the hero section. Configure with fpsLimit: 60, low density, very subtle light gray/silver colors, and slow movement that gently reacts to mouse hover (interactivity: repulse/grab). DO NOT make it visually loud."
+    }
+  },
+  "layouts": {
+    "marketing_page": "Generous padding (p-12, py-24 to py-32). Cinematic large hero. Scroll-driven storytelling from Hero -> AI Employee -> Channels -> Dashboard. Use Bento grids for features, breaking symmetry.",
+    "dashboard": "High-density functional grid. Tight gaps (gap-4 or gap-6). Clean, sharp, cardless or rounded-2xl widgets with 1px border. Navigation on the left or clean top nav."
+  },
+  "components": {
+    "buttons": "Pill-shaped (rounded-full) or smooth rounded-xl. High contrast (black background, white text).",
+    "cards": "Subtle border-black/5, rounded-2xl, bg-white. No heavy drop shadows.",
+    "forms_and_inputs": "Shadcn components heavily customized to look premium. Light gray backgrounds (bg-zinc-50) for inputs, focus rings in subtle zinc-300.",
+    "toasts": "Use Sonner for minimal, high-contrast toast notifications."
+  },
+  "media": {
+    "hero_overlay": "Max overlay opacity bg-black/10 or bg-white/40. The background should breathe.",
+    "image_urls": {
+      "hotel_architecture": {
+        "url": "https://images.pexels.com/photos/19344317/pexels-photo-19344317.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Luxurious minimal resort architecture. Use for business outcome or trust sections."
+      },
+      "hotel_reception": {
+        "url": "https://images.unsplash.com/photo-1759038085950-1234ca8f5fed?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2Mzl8MHwxfHNlYXJjaHwyfHxwcmVtaXVtJTIwaG90ZWwlMjBsb2JieSUyMHJlY2VwdGlvbiUyMGRlc2t8ZW58MHx8fHwxNzg2OTkxMjAxfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Premium hotel reception desk. Good for grounding the 'India-first, hotels' use case."
+      },
+      "abstract_ai_glass": {
+        "url": "https://images.pexels.com/photos/17486102/pexels-photo-17486102.png?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Abstract 3D glass shapes with light. Can be used for floating elegant AI employee/voice representations."
+      }
+    }
+  },
+  "accessibility": {
+    "testing": "All interactive and key informational elements MUST include a data-testid attribute in kebab-case format (e.g., data-testid='login-submit-button').",
+    "contrast": "Ensure minimum 4.5:1 contrast for normal text and 3:1 for large text. Hover states must have explicitly defined text colors."
+  },
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "You MUST NOT apply universal transition (e.g., transition: all). Always add transitions for specific properties.",
+    "You MUST NOT center align the app container in CSS.",
+    "Use 2-3x more spacing than feels comfortable to achieve the cinematic/Apple-style look.",
+    "Every interaction needs micro-animations - hover states, transitions, entrance animations. Static = dead.",
+    "For the dashboard, use cardless or 1px border minimal styles rather than standard bulky shadows.",
+    "NEVER use placeholder text for images. Use the provided image URLs.",
+    "NEVER use fully transparent backgrounds under content.",
+    "Use @phosphor-icons/react or lucide-react for elegant, clean linear iconography.",
+    "Ensure all components are thoroughly responsive, mobile-first."
+  ],
+  "instructions_to_main_agent": {
+    "setup": "Install @tsparticles/react, @tsparticles/slim, framer-motion, and lenis for scrolling and background effects. NOTE: Ensure you strictly use .js/.jsx extensions for React components as required by the environment.",
+    "landing_page_flow": "1. Hero: Large cinematic typography, tsParticles network background (very subtle, reacting to mouse). 2. AI Employee Story: Floating glassmorphism cards representing voice/WhatsApp. 3. Dashboard Preview: Crisp, high-contrast mockups. 4. Features & CTA: Smooth scroll-driven reveals.",
+    "dashboard_flow": "Implement Super-admin and Tenant views. Enforce tenant isolation visually via dynamic brand colors/logos if provided. Dashboard should be high-density, functional, yet incredibly clean (white/zinc palette). Include sections for AI Employees, Channels, Conversations, Settings, and Managed Customization Requests."
+  }
+}
