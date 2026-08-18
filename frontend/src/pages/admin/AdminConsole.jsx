@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Orbit, LogOut, Plus, Loader2, Building2, Bot, Radio, MessagesSquare,
-  Wand2, ShieldAlert, ChevronRight, Link2,
+  Wand2, ShieldAlert, ChevronRight, Link2, Activity, KeyRound, Receipt, BookOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -23,6 +23,13 @@ const NEXT_STATE = {
   approved: ["live", "testing"],
   live: ["suspended"],
   suspended: ["live"],
+};
+const ACTION_LABEL = {
+  testing: "Start testing",
+  approved: "Approve",
+  live: "Go live",
+  suspended: "Suspend",
+  draft: "Back to draft",
 };
 const REQUEST_STATES = ["submitted", "in_review", "in_progress", "completed", "rejected"];
 
@@ -369,8 +376,8 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
                     </div>
                     <div className="mt-3 flex items-center gap-2">
                       {(NEXT_STATE[ae.lifecycle_state] || []).map((to) => (
-                        <Button key={to} size="sm" variant="outline" className="h-7 rounded-full text-xs capitalize"
-                          onClick={() => setLifecycle(ae.id, to)} data-testid={`lifecycle-${to}`}>→ {to}</Button>
+                        <Button key={to} size="sm" variant="outline" className="h-7 rounded-full text-xs"
+                          onClick={() => setLifecycle(ae.id, to)} data-testid={`lifecycle-${to}`}>{ACTION_LABEL[to] || to}</Button>
                       ))}
                     </div>
                   </div>
@@ -464,6 +471,8 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
                 ))}
               </div>
             </div>
+
+            <ProductionPanel tenantId={tenantId} environment={d.environment} aiEmployees={d.ai_employees} onChanged={refresh} />
           </>
         )}
       </SheetContent>
@@ -570,6 +579,173 @@ function QuarantineTab() {
   );
 }
 
+const STATUS_COLORS = {
+  live: "bg-emerald-50 text-emerald-700", connected: "bg-emerald-50 text-emerald-700", ok: "bg-emerald-50 text-emerald-700", paid: "bg-emerald-50 text-emerald-700",
+  configured: "bg-blue-50 text-blue-700", integrating: "bg-blue-50 text-blue-700", issued: "bg-blue-50 text-blue-700",
+  testing: "bg-amber-50 text-amber-700", action_required: "bg-amber-50 text-amber-700", warning: "bg-amber-50 text-amber-700", credentials_required: "bg-amber-50 text-amber-700", due: "bg-amber-50 text-amber-700", payment_config_required: "bg-amber-50 text-amber-700",
+  not_connected: "bg-zinc-100 text-zinc-500", draft: "bg-zinc-100 text-zinc-500", demo: "bg-zinc-100 text-zinc-500",
+  suspended: "bg-red-50 text-red-700", error: "bg-red-50 text-red-700", capped: "bg-red-50 text-red-700", failed: "bg-red-50 text-red-700",
+};
+const Pill = ({ v, label }) => (
+  <span className={`text-[11px] font-medium rounded-full px-2 py-0.5 ${STATUS_COLORS[v] || "bg-zinc-100 text-zinc-500"}`}>
+    {label || (v === "credentials_required" ? "Credentials required" : (v || "").replace(/_/g, " "))}
+  </span>
+);
+
+function OperationsTab() {
+  const [rows, setRows] = useState(null);
+  useEffect(() => { api.get("/admin/operations").then((r) => setRows(r.data)).catch(() => setRows([])); }, []);
+  return (
+    <div className="space-y-4" data-testid="admin-operations-tab">
+      <h2 className="font-display text-lg font-semibold">Operations</h2>
+      {!rows && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
+      {rows && (
+        <div className="rounded-2xl border border-black/5 bg-white overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="text-left text-xs text-zinc-400 border-b border-black/5">
+              <th className="px-4 py-3">Tenant</th><th className="px-3 py-3">Env</th><th className="px-3 py-3">AI</th>
+              <th className="px-3 py-3">Phone</th><th className="px-3 py-3">WhatsApp</th><th className="px-3 py-3">Business</th><th className="px-3 py-3">Billing</th>
+            </tr></thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.tenant_id} className="border-b border-black/5 last:border-0" data-testid="ops-row">
+                  <td className="px-4 py-3 font-medium">{r.name}</td>
+                  <td className="px-3 py-3"><Pill v={r.environment} /></td>
+                  <td className="px-3 py-3"><Pill v={r.ai_employee} /></td>
+                  <td className="px-3 py-3"><Pill v={r.phone} /></td>
+                  <td className="px-3 py-3"><Pill v={r.whatsapp} /></td>
+                  <td className="px-3 py-3"><Pill v={r.business_integration} /></td>
+                  <td className="px-3 py-3"><Pill v={r.billing} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
+  const [prov, setProv] = useState(null);
+  const [pricing, setPricing] = useState(null);
+  const [invoices, setInvoices] = useState([]);
+  const [kb, setKb] = useState({});
+  const ae0 = aiEmployees?.[0];
+
+  const load = useCallback(() => {
+    api.get(`/admin/tenants/${tenantId}/provisioning`).then((r) => setProv(r.data)).catch(() => {});
+    api.get(`/admin/tenants/${tenantId}/pricing`).then((r) => setPricing(r.data)).catch(() => {});
+    api.get(`/admin/tenants/${tenantId}/invoices`).then((r) => setInvoices(r.data)).catch(() => {});
+  }, [tenantId]);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (ae0) setKb(ae0.knowledge_base || {}); }, [ae0]);
+
+  const wrap = async (fn, msg) => { try { await fn(); if (msg) toast.success(msg); load(); onChanged && onChanged(); } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); } };
+  const setEnv = (env) => wrap(() => api.patch(`/admin/tenants/${tenantId}/environment`, { environment: env }), `Environment set to ${env}`);
+  const savePricing = () => wrap(() => api.put(`/admin/tenants/${tenantId}/pricing`, pricing), "Pricing saved");
+  const genInvoice = () => wrap(() => api.post(`/admin/tenants/${tenantId}/invoices/generate`, {}), "Invoice generated");
+  const issueInv = (id) => wrap(() => api.post(`/admin/invoices/${id}/issue`), "Invoice issued");
+  const verifyVoice = (aeId) => wrap(async () => { const r = await api.post(`/admin/ai-employees/${aeId}/verify-voice`); toast.message(r.data.message); });
+  const verifyTel = (chId) => wrap(async () => { const r = await api.post(`/admin/channels/${chId}/verify-telephony`); toast.message(r.data.message); });
+  const saveKb = () => wrap(() => api.patch(`/admin/ai-employees/${ae0.id}/knowledge`, kb), "Knowledge base saved");
+
+  const num = (k) => (
+    <div>
+      <Label className="text-[11px] text-zinc-500">{k.replace(/_/g, " ")}</Label>
+      <Input type="number" value={pricing?.[k] ?? ""} onChange={(e) => setPricing({ ...pricing, [k]: parseFloat(e.target.value) })} className="mt-1 h-8" data-testid={`price-${k}`} />
+    </div>
+  );
+
+  return (
+    <div className="mt-8 space-y-6" data-testid="production-panel">
+      <h3 className="font-display font-semibold">Production readiness</h3>
+
+      <div className="rounded-xl border border-black/5 p-4">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-medium">Environment</div>
+          <div className="flex gap-1.5">
+            {["demo", "production"].map((e) => (
+              <Button key={e} size="sm" variant={environment === e ? "default" : "outline"}
+                className={`h-7 rounded-full text-xs capitalize ${environment === e ? "bg-zinc-900" : ""}`}
+                onClick={() => setEnv(e)} data-testid={`env-${e}`}>{e}</Button>
+            ))}
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-zinc-400">Production tenants never use mock data or simulated calls.</p>
+      </div>
+
+      {prov && (
+        <div className="rounded-xl border border-black/5 p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium"><KeyRound className="w-4 h-4" /> Provider connections</div>
+          {prov.elevenlabs.agents.map((a) => (
+            <div key={a.ai_employee_id} className="flex items-center justify-between text-sm" data-testid="prov-voice">
+              <span className="text-zinc-600">Voice · {a.name}</span>
+              <div className="flex items-center gap-2"><Pill v={a.status} /><Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={() => verifyVoice(a.ai_employee_id)}>Verify</Button></div>
+            </div>
+          ))}
+          {prov.exotel.numbers.map((n) => (
+            <div key={n.channel_id} className="flex items-center justify-between text-sm" data-testid="prov-tel">
+              <span className="text-zinc-600">Telephony · {n.number}</span>
+              <div className="flex items-center gap-2"><Pill v={n.status} /><Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={() => verifyTel(n.channel_id)}>Verify</Button></div>
+            </div>
+          ))}
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-zinc-600">Payments · Razorpay</span>
+            <Pill v={prov.razorpay.credentials_configured ? "connected" : "credentials_required"} />
+          </div>
+        </div>
+      )}
+
+      {pricing && (
+        <div className="rounded-xl border border-black/5 p-4">
+          <div className="flex items-center gap-2 text-sm font-medium mb-3"><Receipt className="w-4 h-4" /> Pricing (INR)</div>
+          <div className="grid grid-cols-3 gap-2">
+            {num("ai_voice_per_min")}{num("telephony_per_min")}{num("whatsapp_per_message")}
+            {num("service_charge")}{num("gst_pct")}{num("orbit_markup_pct")}
+            {num("warning_threshold")}{num("hard_cap")}
+          </div>
+          <Button size="sm" className="mt-3 rounded-full h-8 bg-zinc-900 hover:bg-zinc-800" onClick={savePricing} data-testid="save-pricing">Save pricing</Button>
+        </div>
+      )}
+
+      <div className="rounded-xl border border-black/5 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-sm font-medium">Invoices</div>
+          <Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={genInvoice} data-testid="gen-invoice"><Plus className="w-3.5 h-3.5 mr-1" /> Generate</Button>
+        </div>
+        <div className="space-y-1.5">
+          {invoices.length === 0 && <p className="text-xs text-zinc-400">No invoices.</p>}
+          {invoices.map((inv) => (
+            <div key={inv.id} className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2 text-sm" data-testid="admin-invoice-row">
+              <span>{inv.period} · ₹{inv.total}</span>
+              <div className="flex items-center gap-2">
+                <Pill v={inv.status} />
+                {inv.status === "draft" && <Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={() => issueInv(inv.id)} data-testid="issue-invoice">Issue</Button>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {ae0 && (
+        <div className="rounded-xl border border-black/5 p-4">
+          <div className="flex items-center gap-2 text-sm font-medium mb-3"><BookOpen className="w-4 h-4" /> Knowledge base · {ae0.name} (static)</div>
+          <div className="space-y-2">
+            {["business_info", "services", "policies", "hours", "instructions"].map((f) => (
+              <div key={f}>
+                <Label className="text-[11px] text-zinc-500 capitalize">{f.replace(/_/g, " ")}</Label>
+                <Textarea value={kb?.[f] || ""} onChange={(e) => setKb({ ...kb, [f]: e.target.value })} rows={2} className="mt-1 text-sm" data-testid={`kb-${f}`} />
+              </div>
+            ))}
+          </div>
+          <Button size="sm" className="mt-3 rounded-full h-8 bg-zinc-900 hover:bg-zinc-800" onClick={saveKb} data-testid="save-kb">Save knowledge</Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminConsole() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -614,10 +790,12 @@ export default function AdminConsole() {
             <TabsTrigger value="tenants" className="rounded-full" data-testid="tab-tenants">Tenants</TabsTrigger>
             <TabsTrigger value="queue" className="rounded-full" data-testid="tab-queue">Customization queue</TabsTrigger>
             <TabsTrigger value="quarantine" className="rounded-full" data-testid="tab-quarantine">Quarantine</TabsTrigger>
+            <TabsTrigger value="operations" className="rounded-full" data-testid="tab-operations">Operations</TabsTrigger>
           </TabsList>
           <TabsContent value="tenants" className="mt-6"><TenantsTab reloadStats={loadStats} /></TabsContent>
           <TabsContent value="queue" className="mt-6"><QueueTab /></TabsContent>
           <TabsContent value="quarantine" className="mt-6"><QuarantineTab /></TabsContent>
+          <TabsContent value="operations" className="mt-6"><OperationsTab /></TabsContent>
         </Tabs>
       </main>
     </div>

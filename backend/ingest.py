@@ -77,5 +77,11 @@ async def ingest_post_call(data: dict) -> dict:
         }},
         upsert=True,
     )
+    # Spend protection: soft warning -> hard cap (suspends live agents in production).
+    try:
+        from billing import enforce_spend_caps
+        await enforce_spend_caps(tenant_id)
+    except Exception:
+        pass
     conv.pop("_id", None)
     return {"status": "ingested", "conversation": conv}

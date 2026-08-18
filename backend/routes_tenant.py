@@ -105,6 +105,9 @@ async def simulate_call(body: SimulateCallBody, user=Depends(require_tenant_user
     """Demo helper: simulates a real inbound/outbound call landing on the tenant's
     live AI employee and captures the conversation via the same ingest path as the
     ElevenLabs post-call webhook."""
+    tenant = await db.tenants.find_one({"id": tid(user)}, {"_id": 0, "environment": 1})
+    if (tenant or {}).get("environment") == "production":
+        raise HTTPException(status_code=403, detail="Call simulation is disabled for production tenants.")
     ae = await db.ai_employees.find_one(
         {"tenant_id": tid(user), "lifecycle_state": {"$in": ["live", "approved"]}}, {"_id": 0}
     )
@@ -168,3 +171,24 @@ async def create_request(body: CustomizationRequestBody, user=Depends(require_te
     await db.customization_requests.insert_one(dict(doc))
     doc.pop("_id", None)
     return doc
+
+
+@router.get("/readiness")
+async def readiness(user=Depends(require_tenant_user)):
+    """Simple 'Is my AI working?' summary for the customer dashboard."""
+    t = tid(user)
+    tenant = await db.tenants.find_one({"id": t}, {"_id": 0})
+    ae = await db.ai_employees.find_one({"tenant_id": t}, {"_id": 0})
+    phone = await db.channels.find_one({"tenant_id": t, "type": "phone"}, {"_id": 0})
+    wa = await db.channels.find_one({"tenant_id": t, "type": "whatsapp"}, {"_id": 0})
+    integ = await db.business_integrations.find_one({"tenant_id": t}, {"_id": 0})
+    items = {
+        "ai_employee": {"label": ae["name"] if ae else "AI Employee", "status": ae["lifecycle_state"] if ae else "not_connected"},
+        "phone": {"label": "Phone", "status": phone["status"] if phone else "not_connected"},
+        "whatsapp": {"label": "WhatsApp", "status": wa["status"] if wa else "not_connected"},
+        "business_integration": {"label": integ["name"] if integ else "Business system", "status": integ["status"] if integ else "not_connected"},
+    }
+    actions = [v["label"] for v in items.values() if v["status"] in ("action_required", "not_connected")]
+    is_live = items["ai_employee"]["status"] == "live" and items["phone"]["status"] == "connected"
+    return {"environment": (tenant or {}).get("environment", "demo"), "is_live": is_live,
+            "items": items, "actions_required": actions}

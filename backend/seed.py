@@ -50,6 +50,7 @@ async def seed_demo_data():
         "slug": "taj-palace-mumbai",
         "name": "The Taj Palace, Mumbai",
         "status": "live",
+        "environment": "demo",
         "profile": {
             "logo_url": "",
             "website": "https://tajpalace.example.in",
@@ -84,6 +85,14 @@ async def seed_demo_data():
         "lifecycle_state": "live",
         "voice_name": "Riya",
         "voice_description": "Warm, professional Indian English",
+        "knowledge_base": {
+            "business_info": "The Taj Palace, Mumbai — a landmark luxury hotel at Apollo Bunder, Colaba.",
+            "services": "Rooms & suites, fine dining, rooftop restaurant, spa & wellness, banquets, airport transfers.",
+            "policies": "Check-in 2 PM, check-out 12 PM. Free cancellation up to 24h before arrival.",
+            "hours": "Front desk 24x7. Restaurant 7 AM-11 PM. Spa 9 AM-9 PM.",
+            "faqs": [{"q": "Do you offer airport pickup?", "a": "Yes, on request at an additional charge."}],
+            "instructions": "Be warm and concise. For live room availability or bookings, use the connected business tools — never quote availability from memory.",
+        },
         "config_ref": "cfg/taj/riya/v3",
         "created_at": now_iso(),
         "updated_at": now_iso(),
@@ -131,6 +140,7 @@ async def seed_demo_data():
         "slug": "leela-bengaluru",
         "name": "The Leela Palace, Bengaluru",
         "status": "onboarding",
+        "environment": "demo",
         "profile": {
             "logo_url": "",
             "website": "https://leela.example.in",
@@ -174,6 +184,7 @@ async def seed_demo_data():
         "tenant_id": "tenant_taj_palace",
         "type": "pms",
         "name": "Hotel PMS",
+        "connector_key": "mock_pms",
         "provider": "mock_pms",
         "mode": "mock",          # DEMO mock data — never presented as real live truth
         "status": "connected",

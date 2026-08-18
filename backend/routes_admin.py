@@ -1,12 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
+import os
+import requests
 from db import db, write_audit
 from models import (
     CreateTenantBody, TenantStatusBody, CreateAIEmployeeBody, LifecycleBody,
     ConnectChannelBody, UpdateChannelBody, CustomizationStatusBody,
-    gen_id, now_iso, LIFECYCLE_TRANSITIONS, TENANT_STATUSES,
+    EnvironmentBody, KnowledgeBaseBody,
+    gen_id, now_iso, LIFECYCLE_TRANSITIONS, TENANT_STATUSES, TENANT_ENVIRONMENTS,
 )
 from security import require_platform_admin, hash_password
 from providers import exotel, whatsapp
+from provisioning import voice_status, telephony_status, elevenlabs_configured, exotel_configured, razorpay_configured
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -199,3 +203,107 @@ async def quarantine(admin=Depends(require_platform_admin)):
 @router.get("/audit-log")
 async def audit_log(admin=Depends(require_platform_admin)):
     return await db.audit_log.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+
+
+# ---------------- Production readiness: environment, provisioning, knowledge, ops ----------------
+@router.patch("/tenants/{tenant_id}/environment")
+async def set_environment(tenant_id: str, body: EnvironmentBody, admin=Depends(require_platform_admin)):
+    if body.environment not in TENANT_ENVIRONMENTS:
+        raise HTTPException(status_code=400, detail="Invalid environment")
+    res = await db.tenants.update_one({"id": tenant_id}, {"$set": {"environment": body.environment}})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    await write_audit(admin, "tenant.environment", tenant_id, tenant_id, {"environment": body.environment})
+    return await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+
+
+@router.get("/tenants/{tenant_id}/provisioning")
+async def provisioning(tenant_id: str, admin=Depends(require_platform_admin)):
+    aes = await db.ai_employees.find({"tenant_id": tenant_id}, {"_id": 0}).to_list(100)
+    chans = await db.channels.find({"tenant_id": tenant_id, "type": "phone"}, {"_id": 0}).to_list(100)
+    return {
+        "elevenlabs": {
+            "credentials_configured": elevenlabs_configured(),
+            "agents": [{"ai_employee_id": a["id"], "name": a["name"], "provider_agent_id": a.get("provider_agent_id"),
+                        "status": voice_status(a)} for a in aes],
+        },
+        "exotel": {
+            "credentials_configured": exotel_configured(),
+            "numbers": [{"channel_id": c["id"], "number": c.get("connected_identifier"), "status": telephony_status(c)} for c in chans],
+        },
+        "razorpay": {"credentials_configured": razorpay_configured()},
+    }
+
+
+@router.post("/ai-employees/{ae_id}/verify-voice")
+async def verify_voice(ae_id: str, admin=Depends(require_platform_admin)):
+    ae = await db.ai_employees.find_one({"id": ae_id}, {"_id": 0})
+    if not ae:
+        raise HTTPException(status_code=404, detail="AI employee not found")
+    if not elevenlabs_configured():
+        return {"status": "credentials_required", "message": "Production credentials required (ELEVENLABS_API_KEY)."}
+    try:
+        r = requests.get(
+            f"https://api.elevenlabs.io/v1/convai/agents/{ae.get('provider_agent_id')}",
+            headers={"xi-api-key": os.environ["ELEVENLABS_API_KEY"]}, timeout=10,
+        )
+        ok = r.status_code == 200
+    except Exception:
+        ok = False
+    await db.ai_employees.update_one({"id": ae_id}, {"$set": {"provider_verified": ok, "updated_at": now_iso()}})
+    return {"status": "connected" if ok else "error",
+            "message": "Agent verified." if ok else "Could not verify the agent with ElevenLabs."}
+
+
+@router.post("/channels/{channel_id}/verify-telephony")
+async def verify_telephony(channel_id: str, admin=Depends(require_platform_admin)):
+    ch = await db.channels.find_one({"id": channel_id}, {"_id": 0})
+    if not ch:
+        raise HTTPException(status_code=404, detail="Channel not found")
+    if not exotel_configured():
+        return {"status": "credentials_required", "message": "Production credentials required (EXOTEL_API_KEY/TOKEN/SID)."}
+    try:
+        sub = os.environ.get("EXOTEL_SUBDOMAIN", "api.in.exotel.com")
+        r = requests.get(
+            f"https://{os.environ['EXOTEL_API_KEY']}:{os.environ['EXOTEL_API_TOKEN']}@{sub}/v1/Accounts/{os.environ['EXOTEL_ACCOUNT_SID']}",
+            timeout=10,
+        )
+        ok = r.status_code < 400
+    except Exception:
+        ok = False
+    await db.channels.update_one({"id": channel_id}, {"$set": {"provider_verified": ok}})
+    return {"status": "connected" if ok else "error",
+            "message": "Telephony verified." if ok else "Could not verify with Exotel."}
+
+
+@router.patch("/ai-employees/{ae_id}/knowledge")
+async def set_knowledge(ae_id: str, body: KnowledgeBaseBody, admin=Depends(require_platform_admin)):
+    ae = await db.ai_employees.find_one({"id": ae_id}, {"_id": 0})
+    if not ae:
+        raise HTTPException(status_code=404, detail="AI employee not found")
+    updates = {f"knowledge_base.{k}": v for k, v in body.model_dump().items() if v is not None}
+    updates["updated_at"] = now_iso()
+    await db.ai_employees.update_one({"id": ae_id}, {"$set": updates})
+    await write_audit(admin, "ai_employee.knowledge", ae_id, ae["tenant_id"], {"fields": list(updates.keys())})
+    return await db.ai_employees.find_one({"id": ae_id}, {"_id": 0})
+
+
+@router.get("/operations")
+async def operations(admin=Depends(require_platform_admin)):
+    rows = []
+    for t in await db.tenants.find({}, {"_id": 0}).sort("created_at", -1).to_list(500):
+        aes = await db.ai_employees.find({"tenant_id": t["id"]}, {"_id": 0}).to_list(50)
+        phone = await db.channels.find_one({"tenant_id": t["id"], "type": "phone"}, {"_id": 0})
+        wa = await db.channels.find_one({"tenant_id": t["id"], "type": "whatsapp"}, {"_id": 0})
+        integ = await db.business_integrations.find_one({"tenant_id": t["id"]}, {"_id": 0})
+        ai_state = next((a["lifecycle_state"] for a in aes if a["lifecycle_state"] == "live"),
+                        aes[0]["lifecycle_state"] if aes else "not_connected")
+        rows.append({
+            "tenant_id": t["id"], "name": t["name"], "environment": t.get("environment", "demo"),
+            "ai_employee": ai_state,
+            "phone": phone["status"] if phone else "not_connected",
+            "whatsapp": wa["status"] if wa else "not_connected",
+            "business_integration": integ["status"] if integ else "not_connected",
+            "billing": t.get("spend_status", "ok"),
+        })
+    return rows

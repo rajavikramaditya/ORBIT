@@ -13,12 +13,19 @@ from models import (
 )
 from security import require_platform_admin, require_tenant_user
 from tools import run_tool
+from connectors import list_connectors
 
 router = APIRouter(tags=["business"])
 
 
 def _tid(user):
     return user["tenant_id"]
+
+
+@router.get("/api/admin/connectors")
+async def connectors_catalogue(admin=Depends(require_platform_admin)):
+    """Catalogue for the 'what system does this business use?' onboarding step."""
+    return list_connectors()
 
 
 # ---------------- Admin (ORBIT-managed setup) ----------------
@@ -28,19 +35,30 @@ async def create_integration(tenant_id: str, body: CreateIntegrationBody, admin=
         raise HTTPException(status_code=404, detail="Tenant not found")
     if body.type not in INTEGRATION_TYPES:
         raise HTTPException(status_code=400, detail="Invalid integration type")
+    connector_key = body.connector_key or "mock_pms"
+    is_custom = connector_key == "custom"
+    status = body.status or ("action_required" if is_custom else "connected")
     doc = {
         "id": gen_id("int_"),
         "tenant_id": tenant_id,
         "type": body.type,
         "name": body.name,
-        "provider": body.provider,
-        "mode": body.mode,      # mock | live
-        "status": body.status,  # connected | action_required | not_connected
+        "connector_key": connector_key,
+        "provider": body.provider or connector_key,
+        # custom/managed integrations have no mock connector; they are 'live' once built.
+        "mode": "live" if is_custom else body.mode,
+        "status": status,
+        "system_name": body.system_name,
+        "auth_method": body.auth_method,
+        "api_docs_url": body.api_docs_url,
+        "required_capabilities": body.required_capabilities or [],
+        "notes": body.notes or "",
+        "credentials_configured": False,
         "created_at": now_iso(),
         "updated_at": now_iso(),
     }
     await db.business_integrations.insert_one(dict(doc))
-    await write_audit(admin, "integration.create", doc["id"], tenant_id, {"type": body.type, "mode": body.mode})
+    await write_audit(admin, "integration.create", doc["id"], tenant_id, {"type": body.type, "connector": connector_key})
     doc.pop("_id", None)
     return doc
 

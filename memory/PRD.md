@@ -49,8 +49,27 @@ Strict tenant isolation; secrets server-side; ORBIT branding; managed (no self-s
 ## Architecture (updated)
 Tenant → AI Employee → Tool (READ/ACTION) → Business Integration (connector) → external business system → live data / action → AI. Real connectors plug into `connectors.LIVE_REGISTRY` when a customer's actual PMS/POS/CRM is identified; until then live mode safely reports unavailable.
 
+## Update (2026-06) — "Demo → Real Customer MVP" production-readiness increment
+Goal: make ORBIT genuinely real-customer-ready (no rebuild, no fake "Live" statuses). Strategy locked by user = **direct API + webhook + connector adapter** (no marketplace/aggregator yet).
+- ✅ **Production/demo separation** (`environment` on tenant: `demo` | `production`). Demo = mock connectors/data clearly labelled + never charged. Production = no mock fallback; unconnected reads → `unavailable`.
+- ✅ **Universal connector interface + STANDARD ORBIT data contract** (`connectors.py`): read tool normalized shape `{available, available_units, unit_type, rate:{amount,currency}}`; action results `{reference, ...}`. Provider schemas normalized into ORBIT contracts. Tenant-specific credentials/config/mapping stored as data (`config_ref`), NOT source code → 2nd customer works via settings only.
+- ✅ **Honest provisioning** (`provisioning.py`): Voice (ElevenLabs) / Telephony (Exotel) / Razorpay all return `credentials_required` when server-side env keys absent. `verify-voice` / `verify-telephony` never fake green. Admin ProductionPanel shows real "Credentials required" + Verify buttons.
+- ✅ **Commercial loop** (`billing.py`, `routes_billing.py`): `usage_ledger` (idempotent) → estimate; per-tenant `tenant_pricing` (8 configurable fields incl. GST %, ORBIT markup, service charge); **immutable invoices** (status ∈ {issued,due,paid,demo,payment_config_required} → re-issue/re-generate blocked 400); spend-cap enforcement (warning/capped). Tenant GET `/api/tenant/billing` strips the `internal` subdoc (markup/service fee hidden from customer).
+- ✅ **Razorpay guarded**: `razorpay==1.4.2` installed; demo invoices → status `demo` (never charged); production invoices w/o keys → `payment_config_required`; `pay` returns `{status:'payment_config_required'}` (no crash, no fake charge). Real order/checkout path prepared, activates only with real keys.
+- ✅ **Managed static Knowledge Base** (admin-controlled, per AI employee, separate from live data): admin `set_knowledge` dot-path update; tenant `/ai-employees` exposes `knowledge_base` but excludes `config_ref`.
+- ✅ **Admin Operations** (`/api/admin/operations`): per-tenant honest health row (env / AI / phone / whatsapp / business / billing). **Tenant Readiness** (`/api/tenant/readiness`): `is_live=true` only when AI `lifecycle_state=='live'` AND phone `connected`; WhatsApp surfaced in `actions_required`.
+- ✅ **Production simulate gate**: simulate-call returns 403 for production tenants (demo-only mock path).
+- ✅ Frontend (incremental, no redesign): tenant `Billing.jsx` (estimate + usage + invoices w/ "Demo — not charged" / "Payment setup pending" pills), Overview readiness bar; admin ProductionPanel (env toggle, provider verify, pricing form, invoice generate/issue, KB editor) + Operations tab.
+- ✅ Verified: testing agent iter-3 → **54/54 backend pass, all frontend flows pass, 0 bugs**. Baseline restored (2 demo hotels, Taj env=demo, tool_taj_book disabled, KB restored, pricing default). Leftover test invoices cleaned; one clean `2025-06` demo invoice kept.
+- ✅ Cosmetic follow-ups: lifecycle button labels `→ suspended` → verb labels ("Suspend"/"Go live"/…); CommandDialog a11y title/description added.
+
+### HONEST external-service status (as of this increment)
+- **Real & working now**: multi-tenant auth/isolation, AI-employee lifecycle, business integration/tool architecture, billing math + immutable GST invoices + spend caps, demo mock flows (clearly labelled), admin/tenant operational surfaces. All in-app logic is real.
+- **Configuration-ready but NOT connected** (blocked on real credentials + external testing): ElevenLabs voice, Exotel telephony, Razorpay payments, WhatsApp onboarding. These honestly show `credentials_required` — none are "Live".
+- **Requires a real customer system**: first live connector (`connectors.LIVE_REGISTRY` entry) for customer #1's actual PMS/POS/CRM. Until then production live reads return `unavailable` (never mock).
+
 ## Next Tasks
-1. First real connector: implement `LIVE_REGISTRY` entry for the chosen hotel PMS/booking system (availability + booking status read, create/cancel booking actions).
-2. Static knowledge base management (separate from live data) per AI employee.
-3. Phase 3 billing (rates/markup/GST + Razorpay invoices + reconciliation + caps).
-4. Configurable retention + ORBIT legal text; real WhatsApp managed onboarding.
+1. **Go-live wiring (needs user creds)**: add real ElevenLabs / Exotel / Razorpay keys to backend env, run verify endpoints, test one real call + one real payment order.
+2. **First real connector**: implement `LIVE_REGISTRY` entry for customer #1's chosen business system (read: availability/status; action: create/cancel w/ confirmation), map credentials/capabilities via tenant config.
+3. Configurable retention + ORBIT legal text; real WhatsApp managed onboarding.
+4. Phase 6 scale/load + isolation testing toward ~100 tenants; reconciliation job (ledger vs provider analytics).

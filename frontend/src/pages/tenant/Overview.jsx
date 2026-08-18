@@ -14,6 +14,7 @@ const StatCard = ({ icon: Icon, label, value, testid }) => (
 
 export default function Overview() {
   const [data, setData] = useState(null);
+  const [ready, setReady] = useState(null);
   const [simulating, setSimulating] = useState(false);
 
   const load = async () => {
@@ -25,7 +26,10 @@ export default function Overview() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    api.get("/tenant/readiness").then((r) => setReady(r.data)).catch(() => {});
+  }, []);
 
   const simulate = async () => {
     setSimulating(true);
@@ -55,6 +59,32 @@ export default function Overview() {
           Simulate inbound call
         </Button>
       </div>
+
+      {ready && (
+        <div className="rounded-2xl border border-black/5 bg-white p-5" data-testid="readiness-bar">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-sm font-semibold">{ready.is_live ? "Your AI employee is live" : "Setup in progress"}</div>
+            <span className={`text-xs font-medium rounded-full px-2.5 py-0.5 ${ready.is_live ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+              {ready.is_live ? "Live" : "Action needed"}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {Object.entries(ready.items).map(([k, v]) => {
+              const good = ["live", "connected"].includes(v.status);
+              const warn = v.status === "action_required";
+              return (
+                <div key={k} className="flex items-center gap-2 rounded-xl bg-zinc-50 px-3 py-2.5">
+                  <span className={`w-2 h-2 rounded-full ${good ? "bg-emerald-500" : warn ? "bg-amber-500" : "bg-zinc-300"}`} />
+                  <div className="min-w-0">
+                    <div className="text-xs font-medium truncate">{v.label}</div>
+                    <div className="text-[11px] text-zinc-400 capitalize">{v.status.replace("_", " ")}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard icon={MessagesSquare} label="Conversations" value={s?.conversations ?? "—"} testid="stat-conversations" />

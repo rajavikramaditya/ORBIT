@@ -1,0 +1,45 @@
+{
+  "summary": "ORBIT iteration-3 backend+frontend testing of production/demo separation, honest-failure, provisioning, knowledge base, operations, billing (pricing/immutable invoices/tenant view), Razorpay guarded, readiness. Backend: 54/54 pytest pass (24 baseline + 12 business/tools + 18 new production+billing). Frontend Playwright verified: (a) Taj owner Overview readiness-bar shows Riya Live / Phone Connected / WhatsApp Action Required / Hotel PMS Connected, (b) nav-billing opens tenant-billing page with 'DEMO — not charged' banner + per-invoice 'Demo — not charged'/'Payment setup pending' pills + estimated total (₹1808.8) + line-item usage, (c) admin Operations tab renders ops-row per tenant with env/AI/phone/whatsapp/business/billing columns matching backend contract, (d) admin TenantDetailSheet -> production-panel renders env-demo/env-production toggles, Provider connections with 'Credentials required' for Voice (Riya) + Razorpay + Telephony (Verify buttons present), Pricing form with all 8 fields + save-pricing, Invoices Generate + issued rows with status pills (demo / payment config required), Knowledge base editor with save-kb. Generate on an already-issued period correctly toasts 'An issued invoice for this period already exists (immutable).' — immutability enforced end-to-end. NEW backend covers: demo preview -> ok+mock (STANDARD contract: available/available_units/unit_type/rate.amount/currency), production preview -> unavailable + simulate-call 403, action tool disabled/confirmation_required/ok+mock+reference, provisioning credentials_required for elevenlabs+exotel+razorpay, verify-voice/verify-telephony credentials_required, PATCH knowledge exposed to tenant with no config_ref, operations rows shape, pricing GET/PUT, invoice generate+issue for demo (status=demo) + re-issue/re-generate 400, tenant billing hides 'internal' field, pay demo -> 400, production invoice issue -> payment_config_required + tenant pay returns {status:'payment_config_required'}, readiness is_live=true + WhatsApp in actions_required.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Admin TenantDetailSheet AI Employees row", "issues": ["The next-state lifecycle transition button for Riya (currently 'live') shows label '→ Suspended'. This is technically a valid live->suspended transition but could be misread as Riya being suspended. Consider clarifying copy (e.g., 'Suspend' or 'Move to: Suspended')."]},
+      {"screen": "Admin dialogs", "issues": ["Repeated Radix warning: DialogContent requires DialogTitle (accessibility only, non-blocking) — carried over from previous iterations."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_production_billing.py",
+    "/app/backend/tests/test_business_tools.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/iter3_all.xml"
+  ],
+  "action_items": [
+    "(non-blocking a11y) Add DialogTitle to admin dialogs (Add integration / Add tool / Attach AI employee / Connect channel / Create tenant) — carried from iter1/2.",
+    "(minor UX) Consider changing the lifecycle transition button label from '→ Suspended' to 'Suspend' so admins don't misread it as Riya's current state."
+  ],
+  "critical_code_review_comments": [
+    "tools.py correctly gates production tenants: preview on production returns status='unavailable' with no mock payload (verified). Good.",
+    "routes_tenant.simulate-call returns 403 for production tenants (verified). Good.",
+    "billing.build_invoice_doc bundles ORBIT markup + service_charge into a single 'Platform & service fee' line item; tenant GET /api/tenant/billing strips the 'internal' subdocument via projection {internal:0}. Verified tenant view has no 'internal' key. Good.",
+    "routes_billing.issue_invoice sets new_status='demo' for is_demo invoices and 'payment_config_required' when razorpay unconfigured — matches honest-failure contract. Immutability enforced via ISSUED_STATES check (verified 400 on re-issue and 400 on re-generate).",
+    "routes_billing.pay_invoice returns {status:'payment_config_required'} when razorpay unconfigured instead of crashing (verified). Good.",
+    "provisioning.py returns credentials_required for all three providers when env keys absent — no fake green (verified via /admin/tenants/{id}/provisioning + verify-voice + verify-telephony).",
+    "routes_admin.set_knowledge dot-path updates knowledge_base.* fields and tenant /ai-employees exposes knowledge_base while excluding config_ref (verified).",
+    "AdminConsole ProductionPanel renders all required subsections and testids (prov-voice, prov-tel, env-demo, env-production, save-pricing, gen-invoice, save-kb) — verified in browser.",
+    "Tenant Billing page correctly labels demo invoices 'Demo — not charged' and production+unconfigured invoices 'Payment setup pending' (verified visually).",
+    "Left the tenant with service_charge back to default 999.0, environment 'demo', tool_taj_book disabled, and knowledge_base restored to 'The Taj Palace, Mumbai — luxury five-star heritage hotel.'"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_production_billing.py (NEW - 18 tests)",
+    "/app/backend/tests/test_business_tools.py (2 stale assertions migrated to STANDARD ORBIT contract: rooms_left/rate_inr -> available_units/rate.amount, booking_id -> reference)"
+  ],
+  "success_rate": {"backend": "100% (54/54)", "frontend": "100% (all customer + admin flows: readiness-bar, tenant-billing demo/payment-pending pills, operations table, production-panel env/provider/pricing/invoices/knowledge, generate+issue immutability)"},
+  "test_credentials": "admin@orbit.ai / OrbitAdmin@2026; owner@tajpalace.in / Hotel@2026; owner@leela.in / Hotel@2026 - all verified.",
+  "seed_data_creation": "18 test invoices spanning periods 2099-* (auto-generated random months in test) plus one 2026-08 and one 2099-* production invoice were generated during testing. They are stored as immutable issued invoices — expected behaviour. tenant environment restored to demo, tool_taj_book restored to disabled, KB restored, pricing.service_charge restored to 999.0.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend billing collections: tenant_pricing (per-tenant), invoices (immutable once status in {issued,due,paid,demo,payment_config_required}), usage_ledger. Standard ORBIT contract for read tools: {available, available_units, unit_type, rate:{amount,currency}} — do NOT expect legacy rooms_left/rate_inr/booking_id keys (those were the old shape). Production invoices flow: demo tenant -> is_demo:true -> issue sets status='demo'; production tenant with no razorpay keys -> is_demo:false -> issue sets status='payment_config_required' -> tenant POST /pay returns {status:'payment_config_required'} (200, not a crash). readiness endpoint /api/tenant/readiness returns is_live=true only when ai_employee.lifecycle_state=='live' AND phone.status=='connected'. Operations rows come from /api/admin/operations. Use -n 0 in pytest to serialize when tests mutate tenant environment (loadscope alone races between TestBilling and TestRazorpayGuarded).",
+  "rca of the issue": "No bugs found; all iterations 1/2/3 clean."
+}

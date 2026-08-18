@@ -99,7 +99,8 @@ class TestPreviewRead:
         assert data["mode"] == "mock"
         assert data["mock"] is True
         d = data["data"]
-        assert "available" in d and "rooms_left" in d and "rate_inr" in d
+        assert "available" in d and "available_units" in d and "rate" in d
+        assert "amount" in d["rate"] and "currency" in d["rate"]
 
     def test_disabled_tool_preview_returns_disabled(self, taj_s):
         # tool_taj_book is disabled by default
@@ -129,7 +130,7 @@ class TestActionSafety:
         assert d["status"] == "ok"
         assert d["mode"] == "mock"
         assert d["mock"] is True
-        assert "booking_id" in d["data"]
+        assert "reference" in d["data"] or "booking_reference" in d["data"]
 
         # cleanup
         admin_s.patch(f"{API}/admin/tools/{TOOL_BOOK}", json={"enabled": False})

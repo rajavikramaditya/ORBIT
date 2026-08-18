@@ -135,3 +135,16 @@ def sign_webhook(raw_body: bytes) -> str:
 
 def verify_webhook_signature(raw_body: bytes, signature: str) -> bool:
     return hmac.compare_digest(sign_webhook(raw_body), signature or "")
+
+
+def verify_elevenlabs_signature(raw_body: bytes, header: str, secret: str) -> bool:
+    """Production ElevenLabs post-call webhook signature (HMAC-SHA256).
+    Header format: 't=<ts>,v0=<hex>' or a plain hex digest."""
+    if not header or not secret:
+        return False
+    sig = header
+    if "v0=" in header:
+        parts = dict(p.split("=", 1) for p in header.split(",") if "=" in p)
+        sig = parts.get("v0", "")
+    expected = hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, sig)

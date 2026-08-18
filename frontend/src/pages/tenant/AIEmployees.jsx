@@ -64,6 +64,12 @@ export default function AIEmployees() {
             <div className="mt-3 flex items-center gap-2 text-xs text-zinc-400">
               <Bot className="w-3.5 h-3.5" /> Managed by ORBIT · Voice AI configured
             </div>
+            {ae.knowledge_base?.business_info && (
+              <div className="mt-4 rounded-xl bg-zinc-50 border border-black/5 p-3" data-testid="ai-knowledge">
+                <div className="text-xs font-semibold text-zinc-500 mb-1">Knowledge base (static)</div>
+                <p className="text-xs text-zinc-500 leading-relaxed">{ae.knowledge_base.business_info}</p>
+              </div>
+            )}
           </div>
         ))}
       </div>

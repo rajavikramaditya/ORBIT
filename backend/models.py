@@ -107,15 +107,25 @@ TENANT_STATUSES = {"onboarding", "live", "suspended"}
 class CreateIntegrationBody(BaseModel):
     type: str  # pms | pos | calendar | crm | custom
     name: str
+    connector_key: str = "mock_pms"   # mock_pms | custom | <live connector>
     provider: str = "mock_pms"
     mode: str = "mock"          # mock (demo) | live (real)
-    status: str = "connected"   # connected | action_required | not_connected
+    status: str = "connected"   # see INTEGRATION_STATUSES
+    system_name: Optional[str] = None
+    auth_method: Optional[str] = None
+    api_docs_url: Optional[str] = None
+    required_capabilities: Optional[list] = None
+    notes: Optional[str] = None
 
 
 class UpdateIntegrationBody(BaseModel):
     name: Optional[str] = None
     status: Optional[str] = None
     mode: Optional[str] = None
+    system_name: Optional[str] = None
+    auth_method: Optional[str] = None
+    api_docs_url: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class CreateToolBody(BaseModel):
@@ -140,3 +150,33 @@ class ToolExecuteBody(BaseModel):
 
 INTEGRATION_TYPES = {"pms", "pos", "calendar", "crm", "custom"}
 TOOL_KINDS = {"read", "action"}
+TENANT_ENVIRONMENTS = {"demo", "production"}
+INTEGRATION_STATUSES = {"not_connected", "action_required", "integrating", "testing", "connected", "error"}
+
+
+class EnvironmentBody(BaseModel):
+    environment: str  # demo | production
+
+
+class KnowledgeBaseBody(BaseModel):
+    business_info: Optional[str] = None
+    services: Optional[str] = None
+    policies: Optional[str] = None
+    hours: Optional[str] = None
+    faqs: Optional[list] = None
+    instructions: Optional[str] = None
+
+
+class PricingBody(BaseModel):
+    ai_voice_per_min: Optional[float] = None
+    telephony_per_min: Optional[float] = None
+    whatsapp_per_message: Optional[float] = None
+    orbit_markup_pct: Optional[float] = None
+    service_charge: Optional[float] = None
+    gst_pct: Optional[float] = None
+    warning_threshold: Optional[float] = None
+    hard_cap: Optional[float] = None
+
+
+class GenerateInvoiceBody(BaseModel):
+    period: Optional[str] = None  # YYYY-MM; defaults to current month

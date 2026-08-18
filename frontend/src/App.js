@@ -13,6 +13,7 @@ import Channels from "@/pages/tenant/Channels";
 import Integrations from "@/pages/tenant/Integrations";
 import Conversations from "@/pages/tenant/Conversations";
 import Customization from "@/pages/tenant/Customization";
+import Billing from "@/pages/tenant/Billing";
 import Settings from "@/pages/tenant/Settings";
 import AdminConsole from "@/pages/admin/AdminConsole";
 
@@ -49,6 +50,7 @@ function AppRoutes() {
         <Route path="integrations" element={<Integrations />} />
         <Route path="conversations" element={<Conversations />} />
         <Route path="customization" element={<Customization />} />
+        <Route path="billing" element={<Billing />} />
         <Route path="settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
