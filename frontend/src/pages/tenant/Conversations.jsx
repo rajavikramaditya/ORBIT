@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { PhoneCall, Loader2, ArrowDownLeft, ArrowUpRight, Play } from "lucide-react";
+import { Link } from "react-router-dom";
+import { PhoneCall, Loader2, ArrowDownLeft, ArrowUpRight, Info, Play } from "lucide-react";
 import { api } from "@/lib/api";
+
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
@@ -30,6 +32,14 @@ export default function Conversations() {
         <p className="mt-1.5 text-zinc-500 text-sm">Every call captured, transcribed and summarised.</p>
       </div>
 
+      <div className="flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/60 px-5 py-4">
+        <Info className="w-4.5 h-4.5 text-blue-600 mt-0.5 shrink-0" />
+        <p className="text-sm text-blue-900/80 leading-relaxed">
+          Callers interact with an AI assistant, not a human. Conversations may be recorded and transcribed for your workspace.
+          See the public <Link to="/ai-disclosure" className="font-medium underline underline-offset-2">AI & recording disclosure</Link>.
+        </p>
+      </div>
+
       <div className="rounded-2xl border border-black/5 bg-white overflow-hidden">
         {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
         {items && items.length === 0 && (
@@ -44,12 +54,30 @@ export default function Conversations() {
                   {c.direction === "outbound" ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownLeft className="w-4 h-4" />}
                 </span>
                 <div className="min-w-0">
-                  <div className="text-sm font-medium truncate">{c.summary_title}</div>
-                  <div className="text-xs text-zinc-400 truncate">{c.external_number || "—"} · {new Date(c.created_at).toLocaleString("en-IN")}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium truncate">{c.summary_title}</span>
+                    {c.follow_up_required && (
+                      <span className="text-[10px] bg-amber-100 text-amber-800 font-medium px-2 py-0.5 rounded-full shrink-0">Follow-up</span>
+                    )}
+                    {c.outcome && c.outcome !== "resolved" && c.outcome !== "follow_up_required" && (
+                      <span className="text-[10px] bg-zinc-100 text-zinc-600 font-medium px-2 py-0.5 rounded-full capitalize shrink-0">{c.outcome.replace(/_/g, " ")}</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-zinc-400 truncate">
+                    {c.caller_name ? `${c.caller_name} · ` : ""}{c.external_number || "—"} · {new Date(c.created_at).toLocaleString("en-IN")}
+                  </div>
                 </div>
               </div>
-              <div className="text-xs text-zinc-500 shrink-0">{Math.floor((c.duration_secs || 0) / 60)}m {(c.duration_secs || 0) % 60}s</div>
+              <div className="text-right shrink-0">
+                <div className="text-xs text-zinc-500">{Math.floor((c.duration_secs || 0) / 60)}m {(c.duration_secs || 0) % 60}s</div>
+                {c.call_successful !== undefined && (
+                  <div className={`text-[10px] font-medium capitalize ${c.call_successful === true || c.call_successful === "success" ? "text-emerald-600" : "text-amber-600"}`}>
+                    {c.call_successful === true || c.call_successful === "success" ? "Resolved" : "Unresolved"}
+                  </div>
+                )}
+              </div>
             </button>
+
           ))}
         </div>
       </div>
@@ -64,11 +92,12 @@ export default function Conversations() {
           ) : (
             <div className="mt-4 space-y-6">
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-xl bg-zinc-50 p-3"><div className="text-xs text-zinc-400">Direction</div><div className="font-medium capitalize">{detail.direction}</div></div>
+                <div className="rounded-xl bg-zinc-50 p-3"><div className="text-xs text-zinc-400">Caller</div><div className="font-medium truncate">{detail.caller_name ? `${detail.caller_name}` : detail.external_number || "—"}</div></div>
                 <div className="rounded-xl bg-zinc-50 p-3"><div className="text-xs text-zinc-400">Duration</div><div className="font-medium">{Math.floor((detail.duration_secs || 0) / 60)}m {(detail.duration_secs || 0) % 60}s</div></div>
                 <div className="rounded-xl bg-zinc-50 p-3"><div className="text-xs text-zinc-400">Number</div><div className="font-medium">{detail.external_number || "—"}</div></div>
                 <div className="rounded-xl bg-zinc-50 p-3"><div className="text-xs text-zinc-400">Status</div><div className="font-medium capitalize">{detail.status}</div></div>
               </div>
+
 
               {detail.summary && (
                 <div>

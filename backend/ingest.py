@@ -2,9 +2,12 @@
 simulate-call demo endpoint. Tenant is resolved ONLY via provider_agent_id ->
 ai_employee -> tenant_id. Payload-supplied tenant is ignored. Idempotent on
 conversation_id."""
+import logging
 from pymongo.errors import DuplicateKeyError
 from db import db
 from models import gen_id, now_iso
+
+logger = logging.getLogger("orbit.ingest")
 
 
 async def ingest_post_call(data: dict) -> dict:
@@ -39,6 +42,19 @@ async def ingest_post_call(data: dict) -> dict:
         {"tenant_id": tenant_id, "assigned_ai_employee_id": ae["id"]}, {"_id": 0}
     )
 
+    custom_data = analysis.get("custom_analysis_data") or analysis.get("data_collection_results") or {}
+    eval_criteria = analysis.get("evaluation_criteria_results") or {}
+    follow_up = bool(custom_data.get("follow_up_required") or eval_criteria.get("follow_up_required"))
+    call_success = analysis.get("call_successful")
+
+    outcome = "resolved"
+    if follow_up:
+        outcome = "follow_up_required"
+    elif call_success == "failure" or call_success is False:
+        outcome = "unresolved"
+    elif custom_data.get("intent"):
+        outcome = str(custom_data.get("intent")).lower()
+
     conv = {
         "id": gen_id("cv_"),
         "tenant_id": tenant_id,
@@ -48,15 +64,22 @@ async def ingest_post_call(data: dict) -> dict:
         "provider_conversation_id": conv_id,
         "direction": phone.get("direction", "inbound"),
         "external_number": phone.get("external_number"),
+        "caller_name": custom_data.get("caller_name") or analysis.get("caller_name") or None,
         "status": data.get("status", "done"),
+        "call_successful": call_success,
+        "outcome": outcome,
+        "follow_up_required": follow_up,
         "duration_secs": duration,
         "transcript": data.get("transcript", []),
         "summary_title": analysis.get("call_summary_title", "Conversation"),
         "summary": analysis.get("transcript_summary", ""),
+        "custom_analysis": custom_data,
         "recording_ref": f"rec/{tenant_id}/{conv_id}.mp3",
         "started_at": now_iso(),
         "created_at": now_iso(),
     }
+
+
     try:
         await db.conversations.insert_one(dict(conv))
     except DuplicateKeyError:
@@ -82,6 +105,6 @@ async def ingest_post_call(data: dict) -> dict:
         from billing import enforce_spend_caps
         await enforce_spend_caps(tenant_id)
     except Exception:
-        pass
+        logger.warning("spend cap enforcement failed tenant_id=%s", tenant_id, exc_info=True)
     conv.pop("_id", None)
     return {"status": "ingested", "conversation": conv}

@@ -13,6 +13,10 @@ const GoogleIcon = () => (
   <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.65l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.11a6.6 6.6 0 0 1 0-4.22V7.05H2.18a11 11 0 0 0 0 9.9l3.66-2.84Z"/><path fill="#EA4335" d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.44 14.97.5 12 .5A11 11 0 0 0 2.18 7.05l3.66 2.84C6.71 6.68 9.14 4.75 12 4.75Z"/></svg>
 );
 
+// Google sign-in currently routes through the Emergent auth service, which only
+// works in Emergent-hosted environments. Hidden unless explicitly enabled.
+const GOOGLE_LOGIN_ENABLED = process.env.REACT_APP_ENABLE_GOOGLE_LOGIN === "true";
+
 export default function Register() {
   const { user, register, googleLogin } = useAuth();
   const navigate = useNavigate();
@@ -45,18 +49,22 @@ export default function Register() {
           <h1 className="font-display text-3xl font-semibold tracking-tight">Onboard your business</h1>
           <p className="mt-2 text-zinc-500 text-sm">Create your workspace. Our team completes managed setup.</p>
 
-          <Button type="button" variant="outline" onClick={googleLogin} data-testid="register-google-btn"
-            className="mt-8 w-full h-11 rounded-xl border-black/10 gap-2.5 hover:bg-zinc-50">
-            <GoogleIcon /> Continue with Google
-          </Button>
+          {GOOGLE_LOGIN_ENABLED && (
+            <>
+              <Button type="button" variant="outline" onClick={googleLogin} data-testid="register-google-btn"
+                className="mt-8 w-full h-11 rounded-xl border-black/10 gap-2.5 hover:bg-zinc-50">
+                <GoogleIcon /> Continue with Google
+              </Button>
 
-          <div className="flex items-center gap-4 my-6">
-            <div className="h-px bg-zinc-200 flex-1" />
-            <span className="text-xs text-zinc-400">or</span>
-            <div className="h-px bg-zinc-200 flex-1" />
-          </div>
+              <div className="flex items-center gap-4 my-6">
+                <div className="h-px bg-zinc-200 flex-1" />
+                <span className="text-xs text-zinc-400">or</span>
+                <div className="h-px bg-zinc-200 flex-1" />
+              </div>
+            </>
+          )}
 
-          <form onSubmit={submit} className="space-y-4">
+          <form onSubmit={submit} className={`space-y-4 ${GOOGLE_LOGIN_ENABLED ? "" : "mt-8"}`}>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-sm">Your name</Label>
@@ -64,16 +72,17 @@ export default function Register() {
                   placeholder="Priya Sharma" className="mt-1.5 h-11 rounded-xl bg-zinc-50 border-black/10" />
               </div>
               <div>
-                <Label className="text-sm">Hotel name</Label>
+                <Label className="text-sm">Business / Hotel name</Label>
                 <Input value={form.hotel_name} onChange={set("hotel_name")} required data-testid="register-hotel"
-                  placeholder="The Grand Palace" className="mt-1.5 h-11 rounded-xl bg-zinc-50 border-black/10" />
+                  placeholder="Business or Property name" className="mt-1.5 h-11 rounded-xl bg-zinc-50 border-black/10" />
               </div>
             </div>
             <div>
               <Label className="text-sm">Email</Label>
               <Input type="email" value={form.email} onChange={set("email")} required data-testid="register-email"
-                placeholder="you@hotel.in" className="mt-1.5 h-11 rounded-xl bg-zinc-50 border-black/10" />
+                placeholder="you@business.in" className="mt-1.5 h-11 rounded-xl bg-zinc-50 border-black/10" />
             </div>
+
             <div>
               <Label className="text-sm">Password</Label>
               <Input type="password" value={form.password} onChange={set("password")} required data-testid="register-password"

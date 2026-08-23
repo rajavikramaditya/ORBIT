@@ -14,6 +14,14 @@ JWT_ALGORITHM = "HS256"
 EMERGENT_SESSION_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data"
 
 
+def _cookie_secure() -> bool:
+    return os.environ.get("COOKIE_SECURE", "true").strip().lower() == "true"
+
+
+def _cookie_samesite() -> str:
+    return "none" if _cookie_secure() else "lax"
+
+
 def get_jwt_secret() -> str:
     return os.environ["JWT_SECRET"]
 
@@ -40,15 +48,15 @@ def create_access_token(user_id: str, email: str) -> str:
 
 def set_auth_cookie(response, token: str):
     response.set_cookie(
-        key="access_token", value=token, httponly=True, secure=True,
-        samesite="none", max_age=43200, path="/",
+        key="access_token", value=token, httponly=True, secure=_cookie_secure(),
+        samesite=_cookie_samesite(), max_age=43200, path="/",
     )
 
 
 def set_session_cookie(response, session_token: str):
     response.set_cookie(
-        key="session_token", value=session_token, httponly=True, secure=True,
-        samesite="none", max_age=604800, path="/",
+        key="session_token", value=session_token, httponly=True, secure=_cookie_secure(),
+        samesite=_cookie_samesite(), max_age=604800, path="/",
     )
 
 
@@ -118,6 +126,25 @@ def require_tenant_user(user: dict = Depends(get_current_user)) -> dict:
     if user.get("role") not in ("owner", "admin") or not user.get("tenant_id"):
         raise HTTPException(status_code=403, detail="Tenant access required")
     return user
+
+
+# In-memory auth throttle (per process). Production can sit behind a reverse-proxy limiter too.
+_AUTH_HITS: dict[str, list[float]] = {}
+_AUTH_WINDOW_SECS = 300
+_AUTH_MAX = 20
+
+
+def enforce_auth_rate_limit(request: Request):
+    from runtime_config import is_production
+    if not is_production():
+        return
+    ip = (request.client.host if request.client else "unknown") or "unknown"
+    now = datetime.now(timezone.utc).timestamp()
+    hits = [t for t in _AUTH_HITS.get(ip, []) if now - t < _AUTH_WINDOW_SECS]
+    if len(hits) >= _AUTH_MAX:
+        raise HTTPException(status_code=429, detail="Too many attempts. Try again later.")
+    hits.append(now)
+    _AUTH_HITS[ip] = hits
 
 
 def exchange_emergent_session(session_id: str) -> dict:

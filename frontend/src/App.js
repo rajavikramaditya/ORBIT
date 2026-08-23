@@ -15,7 +15,9 @@ import Conversations from "@/pages/tenant/Conversations";
 import Customization from "@/pages/tenant/Customization";
 import Billing from "@/pages/tenant/Billing";
 import Settings from "@/pages/tenant/Settings";
+import BusinessData from "@/pages/tenant/BusinessData";
 import AdminConsole from "@/pages/admin/AdminConsole";
+import Legal from "@/pages/Legal";
 
 function AppRoutes() {
   const location = useLocation();
@@ -28,6 +30,9 @@ function AppRoutes() {
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/terms" element={<Legal page="terms" />} />
+      <Route path="/privacy" element={<Legal page="privacy" />} />
+      <Route path="/ai-disclosure" element={<Legal page="disclosure" />} />
       <Route
         path="/admin"
         element={
@@ -48,11 +53,13 @@ function AppRoutes() {
         <Route path="ai-employees" element={<AIEmployees />} />
         <Route path="channels" element={<Channels />} />
         <Route path="integrations" element={<Integrations />} />
+        <Route path="live-data" element={<BusinessData />} />
         <Route path="conversations" element={<Conversations />} />
         <Route path="customization" element={<Customization />} />
         <Route path="billing" element={<Billing />} />
         <Route path="settings" element={<Settings />} />
       </Route>
+      <Route path="/reset-password" element={<Login resetMode />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

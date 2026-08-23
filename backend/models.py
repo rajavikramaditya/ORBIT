@@ -17,7 +17,9 @@ class RegisterBody(BaseModel):
     email: EmailStr
     password: str = Field(min_length=6)
     name: str
-    hotel_name: str
+    business_name: Optional[str] = None
+    hotel_name: Optional[str] = None
+
 
 
 class LoginBody(BaseModel):
@@ -91,7 +93,7 @@ class SimulateCallBody(BaseModel):
     external_number: Optional[str] = None
 
 
-# ---- Lifecycle rules ----
+# ---- Lifecycle & Onboarding rules ----
 LIFECYCLE_TRANSITIONS = {
     "draft": {"testing"},
     "testing": {"approved", "draft"},
@@ -102,20 +104,52 @@ LIFECYCLE_TRANSITIONS = {
 
 TENANT_STATUSES = {"onboarding", "live", "suspended"}
 
+# Standard customer-journey onboarding stages
+ONBOARDING_STAGES = [
+    "created",
+    "business_details",
+    "ai_employee_setup",
+    "business_data",
+    "channel_setup",
+    "testing",
+    "ready_for_approval",
+    "live",
+]
+
+# Customer-friendly labels (zero technical jargon)
+ONBOARDING_STAGE_LABELS_CUSTOMER = {
+    "created": "Account created",
+    "business_details": "Business setup",
+    "ai_employee_setup": "AI employee setup",
+    "business_data": "Business information",
+    "channel_setup": "Phone & channels",
+    "testing": "Testing & preview",
+    "ready_for_approval": "Ready for approval",
+    "live": "Live taking calls",
+}
+
+INTEGRATION_STATUSES = {
+    "connected",
+    "action_required",
+    "not_connected",
+    "custom_integration_required",
+}
+
 
 # ---- Business Integration + Tool layer ----
 class CreateIntegrationBody(BaseModel):
     type: str  # pms | pos | calendar | crm | custom
     name: str
     connector_key: str = "mock_pms"   # mock_pms | custom | <live connector>
-    provider: str = "mock_pms"
+    provider: Optional[str] = None    # defaults to connector_key
     mode: str = "mock"          # mock (demo) | live (real)
-    status: str = "connected"   # see INTEGRATION_STATUSES
+    status: Optional[str] = None      # connected | action_required | custom_integration_required | not_connected
     system_name: Optional[str] = None
     auth_method: Optional[str] = None
     api_docs_url: Optional[str] = None
     required_capabilities: Optional[list] = None
     notes: Optional[str] = None
+    status_message: Optional[str] = None
 
 
 class UpdateIntegrationBody(BaseModel):
@@ -126,12 +160,15 @@ class UpdateIntegrationBody(BaseModel):
     auth_method: Optional[str] = None
     api_docs_url: Optional[str] = None
     notes: Optional[str] = None
+    status_message: Optional[str] = None
+    last_verified_at: Optional[str] = None
 
 
 class CreateToolBody(BaseModel):
     key: str
     name: str
     kind: str  # read | action
+
     enabled: bool = True
     requires_confirmation: bool = False
     description: Optional[str] = ""
@@ -180,3 +217,43 @@ class PricingBody(BaseModel):
 
 class GenerateInvoiceBody(BaseModel):
     period: Optional[str] = None  # YYYY-MM; defaults to current month
+
+
+# ---- Live Data (Dynamic Webhook Data Source) ----
+class RoomRateEntry(BaseModel):
+    room_type: str
+    rate_inr: float
+    available: bool = True
+    available_units: Optional[int] = None
+
+
+class LiveDataBody(BaseModel):
+    """Tenant-managed dynamic data fetched by AI agent via webhook during calls.
+    This replaces static knowledge-base entries for frequently changing business data."""
+    # Rates & Inventory
+    room_rates: Optional[List[RoomRateEntry]] = None
+    # Operational timings
+    check_in_time: Optional[str] = None       # e.g. "12:00 PM"
+    check_out_time: Optional[str] = None      # e.g. "11:00 AM"
+    buffet_breakfast: Optional[str] = None    # e.g. "7:00 AM - 10:30 AM"
+    buffet_lunch: Optional[str] = None
+    buffet_dinner: Optional[str] = None
+    # Policies
+    cancellation_policy: Optional[str] = None
+    refund_policy: Optional[str] = None
+    # Special offers / announcements
+    active_offer: Optional[str] = None        # e.g. "20% off on Deluxe rooms this weekend"
+    seasonal_note: Optional[str] = None       # e.g. "Diwali special package available"
+    # Extra free-form key-value pairs for business-specific data
+    extra: Optional[dict] = None
+
+
+# ---- Password Reset ----
+class ForgotPasswordBody(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordBody(BaseModel):
+    token: str
+    new_password: str = Field(min_length=6)
+

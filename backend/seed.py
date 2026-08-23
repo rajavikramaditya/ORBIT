@@ -7,17 +7,25 @@ from security import hash_password, verify_password
 async def create_indexes():
     await db.users.create_index("email", unique=True)
     await db.users.create_index("id", unique=True)
+    await db.users.create_index("tenant_id")
     await db.user_sessions.create_index("session_token")
+    await db.tenants.create_index("id", unique=True)
     await db.ai_employees.create_index("provider_agent_id", unique=True)
     await db.ai_employees.create_index("tenant_id")
     await db.channels.create_index("tenant_id")
     await db.conversations.create_index("provider_conversation_id", unique=True)
     await db.conversations.create_index("tenant_id")
+    await db.conversations.create_index([("tenant_id", 1), ("created_at", -1)])
     await db.usage_ledger.create_index("event_id", unique=True)
+    await db.usage_ledger.create_index("tenant_id")
     await db.customization_requests.create_index("tenant_id")
     await db.business_integrations.create_index("tenant_id")
     await db.tools.create_index("tenant_id")
     await db.tool_invocation_log.create_index("tenant_id")
+    await db.tenant_pricing.create_index("tenant_id", unique=True)
+    await db.invoices.create_index("tenant_id")
+    await db.webhook_quarantine.create_index("created_at")
+    await db.audit_log.create_index("tenant_id")
 
 
 async def _upsert(collection, doc):

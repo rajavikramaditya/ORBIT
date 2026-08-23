@@ -29,8 +29,8 @@ export default function Channels() {
           <span className="font-medium">{c.assigned_ai_employee_name || "Unassigned"}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-zinc-500">Provider</span>
-          <span className="font-medium">{c.type === "phone" ? "Exotel" : "WhatsApp"}</span>
+          <span className="text-zinc-500">Managed by</span>
+          <span className="font-medium">ORBIT</span>
         </div>
       </div>
       {c.status === "action_required" && (
@@ -57,7 +57,7 @@ export default function Channels() {
         <div className="grid md:grid-cols-2 gap-4">
           {phone.length === 0 && whatsapp.length === 0 && (
             <div className="md:col-span-2 rounded-2xl border border-black/5 bg-white p-10 text-center text-sm text-zinc-500">
-              No channels connected yet.
+              No channels yet. ORBIT configures your phone and WhatsApp during onboarding.
             </div>
           )}
           {phone.map((c) => <ChannelCard key={c.id} c={c} icon={Phone} color="bg-zinc-900" />)}

@@ -7,7 +7,7 @@ import uuid
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://orbit-phone-ai.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001").rstrip("/")
 API = f"{BASE_URL}/api"
 WEBHOOK_SECRET = "orbit_whsec_3a9f7c2e1b8d6045a3c9e7f1b2d4a6c8"
 
@@ -137,11 +137,13 @@ class TestWebhook:
                           headers={"X-Orbit-Signature": _sig(raw), "Content-Type": "application/json"})
         assert r.status_code == 200, r.text
         assert r.json()["status"] == "ingested"
+        ingested_id = r.json()["conversation"]["id"]
 
-        # Verify appears under Taj
+        # Verify appears under Taj (tenant surface never exposes provider IDs)
         s, _ = _login(TAJ)
         convs = s.get(f"{API}/tenant/conversations").json()
-        assert any(c["provider_conversation_id"] == conv_id for c in convs)
+        assert any(c["id"] == ingested_id for c in convs)
+        assert all("provider_conversation_id" not in c and "provider" not in c for c in convs)
 
         # (b) Duplicate
         r2 = requests.post(f"{API}/webhooks/elevenlabs/post-call", data=raw,
@@ -180,6 +182,19 @@ class TestWebhook:
         assert r.status_code == 401
 
 
+# ---------- Health ----------
+class TestHealth:
+    def test_liveness(self):
+        r = requests.get(f"{API}/", timeout=15)
+        assert r.status_code == 200
+        assert r.json().get("status") == "ok"
+
+    def test_readiness(self):
+        r = requests.get(f"{API}/health", timeout=15)
+        assert r.status_code == 200
+        assert r.json().get("status") == "ok"
+
+
 # ---------- Admin console ----------
 class TestAdminConsole:
     def test_stats_and_tenants(self):
@@ -202,6 +217,12 @@ class TestAdminConsole:
         })
         assert r.status_code == 200, r.text
         tenant_id = r.json()["id"]
+        assert r.json().get("environment") == "demo"
+        assert r.json().get("status") == "onboarding"
+
+        # Incomplete tenants cannot be marked live
+        r_live = s.patch(f"{API}/admin/tenants/{tenant_id}/status", json={"status": "live"})
+        assert r_live.status_code == 400, r_live.text
 
         # Attach AI employee
         agent_id = f"agent_test_{uuid.uuid4().hex[:8]}"
