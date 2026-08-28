@@ -13,14 +13,17 @@ class TelephonyProvider:
 
 
 class ExotelProvider(TelephonyProvider):
-    """MOCKED Exotel telephony provider."""
+    """Exotel telephony boundary. connect_number only records the identifier.
+    Live verification is a real HTTP call. Outbound calling is not implemented."""
     name = "exotel"
 
     def connect_number(self, tenant_id: str, number: str) -> dict:
-        return {"status": "connected", "provider": "exotel", "number": number, "connected_at": now_iso()}
+        from channel_adapters import exotel_adapter
+        return exotel_adapter.connect_number(tenant_id, number)
 
     def initiate_call(self, from_number: str, to_number: str, agent_id: str, direction: str) -> dict:
-        return {"provider_call_id": gen_id("exocall_"), "status": "initiated", "direction": direction}
+        from channel_adapters import exotel_adapter
+        return exotel_adapter.initiate_call(from_number, to_number, agent_id, direction)
 
 
 _SCENARIOS = [
@@ -108,8 +111,13 @@ class ElevenLabsProvider:
 
 
 class WhatsAppProvider:
-    """MOCKED ElevenLabs-supported WhatsApp provider (managed onboarding)."""
+    """WhatsApp boundary. Conversational replies and catalogue send stay in ElevenLabs.
+    ORBIT maps inbound messages and persists leads when a webhook arrives."""
     name = "elevenlabs_whatsapp"
+
+    def send_catalogue(self, *args, **kwargs) -> dict:
+        from channel_adapters import whatsapp_adapter
+        return whatsapp_adapter.send_catalogue(*args, **kwargs)
 
 
 exotel = ExotelProvider()

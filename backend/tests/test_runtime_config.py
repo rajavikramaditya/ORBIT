@@ -55,3 +55,19 @@ def test_production_accepts_dedicated_config():
 def test_development_skips_production_guards():
     assert production_config_errors({"ORBIT_ENV": "development", "DB_NAME": "orbit_dev"}) == []
     assert is_production({"ORBIT_ENV": "development"}) is False
+
+
+def test_production_start_does_not_require_provider_keys():
+    """Process may start without ElevenLabs/Exotel/Meta. Missing keys stay credentials_required, never fake Live."""
+    errors = production_config_errors({
+        "ORBIT_ENV": "production",
+        "DB_NAME": "orbit",
+        "JWT_SECRET": "x" * 32,
+        "WEBHOOK_SECRET": "unique-production-webhook-secret",
+        "COOKIE_SECURE": "true",
+        "ADMIN_PASSWORD": "unique-admin-password",
+        "ADMIN_EMAIL": "ops@example.com",
+        "MONGO_URL": "mongodb+srv://user:pass@cluster/orbit",
+        "FRONTEND_URL": "https://app.example.com",
+    })
+    assert errors == []

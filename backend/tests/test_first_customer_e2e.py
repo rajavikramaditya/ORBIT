@@ -132,9 +132,10 @@ class TestFirstCustomerLifecycleE2E:
         assert res_1["result"]["available"] is True
         assert res_1["result"]["rate"]["amount"] == 14500
 
-        # Tenant 2 does not have Royal Heritage Suite
-        assert res_2["result"]["available"] is True
-        assert res_2["result"]["rate"]["amount"] == 6000  # returns their own default rate, never tenant 1's
+        # Tenant 2 does not have Royal Heritage Suite — do not invent Tenant 2's first rate.
+        assert res_2["result"].get("found") is False
+        assert res_2["result"]["available"] is False
+        assert "rate" not in res_2["result"] or res_2["result"].get("rate") is None
 
     def test_step_07_action_confirmation_gating(self):
         """Action tools cannot be run silently; they require confirmation."""

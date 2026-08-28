@@ -12,6 +12,7 @@ import AIEmployees from "@/pages/tenant/AIEmployees";
 import Channels from "@/pages/tenant/Channels";
 import Integrations from "@/pages/tenant/Integrations";
 import Conversations from "@/pages/tenant/Conversations";
+import Leads from "@/pages/tenant/Leads";
 import Customization from "@/pages/tenant/Customization";
 import Billing from "@/pages/tenant/Billing";
 import Settings from "@/pages/tenant/Settings";
@@ -55,6 +56,7 @@ function AppRoutes() {
         <Route path="integrations" element={<Integrations />} />
         <Route path="live-data" element={<BusinessData />} />
         <Route path="conversations" element={<Conversations />} />
+        <Route path="leads" element={<Leads />} />
         <Route path="customization" element={<Customization />} />
         <Route path="billing" element={<Billing />} />
         <Route path="settings" element={<Settings />} />

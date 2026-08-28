@@ -381,13 +381,38 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
                   <div className="text-xs font-semibold text-zinc-800 uppercase tracking-wider">
                     Onboarding Stage: <span className="text-zinc-900 font-bold capitalize">{d.readiness.onboarding_stage?.replace(/_/g, " ")}</span>
                   </div>
-                  <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${
-                    d.readiness.ready_for_live
-                      ? "bg-emerald-100 text-emerald-800"
-                      : "bg-amber-100 text-amber-800"
-                  }`}>
-                    {d.readiness.ready_for_live ? "Ready for Live" : `${d.readiness.blockers?.length || 0} Blockers`}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {d.readiness.operational_state && (
+                      <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-zinc-100 text-zinc-700 capitalize" data-testid="operational-state">
+                        {(d.readiness.operational_state || "").replace(/_/g, " ")}
+                      </span>
+                    )}
+                    <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${
+                      d.readiness.ready_for_live
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-amber-100 text-amber-800"
+                    }`}>
+                      {d.readiness.ready_for_live ? "Ready for Live" : `${d.readiness.blockers?.length || 0} Blockers`}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-xs text-zinc-500">Channels in this customer&apos;s plan</div>
+                  <Select value={d.readiness.channel_plan || "phone_and_whatsapp"} onValueChange={async (channel_plan) => {
+                    try {
+                      await api.patch(`/admin/tenants/${tenantId}/channel-plan`, { channel_plan });
+                      toast.success("Channel plan updated");
+                      refresh();
+                    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+                  }}>
+                    <SelectTrigger className="h-8 w-48" data-testid="channel-plan-select"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="phone">Phone only</SelectItem>
+                      <SelectItem value="whatsapp">WhatsApp only</SelectItem>
+                      <SelectItem value="phone_and_whatsapp">Phone + WhatsApp</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="text-xs text-zinc-500">
@@ -653,9 +678,12 @@ function QuarantineTab() {
 
 const STATUS_COLORS = {
   live: "bg-emerald-50 text-emerald-700", connected: "bg-emerald-50 text-emerald-700", ok: "bg-emerald-50 text-emerald-700", paid: "bg-emerald-50 text-emerald-700",
+  verified: "bg-emerald-50 text-emerald-700", ready: "bg-emerald-50 text-emerald-700",
   configured: "bg-blue-50 text-blue-700", integrating: "bg-blue-50 text-blue-700", issued: "bg-blue-50 text-blue-700",
   testing: "bg-amber-50 text-amber-700", action_required: "bg-amber-50 text-amber-700", warning: "bg-amber-50 text-amber-700", credentials_required: "bg-amber-50 text-amber-700", due: "bg-amber-50 text-amber-700", payment_config_required: "bg-amber-50 text-amber-700",
+  pending: "bg-amber-50 text-amber-700", ready_for_test: "bg-blue-50 text-blue-700", blocked: "bg-amber-50 text-amber-700", onboarding: "bg-amber-50 text-amber-700",
   not_connected: "bg-zinc-100 text-zinc-500", draft: "bg-zinc-100 text-zinc-500", demo: "bg-zinc-100 text-zinc-500",
+  not_configured: "bg-zinc-100 text-zinc-500", not_included: "bg-zinc-100 text-zinc-500",
   suspended: "bg-red-50 text-red-700", error: "bg-red-50 text-red-700", capped: "bg-red-50 text-red-700", failed: "bg-red-50 text-red-700",
 };
 const Pill = ({ v, label }) => (
@@ -765,7 +793,7 @@ function OperationsTab() {
         <div className="rounded-2xl border border-black/5 bg-white overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="text-left text-xs text-zinc-400 border-b border-black/5">
-              <th className="px-4 py-3">Tenant</th><th className="px-3 py-3">Env</th><th className="px-3 py-3">AI</th>
+              <th className="px-4 py-3">Tenant</th><th className="px-3 py-3">Env</th><th className="px-3 py-3">Plan</th><th className="px-3 py-3">State</th><th className="px-3 py-3">AI</th>
               <th className="px-3 py-3">Phone</th><th className="px-3 py-3">WhatsApp</th><th className="px-3 py-3">Business</th><th className="px-3 py-3">Billing</th>
               <th className="px-3 py-3">Go-live</th>
             </tr></thead>
@@ -774,6 +802,8 @@ function OperationsTab() {
                 <tr key={r.tenant_id} className="border-b border-black/5 last:border-0" data-testid="ops-row">
                   <td className="px-4 py-3 font-medium">{r.name}</td>
                   <td className="px-3 py-3"><Pill v={r.environment} /></td>
+                  <td className="px-3 py-3"><Pill v={r.channel_plan} /></td>
+                  <td className="px-3 py-3"><Pill v={r.operational_state} /></td>
                   <td className="px-3 py-3"><Pill v={r.ai_employee} /></td>
                   <td className="px-3 py-3"><Pill v={r.phone} /></td>
                   <td className="px-3 py-3"><Pill v={r.whatsapp} /></td>
@@ -817,6 +847,7 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
   const issueInv = (id) => wrap(() => api.post(`/admin/invoices/${id}/issue`), "Invoice issued");
   const verifyVoice = (aeId) => wrap(async () => { const r = await api.post(`/admin/ai-employees/${aeId}/verify-voice`); toast.message(r.data.message); });
   const verifyTel = (chId) => wrap(async () => { const r = await api.post(`/admin/channels/${chId}/verify-telephony`); toast.message(r.data.message); });
+  const verifyWa = (chId) => wrap(async () => { const r = await api.post(`/admin/channels/${chId}/verify-whatsapp`); toast.message(r.data.message); });
   const saveKb = () => wrap(() => api.patch(`/admin/ai-employees/${ae0.id}/knowledge`, kb), "Knowledge base saved");
 
   const num = (k) => (
@@ -834,8 +865,11 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
         <div className="rounded-xl border border-black/5 p-4" data-testid="readiness-checklist">
           <div className="flex items-center justify-between mb-3">
             <div className="text-sm font-medium">Go-live checklist</div>
-            <Pill v={readiness.is_live ? "live" : (readiness.ready_for_live ? "ok" : "action_required")}
-              label={readiness.is_live ? "Live" : (readiness.ready_for_live ? "Ready for live" : `${readiness.blockers.length} pending`)} />
+            <div className="flex items-center gap-1.5">
+              {readiness.operational_state && <Pill v={readiness.operational_state} />}
+              <Pill v={readiness.is_live ? "live" : (readiness.ready_for_live ? "ok" : "action_required")}
+                label={readiness.is_live ? "Live" : (readiness.ready_for_live ? "Ready for live" : `${readiness.blockers.length} pending`)} />
+            </div>
           </div>
           <div className="space-y-1.5">
             {readiness.items.map((it) => (
@@ -869,6 +903,10 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
       {prov && (
         <div className="rounded-xl border border-black/5 p-4 space-y-3">
           <div className="flex items-center gap-2 text-sm font-medium"><KeyRound className="w-4 h-4" /> Provider connections</div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-zinc-600">ElevenLabs webhooks</span>
+            <Pill v={prov.elevenlabs.webhooks_configured ? "verified" : "credentials_required"} />
+          </div>
           {prov.elevenlabs.agents.map((a) => (
             <div key={a.ai_employee_id} className="flex items-center justify-between text-sm" data-testid="prov-voice">
               <span className="text-zinc-600">Voice · {a.name}</span>
@@ -881,9 +919,15 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
               <div className="flex items-center gap-2"><Pill v={n.status} /><Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={() => verifyTel(n.channel_id)}>Verify</Button></div>
             </div>
           ))}
+          {(prov.whatsapp?.numbers || []).map((n) => (
+            <div key={n.channel_id} className="flex items-center justify-between text-sm" data-testid="prov-wa">
+              <span className="text-zinc-600">WhatsApp · {n.number}</span>
+              <div className="flex items-center gap-2"><Pill v={n.status} /><Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={() => verifyWa(n.channel_id)}>Verify</Button></div>
+            </div>
+          ))}
           <div className="flex items-center justify-between text-sm">
             <span className="text-zinc-600">Payments · Razorpay</span>
-            <Pill v={prov.razorpay.credentials_configured ? "connected" : "credentials_required"} />
+            <Pill v={prov.razorpay.credentials_configured ? "configured" : "credentials_required"} />
           </div>
         </div>
       )}

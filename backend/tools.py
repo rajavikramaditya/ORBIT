@@ -13,7 +13,7 @@ Safety guarantees:
 """
 from db import db, write_audit
 from models import gen_id, now_iso
-from connectors import get_mock_connector, get_live_connector, connector_supports
+from connectors import get_mock_connector, get_live_connector, get_orbit_live_connector, connector_supports
 
 
 async def run_tool(tool: dict, tenant_id: str, args: dict | None = None,

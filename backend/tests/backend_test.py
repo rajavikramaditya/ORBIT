@@ -255,16 +255,18 @@ class TestAdminConsole:
         assert r6.status_code == 400
 
         # Connect phone channel
+        number = f"+91 22 {uuid.uuid4().hex[:4]} {uuid.uuid4().hex[:4]}"
         r7 = s.post(f"{API}/admin/tenants/{tenant_id}/channels", json={
-            "type": "phone", "connected_identifier": "+91 22 0000 0000",
+            "type": "phone", "connected_identifier": number,
             "assigned_ai_employee_id": ae["id"]
         })
         assert r7.status_code == 200, r7.text
-        assert r7.json()["status"] == "connected"
+        assert r7.json()["status"] in ("configured", "credentials_required")
+        assert r7.json()["status"] != "connected"
 
-        # WhatsApp
+        # WhatsApp (same digits, different channel type)
         r8 = s.post(f"{API}/admin/tenants/{tenant_id}/channels", json={
-            "type": "whatsapp", "connected_identifier": "+91 22 0000 0000",
+            "type": "whatsapp", "connected_identifier": number,
         })
         assert r8.status_code == 200
         assert r8.json()["status"] == "action_required"
@@ -305,13 +307,15 @@ class TestTenantDashboard:
 
     def test_simulate_call_creates_conversation(self):
         s, _ = _login(TAJ)
-        before = len(s.get(f"{API}/tenant/conversations").json())
         r = s.post(f"{API}/tenant/simulate-call", json={"direction": "inbound"})
         assert r.status_code == 200, r.text
         conv = r.json()
         assert conv["tenant_id"] == "tenant_taj_palace"
-        after = len(s.get(f"{API}/tenant/conversations").json())
-        assert after == before + 1
+        assert conv.get("id")
+        detail = s.get(f"{API}/tenant/conversations/{conv['id']}")
+        assert detail.status_code == 200
+        listed = s.get(f"{API}/tenant/conversations").json()
+        assert any(c["id"] == conv["id"] for c in listed) or len(listed) >= 200
 
     def test_conversation_detail_includes_transcript(self):
         s, _ = _login(TAJ)

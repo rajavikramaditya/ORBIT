@@ -48,6 +48,7 @@ app.include_router(routes_auth.router)
 app.include_router(routes_admin.router)
 app.include_router(routes_tenant.router)
 app.include_router(routes_webhooks.router)
+app.include_router(routes_webhooks.intake_router)
 app.include_router(routes_business.router)
 app.include_router(routes_billing.router)
 

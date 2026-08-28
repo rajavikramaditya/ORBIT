@@ -1,6 +1,7 @@
 import os
 import hmac
 import hashlib
+import time
 import bcrypt
 import jwt
 import requests
@@ -164,14 +165,45 @@ def verify_webhook_signature(raw_body: bytes, signature: str) -> bool:
     return hmac.compare_digest(sign_webhook(raw_body), signature or "")
 
 
+_ELEVENLABS_REPLAY_WINDOW_SECS = 30 * 60
+
+
 def verify_elevenlabs_signature(raw_body: bytes, header: str, secret: str) -> bool:
-    """Production ElevenLabs post-call webhook signature (HMAC-SHA256).
-    Header format: 't=<ts>,v0=<hex>' or a plain hex digest."""
+    """ElevenLabs ConvAI webhook HMAC-SHA256.
+
+    Documented header: ``t=<unix>,v0=<hex>`` over ``f"{timestamp}.{body}"``.
+    Also accepts a plain hex digest over the raw body. Timestamped signatures
+    older than 30 minutes are rejected (replay protection).
+    """
     if not header or not secret:
         return False
+    timestamp = None
     sig = header
-    if "v0=" in header:
+    if "," in header or header.startswith("t=") or "v0=" in header:
         parts = dict(p.split("=", 1) for p in header.split(",") if "=" in p)
-        sig = parts.get("v0", "")
+        timestamp = parts.get("t")
+        sig = parts.get("v0") or parts.get("v1") or ""
+        if not sig:
+            return False
+        if timestamp is not None:
+            try:
+                ts = int(timestamp)
+            except (TypeError, ValueError):
+                return False
+            if abs(time.time() - ts) > _ELEVENLABS_REPLAY_WINDOW_SECS:
+                return False
+            signed = timestamp.encode() + b"." + raw_body
+            expected = hmac.new(secret.encode(), signed, hashlib.sha256).hexdigest()
+            if hmac.compare_digest(expected, sig):
+                return True
+    expected_body = hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected_body, sig)
+
+
+def verify_meta_signature(raw_body: bytes, header: str, secret: str) -> bool:
+    """Meta Cloud API X-Hub-Signature-256 header."""
+    if not header or not secret:
+        return False
+    provided = header.split("=", 1)[-1] if "=" in header else header
     expected = hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
-    return hmac.compare_digest(expected, sig)
+    return hmac.compare_digest(expected, provided)

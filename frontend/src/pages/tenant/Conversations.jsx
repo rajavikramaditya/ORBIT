@@ -124,9 +124,11 @@ export default function Conversations() {
                 </div>
               )}
 
+              {detail.recording_ref && (
               <div className="flex items-center gap-2 rounded-xl border border-black/5 px-4 py-3 text-sm text-zinc-500">
-                <Play className="w-4 h-4" /> Recording: <span className="font-mono text-xs">{detail.recording_ref}</span>
+                <Play className="w-4 h-4" /> Recording reference: <span className="font-mono text-xs break-all">{detail.recording_ref}</span>
               </div>
+              )}
 
               <div>
                 <div className="text-sm font-semibold mb-3">Transcript</div>

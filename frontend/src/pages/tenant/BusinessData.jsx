@@ -107,6 +107,7 @@ export default function BusinessData() {
       if (data.refund_policy) payload.refund_policy = data.refund_policy;
       if (data.active_offer) payload.active_offer = data.active_offer;
       if (data.seasonal_note) payload.seasonal_note = data.seasonal_note;
+      if (data.catalogue_url) payload.catalogue_url = data.catalogue_url;
       const r = await api.patch("/tenant/live-data", payload);
       setData(r.data);
       toast.success("Live data updated — your AI will use these on the next call");
@@ -253,6 +254,15 @@ export default function BusinessData() {
             value={data.seasonal_note || ""}
             onChange={(e) => setField("seasonal_note", e.target.value)}
           />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs text-zinc-500">Catalogue or brochure URL</Label>
+          <Input
+            placeholder="https://…"
+            value={data.catalogue_url || ""}
+            onChange={(e) => setField("catalogue_url", e.target.value)}
+          />
+          <p className="text-[11px] text-zinc-400">Stored for your AI to share. WhatsApp sending stays with the conversation engine.</p>
         </div>
       </section>
 

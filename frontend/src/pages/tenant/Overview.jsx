@@ -90,7 +90,7 @@ export default function Overview() {
               { key: "business_details", label: "1. Business Setup" },
               { key: "ai_employee_setup", label: "2. AI Employee" },
               { key: "business_data", label: "3. Information" },
-              { key: "channel_setup", label: "4. Phone Line" },
+              { key: "channel_setup", label: "4. Channels" },
               { key: "testing", label: "5. Testing" },
               { key: "ready_for_approval", label: "6. Approval" },
               { key: "live", label: "7. Go Live" },
@@ -120,6 +120,19 @@ export default function Overview() {
               );
             })}
           </div>
+
+          {ready.progress?.length > 0 && (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2" data-testid="readiness-progress">
+              {ready.progress.map((row) => (
+                <div key={row.label} className="rounded-xl border border-black/5 bg-zinc-50 px-3 py-2.5 flex items-center justify-between gap-2">
+                  <span className="text-xs font-medium text-zinc-700">{row.label}</span>
+                  <span className={`text-[11px] font-semibold ${row.status === "ready" ? "text-emerald-700" : "text-amber-800"}`}>
+                    {row.status === "ready" ? "✓ Ready" : row.detail}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* What We Need From You / What ORBIT Is Handling */}
           {(ready.needs_from_you?.length > 0 || ready.waiting_for_orbit?.length > 0) && (

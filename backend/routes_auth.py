@@ -54,6 +54,8 @@ async def _create_tenant_with_owner(email, name, hotel_name, password=None, auth
 async def register(body: RegisterBody, request: Request, response: Response):
     enforce_auth_rate_limit(request)
     email = body.email.lower()
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(status_code=400, detail="An account with this email already exists")
     b_name = body.business_name or body.hotel_name or "My Business"
     user = await _create_tenant_with_owner(email, body.name, b_name, body.password)
     token = create_access_token(user["id"], email)

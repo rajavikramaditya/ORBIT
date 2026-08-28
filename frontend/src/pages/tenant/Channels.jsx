@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Phone, MessageCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { Phone, MessageCircle, AlertTriangle, Loader2, Globe } from "lucide-react";
 import { api } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 
@@ -12,6 +12,7 @@ export default function Channels() {
 
   const phone = items?.filter((c) => c.type === "phone") || [];
   const whatsapp = items?.filter((c) => c.type === "whatsapp") || [];
+  const form = items?.filter((c) => c.type === "form") || [];
 
   const ChannelCard = ({ c, icon: Icon, color }) => (
     <div className="rounded-2xl border border-black/5 bg-white p-6" data-testid={`channel-${c.type}`}>
@@ -21,8 +22,8 @@ export default function Channels() {
       </div>
       <div className="mt-5 space-y-3">
         <div className="flex items-center justify-between text-sm">
-          <span className="text-zinc-500">{c.type === "phone" ? "Connected number" : "Account"}</span>
-          <span className="font-medium">{c.connected_identifier || "—"}</span>
+          <span className="text-zinc-500">{c.type === "phone" ? "Connected number" : c.type === "form" ? "Intake" : "Account"}</span>
+          <span className="font-medium">{c.intake_path || c.connected_identifier || "—"}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-zinc-500">Assigned AI employee</span>
@@ -33,14 +34,14 @@ export default function Channels() {
           <span className="font-medium">ORBIT</span>
         </div>
       </div>
-      {c.status === "action_required" && (
+      {c.status === "action_required" || c.status === "setup_in_progress" ? (
         <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3" data-testid="action-required-banner">
           <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
           <p className="text-sm text-amber-800 leading-relaxed">
-            {c.meta?.note || "Onboarding steps pending. The ORBIT team is completing setup — no action needed from you."}
+            {c.meta?.note || "ORBIT setup team is completing this connection — no action needed from you."}
           </p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 
@@ -55,13 +56,14 @@ export default function Channels() {
 
       {items && (
         <div className="grid md:grid-cols-2 gap-4">
-          {phone.length === 0 && whatsapp.length === 0 && (
+          {phone.length === 0 && whatsapp.length === 0 && form.length === 0 && (
             <div className="md:col-span-2 rounded-2xl border border-black/5 bg-white p-10 text-center text-sm text-zinc-500">
               No channels yet. ORBIT configures your phone and WhatsApp during onboarding.
             </div>
           )}
           {phone.map((c) => <ChannelCard key={c.id} c={c} icon={Phone} color="bg-zinc-900" />)}
           {whatsapp.map((c) => <ChannelCard key={c.id} c={c} icon={MessageCircle} color="bg-green-600" />)}
+          {form.map((c) => <ChannelCard key={c.id} c={c} icon={Globe} color="bg-zinc-700" />)}
         </div>
       )}
     </div>

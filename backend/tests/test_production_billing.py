@@ -188,7 +188,8 @@ class TestOperations:
             assert k in items
         assert items["saas"] == "ok"
         assert items["database"] == "ok"
-        assert items["whatsapp"] == "action_required"
+        assert items["whatsapp"] in ("credentials_required", "configured")
+        assert items["whatsapp"] != "ok"
         # Unconfigured providers must not be reported as healthy; configured ones may be ok.
         for k in ("voice", "telephony", "payments"):
             assert items[k] in ("ok", "credentials_required")

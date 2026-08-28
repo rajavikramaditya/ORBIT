@@ -103,6 +103,9 @@ LIFECYCLE_TRANSITIONS = {
 }
 
 TENANT_STATUSES = {"onboarding", "live", "suspended"}
+# Derived operational state (not a stored tenant.status value).
+OPERATIONAL_STATES = {"onboarding", "ready_for_test", "live", "suspended", "blocked"}
+CHANNEL_PLANS = {"phone", "whatsapp", "phone_and_whatsapp"}
 
 # Standard customer-journey onboarding stages
 ONBOARDING_STAGES = [
@@ -122,10 +125,10 @@ ONBOARDING_STAGE_LABELS_CUSTOMER = {
     "business_details": "Business setup",
     "ai_employee_setup": "AI employee setup",
     "business_data": "Business information",
-    "channel_setup": "Phone & channels",
+    "channel_setup": "Channels",
     "testing": "Testing & preview",
     "ready_for_approval": "Ready for approval",
-    "live": "Live taking calls",
+    "live": "Live and active",
 }
 
 INTEGRATION_STATUSES = {
@@ -195,6 +198,10 @@ class EnvironmentBody(BaseModel):
     environment: str  # demo | production
 
 
+class ChannelPlanBody(BaseModel):
+    channel_plan: str  # phone | whatsapp | phone_and_whatsapp
+
+
 class KnowledgeBaseBody(BaseModel):
     business_info: Optional[str] = None
     services: Optional[str] = None
@@ -244,8 +251,26 @@ class LiveDataBody(BaseModel):
     # Special offers / announcements
     active_offer: Optional[str] = None        # e.g. "20% off on Deluxe rooms this weekend"
     seasonal_note: Optional[str] = None       # e.g. "Diwali special package available"
+    catalogue_url: Optional[str] = None
+    services: Optional[list] = None
     # Extra free-form key-value pairs for business-specific data
     extra: Optional[dict] = None
+
+
+class FormIntakeBody(BaseModel):
+    source: Optional[str] = None
+    customer_name: Optional[str] = None
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    customer_phone: Optional[str] = None
+    email: Optional[str] = None
+    customer_email: Optional[str] = None
+    requirement: Optional[str] = None
+    message: Optional[str] = None
+    enquiry: Optional[str] = None
+    owner_callback_requested: Optional[bool] = False
+    idempotency_key: Optional[str] = None
+    tenant_id: Optional[str] = None  # ignored if present
 
 
 # ---- Password Reset ----
@@ -256,4 +281,38 @@ class ForgotPasswordBody(BaseModel):
 class ResetPasswordBody(BaseModel):
     token: str
     new_password: str = Field(min_length=6)
+
+
+# ---- Inbound enquiry / lead (not a CRM) ----
+# Sources are labels only. Unknown stays unknown — never invented.
+LEAD_SOURCES = {"phone", "whatsapp", "website", "instagram", "facebook", "form", "unknown"}
+# Operational lifecycle — not a sales pipeline board.
+LEAD_STATUSES = {"new", "contacted", "qualified", "follow_up", "unqualified", "won", "lost"}
+# Allowed owner/system moves. Same-status is always allowed. Terminal: won, lost.
+LEAD_TRANSITIONS = {
+    "new": {"contacted", "qualified", "follow_up", "unqualified", "won", "lost"},
+    "contacted": {"qualified", "follow_up", "unqualified", "won", "lost"},
+    "qualified": {"contacted", "follow_up", "won", "lost"},
+    "follow_up": {"contacted", "qualified", "won", "lost", "unqualified"},
+    "unqualified": {"contacted", "follow_up", "lost"},
+    "won": set(),
+    "lost": set(),
+}
+QUALIFICATION_STATUSES = {"unknown", "unqualified", "qualified"}
+CALLBACK_STATUSES = {"requested", "contacted", "completed", "cancelled"}
+INTENT_LEVELS = {"high", "medium", "low"}
+URGENCY_LEVELS = {"high", "medium", "low"}
+ORBIT_LEAD_PERSIST_TOOLS = {"capture_lead", "qualify_lead", "request_owner_callback"}
+# Older persisted values mapped when read/written.
+LEAD_STATUS_ALIASES = {"converted": "won", "other": "unknown", "social": "unknown"}
+
+
+class LeadPatchBody(BaseModel):
+    lead_status: Optional[str] = None
+    qualification_status: Optional[str] = None
+    follow_up_required: Optional[bool] = None
+    follow_up_at: Optional[str] = None
+    notes: Optional[str] = None
+    lost_reason: Optional[str] = None
+    owner_callback_requested: Optional[bool] = None
 

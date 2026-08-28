@@ -1,19 +1,26 @@
 from fastapi import APIRouter, Depends, HTTPException
-from db import db
+from db import db, write_audit
 from models import (
     TenantProfileBody, CustomizationRequestBody, SimulateCallBody,
-    LiveDataBody, gen_id, now_iso,
+    LiveDataBody, LeadPatchBody, gen_id, now_iso,
 )
 from security import require_tenant_user
 from providers import elevenlabs
 from ingest import ingest_post_call
 from tools import run_tool
+from leads import public_lead, persist_owner_callback, owner_patch_updates
+from provisioning import (
+    telephony_status, whatsapp_status,
+    customer_facing_channel_status, infer_channel_plan, channel_selected,
+)
 
 router = APIRouter(prefix="/api/tenant", tags=["tenant"])
 
 
 # Fields a customer is allowed to self-serve (Correction 5 matrix).
 PROFILE_FIELDS = {"logo_url", "website", "address", "contact_email", "contact_phone", "description"}
+# Provider identifiers are internal infrastructure — never sent to customers.
+CONV_TENANT_PROJECTION = {"_id": 0, "provider": 0, "provider_conversation_id": 0, "provider_agent_id": 0}
 
 
 def tid(user):
@@ -23,7 +30,9 @@ def tid(user):
 @router.get("/overview")
 async def overview(user=Depends(require_tenant_user)):
     t = tid(user)
-    recent = await db.conversations.find({"tenant_id": t}, {"_id": 0, "transcript": 0}).sort("created_at", -1).to_list(6)
+    recent = await db.conversations.find(
+        {"tenant_id": t}, {**CONV_TENANT_PROJECTION, "transcript": 0}
+    ).sort("created_at", -1).to_list(6)
     total_secs = 0
     async for ev in db.usage_ledger.find({"tenant_id": t}, {"_id": 0, "quantity_secs": 1}):
         total_secs += ev.get("quantity_secs", 0)
@@ -41,7 +50,7 @@ async def overview(user=Depends(require_tenant_user)):
 
 @router.get("/profile")
 async def get_profile(user=Depends(require_tenant_user)):
-    t = await db.tenants.find_one({"id": tid(user)}, {"_id": 0})
+    t = await db.tenants.find_one({"id": tid(user)}, {"_id": 0, "intake_key": 0})
     if not t:
         raise HTTPException(status_code=404, detail="Tenant not found")
     return t
@@ -65,7 +74,7 @@ async def update_profile(body: TenantProfileBody, user=Depends(require_tenant_us
             updates[f"profile.{f}"] = data[f]
     if updates:
         await db.tenants.update_one({"id": tid(user)}, {"$set": updates})
-    return await db.tenants.find_one({"id": tid(user)}, {"_id": 0})
+    return await db.tenants.find_one({"id": tid(user)}, {"_id": 0, "intake_key": 0})
 
 
 @router.get("/ai-employees")
@@ -77,18 +86,65 @@ async def ai_employees(user=Depends(require_tenant_user)):
     ).to_list(100)
 
 
+def _sanitize_owner_blockers(blockers: list) -> list:
+    """Owner copy never includes provider secret names or webhook/HMAC instructions."""
+    mapped = []
+    seen = set()
+    for raw in blockers or []:
+        low = (raw or "").lower()
+        if any(k in low for k in ("webhook", "elevenlabs", "exotel", "hmac", "api key", "credential", "meta_")):
+            text = "ORBIT setup team needs this information"
+        elif "phone" in low:
+            text = "Phone setup is being completed by ORBIT"
+        elif "whatsapp" in low:
+            text = "WhatsApp setup is being completed by ORBIT"
+        elif "voice provider" in low or ("verified" in low and "agent" in low):
+            text = "ORBIT setup team needs this information"
+        else:
+            text = raw
+        if text not in seen:
+            seen.add(text)
+            mapped.append(text)
+    return mapped
+
+
 @router.get("/channels")
 async def channels(user=Depends(require_tenant_user)):
+    tenant = await db.tenants.find_one({"id": tid(user)}, {"_id": 0})
+    phone = await db.channels.find_one({"tenant_id": tid(user), "type": "phone"}, {"_id": 0})
+    wa = await db.channels.find_one({"tenant_id": tid(user), "type": "whatsapp"}, {"_id": 0})
+    plan = infer_channel_plan(tenant, phone, wa)
+    is_live = (tenant or {}).get("status") == "live"
+    environment = (tenant or {}).get("environment", "demo")
+
     chans = await db.channels.find({"tenant_id": tid(user)}, {"_id": 0, "provider": 0}).to_list(100)
     for c in chans:
         if c.get("assigned_ai_employee_id"):
             ae = await db.ai_employees.find_one({"id": c["assigned_ai_employee_id"]}, {"_id": 0, "name": 1})
             c["assigned_ai_employee_name"] = ae["name"] if ae else None
+        c.pop("normalized_identifier", None)
+        if c.get("meta"):
+            meta = dict(c["meta"])
+            meta.pop("phone_number_id", None)
+            c["meta"] = meta
+        honest = telephony_status(c) if c.get("type") == "phone" else whatsapp_status(c)
+        c["status"] = customer_facing_channel_status(
+            c,
+            honest=honest,
+            in_plan=channel_selected(plan, c.get("type")),
+            is_live=is_live,
+            environment=environment,
+        )
+    if tenant and tenant.get("intake_key"):
+        chans.append({
+            "id": "ch_form_intake",
+            "type": "form",
+            "status": "ready",
+            "connected_identifier": "Website form",
+            "intake_path": f"/api/intake/{tenant['intake_key']}",
+            "assigned_ai_employee_name": None,
+        })
     return chans
-
-
-# Provider identifiers are internal infrastructure — never sent to customers.
-CONV_TENANT_PROJECTION = {"_id": 0, "provider": 0, "provider_conversation_id": 0}
 
 
 @router.get("/conversations")
@@ -104,6 +160,65 @@ async def conversation_detail(conv_id: str, user=Depends(require_tenant_user)):
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")
     return conv
+
+
+LEAD_TENANT_PROJECTION = {
+    "_id": 0, "provider_conversation_id": 0,
+}
+
+
+@router.get("/leads")
+async def list_leads(user=Depends(require_tenant_user)):
+    rows = await db.leads.find({"tenant_id": tid(user)}, LEAD_TENANT_PROJECTION).sort("created_at", -1).to_list(200)
+    return [public_lead(r) for r in rows]
+
+
+@router.get("/leads/{lead_id}")
+async def lead_detail(lead_id: str, user=Depends(require_tenant_user)):
+    lead = await db.leads.find_one({"id": lead_id, "tenant_id": tid(user)}, LEAD_TENANT_PROJECTION)
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    out = public_lead(lead)
+    if out.get("conversation_id"):
+        conv = await db.conversations.find_one(
+            {"id": out["conversation_id"], "tenant_id": tid(user)},
+            {**CONV_TENANT_PROJECTION, "transcript": 0},
+        )
+        out["conversation"] = conv
+    callbacks = await db.owner_callback_requests.find(
+        {"tenant_id": tid(user), "lead_id": lead_id}, {"_id": 0}
+    ).sort("requested_at", -1).to_list(20)
+    out["callback_requests"] = callbacks
+    return out
+
+
+@router.patch("/leads/{lead_id}")
+async def patch_lead(lead_id: str, body: LeadPatchBody, user=Depends(require_tenant_user)):
+    lead = await db.leads.find_one({"id": lead_id, "tenant_id": tid(user)}, {"_id": 0})
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    try:
+        updates = owner_patch_updates(lead, body)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if body.owner_callback_requested is True and not lead.get("owner_callback_requested"):
+        updates["owner_callback_requested"] = True
+        updates["owner_callback_status"] = "requested"
+        await persist_owner_callback(
+            tid(user),
+            lead_id=lead["id"],
+            conversation_id=lead.get("conversation_id"),
+            customer_name=lead.get("customer_name"),
+            customer_phone=lead.get("customer_phone"),
+            reason=lead.get("enquiry_summary"),
+        )
+    if not updates:
+        return public_lead(lead)
+    updates["updated_at"] = now_iso()
+    await db.leads.update_one({"id": lead_id, "tenant_id": tid(user)}, {"$set": updates})
+    await write_audit(user, "lead.update", lead_id, tid(user), {k: updates[k] for k in updates if k != "updated_at"})
+    updated = await db.leads.find_one({"id": lead_id, "tenant_id": tid(user)}, LEAD_TENANT_PROJECTION)
+    return public_lead(updated)
 
 
 @router.post("/simulate-call")
@@ -199,6 +314,8 @@ async def get_live_data(user=Depends(require_tenant_user)):
             "refund_policy": None,
             "active_offer": None,
             "seasonal_note": None,
+            "catalogue_url": None,
+            "services": [],
             "extra": {},
             "updated_at": None,
         }
@@ -232,20 +349,29 @@ async def readiness(user=Depends(require_tenant_user)):
     r = await compute_readiness(t)
     tenant = await db.tenants.find_one({"id": t}, {"_id": 0})
     profile = (tenant or {}).get("profile") or {}
+    extra = profile.get("extra") or {}
     profile_ok = bool(profile.get("contact_email") and profile.get("contact_phone") and profile.get("address"))
     live_data = await db.tenant_live_data.find_one({"tenant_id": t}, {"_id": 0})
-    has_manual_data = bool(live_data and (live_data.get("room_rates") or live_data.get("cancellation_policy") or live_data.get("check_in_time")))
+    has_manual_data = bool(live_data and (
+        live_data.get("room_rates") or live_data.get("cancellation_policy") or live_data.get("check_in_time")
+        or live_data.get("catalogue_url") or live_data.get("services")
+        or extra.get("hours") or extra.get("website") or extra.get("services")
+    ))
+    has_catalogue = bool(
+        (live_data or {}).get("catalogue_url") or extra.get("catalogue_url")
+        or extra.get("website") or profile.get("website")
+    )
 
     needs_from_you = []
     if not profile_ok:
         needs_from_you.append({
             "label": "Business profile",
-            "detail": "Add contact phone and address in Settings so ORBIT can finish onboarding.",
+            "detail": "ORBIT setup team needs this information — add contact phone and address in Settings.",
         })
     if not has_manual_data and r["data_source"] == "none":
         needs_from_you.append({
-            "label": "Business rates & policies",
-            "detail": "Add your standard rates, operating hours, or policies in Business Data so your AI employee can answer guest questions.",
+            "label": "Business information",
+            "detail": "ORBIT setup team needs this information — add services, hours, or policies in Business Data.",
         })
 
     waiting_for_orbit = []
@@ -253,24 +379,39 @@ async def readiness(user=Depends(require_tenant_user)):
     phone = await db.channels.find_one({"tenant_id": t, "type": "phone"}, {"_id": 0})
     wa = await db.channels.find_one({"tenant_id": t, "type": "whatsapp"}, {"_id": 0})
     integ = await db.business_integrations.find_one({"tenant_id": t}, {"_id": 0})
+    plan = r.get("channel_plan") or infer_channel_plan(tenant, phone, wa)
+    want_phone = channel_selected(plan, "phone")
+    want_wa = channel_selected(plan, "whatsapp")
+    environment = r.get("environment", "demo")
+    is_live = r.get("is_live") is True
+    phone_view = customer_facing_channel_status(
+        phone, honest=telephony_status(phone), in_plan=want_phone, is_live=is_live, environment=environment,
+    )
+    wa_view = customer_facing_channel_status(
+        wa, honest=whatsapp_status(wa), in_plan=want_wa, is_live=is_live, environment=environment,
+    )
 
     if not ae:
         waiting_for_orbit.append({"label": "AI employee assignment", "detail": "ORBIT will assign and fine-tune your dedicated AI employee."})
     elif ae.get("lifecycle_state") not in ("live", "approved"):
         waiting_for_orbit.append({"label": f"AI employee · {ae['name']}", "detail": "ORBIT is testing and verifying voice quality and behavior."})
-    if not phone or phone.get("status") in ("not_connected", "action_required"):
-        waiting_for_orbit.append({"label": "Dedicated phone line", "detail": "ORBIT is configuring your phone line. No action needed from you."})
-    if not wa or wa.get("status") in ("not_connected", "action_required"):
+    if want_phone and (not phone or phone.get("status") in ("not_connected", "action_required") or phone_view == "setup_in_progress") and phone_view != "ready":
+        waiting_for_orbit.append({"label": "Phone", "detail": "ORBIT is configuring your phone line. No action needed from you."})
+    # Keep listing an existing incomplete WhatsApp channel even if it is not in the plan
+    # (seeded demo tenants may have a recorded WhatsApp number still in onboarding).
+    show_wa_wait = want_wa or (wa and wa.get("status") in ("not_connected", "action_required"))
+    if show_wa_wait and (not wa or wa.get("status") in ("not_connected", "action_required") or wa_view in ("setup_in_progress", "action_required", "not_connected")) and wa_view != "ready":
         waiting_for_orbit.append({"label": "WhatsApp channel", "detail": "WhatsApp business setup is being handled by ORBIT."})
     if integ and integ.get("status") not in ("connected", "ok"):
         waiting_for_orbit.append({"label": f"Integration · {integ.get('name')}", "detail": "ORBIT is connecting your external business system."})
 
     configured = []
     if ae and ae.get("lifecycle_state") in ("live", "approved", "testing"):
+        configured.append(ae["name"])
         configured.append(f"AI Employee ({ae['name']})")
-    if phone and phone.get("status") in ("connected", "ok"):
+    if phone_view == "ready" or (phone and phone.get("status") in ("connected", "ok", "verified")):
         configured.append("Phone channel")
-    if wa and wa.get("status") in ("connected", "ok"):
+    if wa_view == "ready" or (wa and wa.get("status") in ("connected", "ok", "verified")):
         configured.append("WhatsApp channel")
     if r["data_source"] == "connected":
         configured.append(f"Connected Business System ({integ.get('name', 'Live') if integ else 'Live'})")
@@ -279,14 +420,48 @@ async def readiness(user=Depends(require_tenant_user)):
     if profile_ok:
         configured.append("Business profile")
 
-    # Map raw items to sanitized customer items
+    ae_status = "ready" if ae and ae.get("lifecycle_state") in ("live", "approved") else (
+        ae.get("lifecycle_state") if ae else "not_connected"
+    )
+    test_ok = not any("test" in (b or "").lower() for b in (r.get("blockers") or []))
     customer_items = {
-        "business_profile": {"label": "Business Profile", "status": "ok" if profile_ok else "action_required"},
-        "ai_employee": {"label": ae["name"] if ae else "AI Employee", "status": ae["lifecycle_state"] if ae else "not_connected"},
-        "business_data": {"label": "Business Information", "status": "ok" if r["data_source"] != "none" else "action_required", "source": r["data_source_label"]},
-        "phone": {"label": "Phone Line", "status": phone["status"] if phone else "not_connected"},
-        "whatsapp": {"label": "WhatsApp", "status": wa["status"] if wa else "not_connected"},
+        "business_profile": {"label": "Business information", "status": "ok" if profile_ok else "action_required"},
+        "ai_employee": {"label": ae["name"] if ae else "AI Employee", "status": ae_status},
+        "business_data": {
+            "label": "Business Information",
+            "status": "ok" if r["data_source"] != "none" else "action_required",
+            "source": r["data_source_label"],
+        },
+        "phone": {"label": "Phone", "status": phone_view if phone or want_phone else "not_connected"},
+        "whatsapp": {"label": "WhatsApp", "status": wa_view if wa or want_wa else "not_connected"},
+        "catalogue": {"label": "Catalogue", "status": "ok" if has_catalogue else "action_required"},
+        "test": {"label": "Test", "status": "ok" if (is_live or test_ok) else "pending"},
+        "go_live": {"label": "Go Live", "status": "ok" if is_live else "pending"},
+        "business_integration": {
+            "label": integ.get("name") if integ else "Business system",
+            "status": (integ or {}).get("status") or "not_connected",
+        },
     }
+
+    def _progress_row(label, status, included=True):
+        if not included:
+            return None
+        ready = status in ("ready", "ok", "live", "approved", "verified")
+        return {
+            "label": label,
+            "status": "ready" if ready else "pending",
+            "detail": "Ready" if ready else "ORBIT setup team needs this information",
+        }
+
+    progress = [p for p in (
+        _progress_row("Phone", customer_items["phone"]["status"], want_phone or bool(phone)),
+        _progress_row("WhatsApp", customer_items["whatsapp"]["status"], want_wa or bool(wa)),
+        _progress_row("AI Employee", customer_items["ai_employee"]["status"]),
+        _progress_row("Business information", customer_items["business_data"]["status"]),
+        _progress_row("Catalogue", customer_items["catalogue"]["status"], has_catalogue or True),
+        _progress_row("Test", customer_items["test"]["status"]),
+        _progress_row("Go Live", customer_items["go_live"]["status"]),
+    ) if p]
 
     return {
         "environment": r["environment"],
@@ -296,10 +471,11 @@ async def readiness(user=Depends(require_tenant_user)):
         "data_source": r["data_source"],
         "data_source_label": r["data_source_label"],
         "items": customer_items,
+        "progress": progress,
         "actions_required": [k for k, v in customer_items.items() if v["status"] in ("action_required", "not_connected")],
         "needs_from_you": needs_from_you,
         "waiting_for_orbit": waiting_for_orbit,
         "configured": configured,
-        "blockers": r["blockers"],
+        "blockers": _sanitize_owner_blockers(r["blockers"]),
     }
 

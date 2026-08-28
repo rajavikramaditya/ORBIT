@@ -30,6 +30,8 @@ Set on the **backend** host (never in the frontend bundle except `REACT_APP_BACK
 | `ELEVENLABS_API_KEY` | When connecting voice |
 | `ELEVENLABS_WEBHOOK_SECRET` | Required for production post-call webhooks |
 | `EXOTEL_API_KEY` / `EXOTEL_API_TOKEN` / `EXOTEL_ACCOUNT_SID` / `EXOTEL_SUBDOMAIN` | When connecting phone |
+| `EXOTEL_WEBHOOK_SECRET` | Recommended for production Exotel inbound mapping |
+| `META_WHATSAPP_TOKEN` / `META_WHATSAPP_APP_SECRET` / `META_WHATSAPP_VERIFY_TOKEN` / `META_WHATSAPP_PHONE_NUMBER_ID` | Only if Meta Cloud API inbound webhook is used |
 | `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` / `RAZORPAY_WEBHOOK_SECRET` | When taking payment |
 
 Frontend **build-time**:
@@ -59,6 +61,8 @@ From `backend/` with production env vars loaded (no `--reload`):
 ```bash
 python -m uvicorn server:app --host 0.0.0.0 --port 8001
 ```
+
+`backend/db.py` loads `backend/.env` via `load_dotenv` at import (does **not** override variables already in the process environment). After changing `.env` or host env vars, **restart the process**. `--reload` is for development only.
 
 Bind behind HTTPS (nginx, Caddy, or a cloud load balancer).
 
@@ -90,6 +94,10 @@ Point the load balancer at `/api/health`.
 Configure provider callbacks to:
 
 - `POST https://<api>/api/webhooks/elevenlabs/post-call` (ElevenLabs signature required in production)
+- `POST https://<api>/api/webhooks/elevenlabs/tool-call` (same signature rules)
+- `POST https://<api>/api/webhooks/exotel/inbound` (maps ringing call to tenant; conversation still comes from ElevenLabs post-call)
+- `GET/POST https://<api>/api/webhooks/whatsapp` (Meta Cloud API; conversational replies stay in ElevenLabs)
+- `POST https://<api>/api/intake/<intake_key>` (website/form lead; tenant resolved from intake key)
 - `POST https://<api>/api/webhooks/razorpay` (Razorpay signature required)
 
 Processing is inline (no job queue). Duplicate ElevenLabs `conversation_id` values are idempotent. Unmapped `agent_id` events are stored in webhook quarantine. A processing exception returns HTTP 500 so the provider can retry.
