@@ -13,7 +13,7 @@ Safety guarantees:
 """
 from db import db, write_audit
 from models import gen_id, now_iso
-from connectors import get_mock_connector, get_live_connector, connector_supports
+from connectors import get_mock_connector, get_live_connector, get_orbit_live_connector, connector_supports
 
 
 async def run_tool(tool: dict, tenant_id: str, args: dict | None = None,
@@ -41,11 +41,16 @@ async def run_tool(tool: dict, tenant_id: str, args: dict | None = None,
             result = {"status": "unavailable",
                       "message": "Production tenant cannot use mock data. Connect a real business system."}
         else:
-            connector = get_mock_connector(connector_key) if mode == "mock" else get_live_connector(connector_key)
+            if connector_key == "orbit_live":
+                live_data_doc = await db.tenant_live_data.find_one({"tenant_id": tenant_id}, {"_id": 0})
+                connector = get_orbit_live_connector(live_data_doc)
+            else:
+                connector = get_mock_connector(connector_key) if mode == "mock" else get_live_connector(connector_key)
             if connector is None:
                 result = {"status": "unavailable",
                           "message": "No real business system connected yet. AI is in limited informational mode."}
             elif not connector_supports(connector_key, tool["key"], tool["kind"]):
+
                 result = {"status": "unavailable",
                           "message": "This capability is not supported by the connected system."}
             elif tool["kind"] == "action" and not confirmed:

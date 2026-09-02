@@ -12,15 +12,18 @@ import AIEmployees from "@/pages/tenant/AIEmployees";
 import Channels from "@/pages/tenant/Channels";
 import Integrations from "@/pages/tenant/Integrations";
 import Conversations from "@/pages/tenant/Conversations";
+import Leads from "@/pages/tenant/Leads";
 import Customization from "@/pages/tenant/Customization";
 import Billing from "@/pages/tenant/Billing";
 import Settings from "@/pages/tenant/Settings";
+import BusinessData from "@/pages/tenant/BusinessData";
 import AdminConsole from "@/pages/admin/AdminConsole";
+import Legal from "@/pages/Legal";
 
 function AppRoutes() {
   const location = useLocation();
   // Process Google OAuth callback synchronously during render (prevents race conditions).
-  if (location.hash?.includes("session_id=")) {
+  if (location.hash?.includes("auth_ticket=") || location.hash?.includes("session_id=")) {
     return <AuthCallback />;
   }
   return (
@@ -28,6 +31,9 @@ function AppRoutes() {
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/terms" element={<Legal page="terms" />} />
+      <Route path="/privacy" element={<Legal page="privacy" />} />
+      <Route path="/ai-disclosure" element={<Legal page="disclosure" />} />
       <Route
         path="/admin"
         element={
@@ -48,11 +54,14 @@ function AppRoutes() {
         <Route path="ai-employees" element={<AIEmployees />} />
         <Route path="channels" element={<Channels />} />
         <Route path="integrations" element={<Integrations />} />
+        <Route path="live-data" element={<BusinessData />} />
         <Route path="conversations" element={<Conversations />} />
+        <Route path="leads" element={<Leads />} />
         <Route path="customization" element={<Customization />} />
         <Route path="billing" element={<Billing />} />
         <Route path="settings" element={<Settings />} />
       </Route>
+      <Route path="/reset-password" element={<Login resetMode />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

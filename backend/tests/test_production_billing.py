@@ -6,7 +6,7 @@ import uuid
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001").rstrip("/")
 API = f"{BASE_URL}/api"
 
 ADMIN = {"email": "admin@orbit.ai", "password": "OrbitAdmin@2026"}
@@ -180,6 +180,29 @@ class TestOperations:
         for k in ("environment", "ai_employee", "phone", "whatsapp", "business_integration", "billing"):
             assert k in taj
 
+    def test_system_health_honest(self, admin_s, taj_s):
+        r = admin_s.get(f"{API}/admin/system-health")
+        assert r.status_code == 200, r.text
+        items = {i["key"]: i["status"] for i in r.json()["items"]}
+        for k in ("saas", "database", "voice", "telephony", "whatsapp", "payments"):
+            assert k in items
+        assert items["saas"] == "ok"
+        assert items["database"] == "ok"
+        assert items["whatsapp"] in ("credentials_required", "configured")
+        assert items["whatsapp"] != "ok"
+        # Unconfigured providers must not be reported as healthy; configured ones may be ok.
+        for k in ("voice", "telephony", "payments"):
+            assert items[k] in ("ok", "credentials_required")
+        deny = taj_s.get(f"{API}/admin/system-health")
+        assert deny.status_code == 403
+
+    def test_audit_log_admin_only(self, admin_s, taj_s):
+        r = admin_s.get(f"{API}/admin/audit-log")
+        assert r.status_code == 200
+        assert isinstance(r.json(), list)
+        deny = taj_s.get(f"{API}/admin/audit-log")
+        assert deny.status_code == 403
+
 
 # ---------- Billing ----------
 class TestBilling:
@@ -196,7 +219,7 @@ class TestBilling:
 
     def test_generate_and_issue_invoice_demo(self, admin_s):
         # Unique period to avoid immutability collision on re-runs
-        period = f"2099-{(int(uuid.uuid4().hex[:2], 16) % 12) + 1:02d}"
+        period = f"{2100 + (int(uuid.uuid4().hex[:4], 16) % 800):04d}-{(int(uuid.uuid4().hex[4:6], 16) % 12) + 1:02d}"
         r = admin_s.post(f"{API}/admin/tenants/{TAJ_TID}/invoices/generate",
                         json={"period": period})
         assert r.status_code == 200, r.text
@@ -279,3 +302,42 @@ class TestReadiness:
         # Actions should include WhatsApp
         actions = j.get("actions_required") or []
         assert any("whats" in a.lower() for a in actions), f"WhatsApp not in actions_required: {actions}"
+        assert "needs_from_you" in j and "waiting_for_orbit" in j and "configured" in j
+        assert "Riya" in (j.get("configured") or [])
+        assert any("whats" in x["label"].lower() for x in j.get("waiting_for_orbit") or [])
+
+    def test_admin_readiness_checklist(self, admin_s):
+        r = admin_s.get(f"{API}/admin/tenants/{TAJ_TID}/readiness")
+        assert r.status_code == 200, r.text
+        j = r.json()
+        keys = {i["key"] for i in j["items"]}
+        for k in ("owner", "profile", "ai_employee", "voice_agent", "phone", "whatsapp",
+                  "integration", "knowledge", "billing", "tested", "approved", "live"):
+            assert k in keys
+        assert "blockers" in j and "ready_for_live" in j
+
+    def test_new_tenant_cannot_go_live(self, admin_s):
+        tname = f"TEST_Hotel_{uuid.uuid4().hex[:6]}"
+        oemail = f"test_ready_{uuid.uuid4().hex[:8]}@example.com"
+        r = admin_s.post(f"{API}/admin/tenants", json={
+            "name": tname, "owner_email": oemail,
+            "owner_name": "Ready Test", "owner_password": "Hotel@2026",
+        })
+        assert r.status_code == 200, r.text
+        tid = r.json()["id"]
+        assert r.json().get("environment") == "demo"
+        ready = admin_s.get(f"{API}/admin/tenants/{tid}/readiness").json()
+        assert ready["ready_for_live"] is False
+        assert ready["blockers"]
+        live = admin_s.patch(f"{API}/admin/tenants/{tid}/status", json={"status": "live"})
+        assert live.status_code == 400
+
+    def test_production_rejects_new_mock_integration(self, admin_s):
+        admin_s.patch(f"{API}/admin/tenants/{TAJ_TID}/environment", json={"environment": "production"})
+        try:
+            r = admin_s.post(f"{API}/admin/tenants/{TAJ_TID}/integrations", json={
+                "type": "pms", "name": "TEST_ProdMock", "connector_key": "mock_pms", "mode": "mock",
+            })
+            assert r.status_code == 400, r.text
+        finally:
+            admin_s.patch(f"{API}/admin/tenants/{TAJ_TID}/environment", json={"environment": "demo"})

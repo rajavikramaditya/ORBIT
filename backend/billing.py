@@ -64,7 +64,7 @@ def build_invoice_doc(tenant_id: str, period: str, pricing: dict, usage: dict, i
     total = round(subtotal + tax, 2)
     line_items = [
         {"label": "AI voice usage", "qty": usage["ai_minutes"], "unit": "min", "rate": pricing["ai_voice_per_min"], "amount": ai_amt},
-        {"label": "Telephony (Exotel)", "qty": usage["telephony_minutes"], "unit": "min", "rate": pricing["telephony_per_min"], "amount": tel_amt},
+        {"label": "Phone usage", "qty": usage["telephony_minutes"], "unit": "min", "rate": pricing["telephony_per_min"], "amount": tel_amt},
         {"label": "WhatsApp", "qty": usage["whatsapp_messages"], "unit": "msg", "rate": pricing["whatsapp_per_message"], "amount": wa_amt},
         {"label": "Platform & service fee", "qty": 1, "unit": "", "rate": platform_fee, "amount": platform_fee},
     ]

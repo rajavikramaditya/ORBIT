@@ -17,12 +17,18 @@ class RegisterBody(BaseModel):
     email: EmailStr
     password: str = Field(min_length=6)
     name: str
-    hotel_name: str
+    business_name: Optional[str] = None
+    hotel_name: Optional[str] = None
+
 
 
 class LoginBody(BaseModel):
     email: EmailStr
     password: str
+
+
+class GoogleExchangeBody(BaseModel):
+    ticket: str
 
 
 # ---- Admin bodies ----
@@ -91,7 +97,7 @@ class SimulateCallBody(BaseModel):
     external_number: Optional[str] = None
 
 
-# ---- Lifecycle rules ----
+# ---- Lifecycle & Onboarding rules ----
 LIFECYCLE_TRANSITIONS = {
     "draft": {"testing"},
     "testing": {"approved", "draft"},
@@ -101,6 +107,40 @@ LIFECYCLE_TRANSITIONS = {
 }
 
 TENANT_STATUSES = {"onboarding", "live", "suspended"}
+# Derived operational state (not a stored tenant.status value).
+OPERATIONAL_STATES = {"onboarding", "ready_for_test", "live", "suspended", "blocked"}
+CHANNEL_PLANS = {"phone", "whatsapp", "phone_and_whatsapp"}
+
+# Standard customer-journey onboarding stages
+ONBOARDING_STAGES = [
+    "created",
+    "business_details",
+    "ai_employee_setup",
+    "business_data",
+    "channel_setup",
+    "testing",
+    "ready_for_approval",
+    "live",
+]
+
+# Customer-friendly labels (zero technical jargon)
+ONBOARDING_STAGE_LABELS_CUSTOMER = {
+    "created": "Account created",
+    "business_details": "Business setup",
+    "ai_employee_setup": "AI employee setup",
+    "business_data": "Business information",
+    "channel_setup": "Channels",
+    "testing": "Testing & preview",
+    "ready_for_approval": "Ready for approval",
+    "live": "Live and active",
+}
+
+INTEGRATION_STATUSES = {
+    "connected",
+    "action_required",
+    "not_connected",
+    "custom_integration_required",
+}
 
 
 # ---- Business Integration + Tool layer ----
@@ -108,14 +148,15 @@ class CreateIntegrationBody(BaseModel):
     type: str  # pms | pos | calendar | crm | custom
     name: str
     connector_key: str = "mock_pms"   # mock_pms | custom | <live connector>
-    provider: str = "mock_pms"
+    provider: Optional[str] = None    # defaults to connector_key
     mode: str = "mock"          # mock (demo) | live (real)
-    status: str = "connected"   # see INTEGRATION_STATUSES
+    status: Optional[str] = None      # connected | action_required | custom_integration_required | not_connected
     system_name: Optional[str] = None
     auth_method: Optional[str] = None
     api_docs_url: Optional[str] = None
     required_capabilities: Optional[list] = None
     notes: Optional[str] = None
+    status_message: Optional[str] = None
 
 
 class UpdateIntegrationBody(BaseModel):
@@ -126,12 +167,15 @@ class UpdateIntegrationBody(BaseModel):
     auth_method: Optional[str] = None
     api_docs_url: Optional[str] = None
     notes: Optional[str] = None
+    status_message: Optional[str] = None
+    last_verified_at: Optional[str] = None
 
 
 class CreateToolBody(BaseModel):
     key: str
     name: str
     kind: str  # read | action
+
     enabled: bool = True
     requires_confirmation: bool = False
     description: Optional[str] = ""
@@ -158,6 +202,10 @@ class EnvironmentBody(BaseModel):
     environment: str  # demo | production
 
 
+class ChannelPlanBody(BaseModel):
+    channel_plan: str  # phone | whatsapp | phone_and_whatsapp
+
+
 class KnowledgeBaseBody(BaseModel):
     business_info: Optional[str] = None
     services: Optional[str] = None
@@ -180,3 +228,95 @@ class PricingBody(BaseModel):
 
 class GenerateInvoiceBody(BaseModel):
     period: Optional[str] = None  # YYYY-MM; defaults to current month
+
+
+# ---- Live Data (Dynamic Webhook Data Source) ----
+class RoomRateEntry(BaseModel):
+    room_type: str
+    rate_inr: float
+    available: bool = True
+    available_units: Optional[int] = None
+
+
+class LiveDataBody(BaseModel):
+    """Tenant-managed dynamic data fetched by AI agent via webhook during calls.
+    This replaces static knowledge-base entries for frequently changing business data."""
+    # Rates & Inventory
+    room_rates: Optional[List[RoomRateEntry]] = None
+    # Operational timings
+    check_in_time: Optional[str] = None       # e.g. "12:00 PM"
+    check_out_time: Optional[str] = None      # e.g. "11:00 AM"
+    buffet_breakfast: Optional[str] = None    # e.g. "7:00 AM - 10:30 AM"
+    buffet_lunch: Optional[str] = None
+    buffet_dinner: Optional[str] = None
+    # Policies
+    cancellation_policy: Optional[str] = None
+    refund_policy: Optional[str] = None
+    # Special offers / announcements
+    active_offer: Optional[str] = None        # e.g. "20% off on Deluxe rooms this weekend"
+    seasonal_note: Optional[str] = None       # e.g. "Diwali special package available"
+    catalogue_url: Optional[str] = None
+    services: Optional[list] = None
+    # Extra free-form key-value pairs for business-specific data
+    extra: Optional[dict] = None
+
+
+class FormIntakeBody(BaseModel):
+    source: Optional[str] = None
+    customer_name: Optional[str] = None
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    customer_phone: Optional[str] = None
+    email: Optional[str] = None
+    customer_email: Optional[str] = None
+    requirement: Optional[str] = None
+    message: Optional[str] = None
+    enquiry: Optional[str] = None
+    owner_callback_requested: Optional[bool] = False
+    idempotency_key: Optional[str] = None
+    tenant_id: Optional[str] = None  # ignored if present
+
+
+# ---- Password Reset ----
+class ForgotPasswordBody(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordBody(BaseModel):
+    token: str
+    new_password: str = Field(min_length=6)
+
+
+# ---- Inbound enquiry / lead (not a CRM) ----
+# Sources are labels only. Unknown stays unknown — never invented.
+LEAD_SOURCES = {"phone", "whatsapp", "website", "instagram", "facebook", "form", "unknown"}
+# Operational lifecycle — not a sales pipeline board.
+LEAD_STATUSES = {"new", "contacted", "qualified", "follow_up", "unqualified", "won", "lost"}
+# Allowed owner/system moves. Same-status is always allowed. Terminal: won, lost.
+LEAD_TRANSITIONS = {
+    "new": {"contacted", "qualified", "follow_up", "unqualified", "won", "lost"},
+    "contacted": {"qualified", "follow_up", "unqualified", "won", "lost"},
+    "qualified": {"contacted", "follow_up", "won", "lost"},
+    "follow_up": {"contacted", "qualified", "won", "lost", "unqualified"},
+    "unqualified": {"contacted", "follow_up", "lost"},
+    "won": set(),
+    "lost": set(),
+}
+QUALIFICATION_STATUSES = {"unknown", "unqualified", "qualified"}
+CALLBACK_STATUSES = {"requested", "contacted", "completed", "cancelled"}
+INTENT_LEVELS = {"high", "medium", "low"}
+URGENCY_LEVELS = {"high", "medium", "low"}
+ORBIT_LEAD_PERSIST_TOOLS = {"capture_lead", "qualify_lead", "request_owner_callback"}
+# Older persisted values mapped when read/written.
+LEAD_STATUS_ALIASES = {"converted": "won", "other": "unknown", "social": "unknown"}
+
+
+class LeadPatchBody(BaseModel):
+    lead_status: Optional[str] = None
+    qualification_status: Optional[str] = None
+    follow_up_required: Optional[bool] = None
+    follow_up_at: Optional[str] = None
+    notes: Optional[str] = None
+    lost_reason: Optional[str] = None
+    owner_callback_requested: Optional[bool] = None
+

@@ -31,13 +31,17 @@ async def connectors_catalogue(admin=Depends(require_platform_admin)):
 # ---------------- Admin (ORBIT-managed setup) ----------------
 @router.post("/api/admin/tenants/{tenant_id}/integrations")
 async def create_integration(tenant_id: str, body: CreateIntegrationBody, admin=Depends(require_platform_admin)):
-    if not await db.tenants.find_one({"id": tenant_id}):
+    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
     if body.type not in INTEGRATION_TYPES:
         raise HTTPException(status_code=400, detail="Invalid integration type")
     connector_key = body.connector_key or "mock_pms"
+    if tenant.get("environment") == "production" and (body.mode == "mock" or connector_key == "mock_pms"):
+        raise HTTPException(status_code=400, detail="Production tenants cannot use mock connectors.")
     is_custom = connector_key == "custom"
-    status = body.status or ("action_required" if is_custom else "connected")
+    status = body.status or ("custom_integration_required" if is_custom else "connected")
+    status_msg = body.status_message or ("Custom integration adapter required before live connection." if is_custom else "")
     doc = {
         "id": gen_id("int_"),
         "tenant_id": tenant_id,
@@ -48,12 +52,14 @@ async def create_integration(tenant_id: str, body: CreateIntegrationBody, admin=
         # custom/managed integrations have no mock connector; they are 'live' once built.
         "mode": "live" if is_custom else body.mode,
         "status": status,
+        "status_message": status_msg,
         "system_name": body.system_name,
         "auth_method": body.auth_method,
         "api_docs_url": body.api_docs_url,
         "required_capabilities": body.required_capabilities or [],
         "notes": body.notes or "",
         "credentials_configured": False,
+        "last_verified_at": None,
         "created_at": now_iso(),
         "updated_at": now_iso(),
     }
@@ -63,12 +69,17 @@ async def create_integration(tenant_id: str, body: CreateIntegrationBody, admin=
     return doc
 
 
+
 @router.patch("/api/admin/integrations/{integration_id}")
 async def update_integration(integration_id: str, body: UpdateIntegrationBody, admin=Depends(require_platform_admin)):
     integ = await db.business_integrations.find_one({"id": integration_id}, {"_id": 0})
     if not integ:
         raise HTTPException(status_code=404, detail="Integration not found")
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    if updates.get("mode") == "mock":
+        tenant = await db.tenants.find_one({"id": integ["tenant_id"]}, {"_id": 0, "environment": 1})
+        if (tenant or {}).get("environment") == "production":
+            raise HTTPException(status_code=400, detail="Production tenants cannot use mock connectors.")
     updates["updated_at"] = now_iso()
     await db.business_integrations.update_one({"id": integration_id}, {"$set": updates})
     await write_audit(admin, "integration.update", integration_id, integ["tenant_id"], updates)

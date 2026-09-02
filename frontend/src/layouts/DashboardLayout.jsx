@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   Orbit, LayoutGrid, Bot, Radio, MessagesSquare, Wand2, Settings as SettingsIcon,
-  LogOut, ChevronDown, PlugZap, Receipt,
+  LogOut, ChevronDown, PlugZap, Receipt, Zap, Inbox,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -14,7 +14,9 @@ const NAV = [
   { to: "/dashboard/ai-employees", icon: Bot, label: "AI Employees", testid: "nav-ai-employees" },
   { to: "/dashboard/channels", icon: Radio, label: "Channels", testid: "nav-channels" },
   { to: "/dashboard/integrations", icon: PlugZap, label: "Integrations", testid: "nav-integrations" },
+  { to: "/dashboard/live-data", icon: Zap, label: "Live Data", testid: "nav-live-data" },
   { to: "/dashboard/conversations", icon: MessagesSquare, label: "Conversations", testid: "nav-conversations" },
+  { to: "/dashboard/leads", icon: Inbox, label: "Leads", testid: "nav-leads" },
   { to: "/dashboard/customization", icon: Wand2, label: "Customization", testid: "nav-customization" },
   { to: "/dashboard/billing", icon: Receipt, label: "Billing", testid: "nav-billing" },
   { to: "/dashboard/settings", icon: SettingsIcon, label: "Settings", testid: "nav-settings" },

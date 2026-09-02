@@ -168,7 +168,7 @@ export default function Landing() {
                 <div className="flex items-center gap-2.5">
                   <span className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 grid place-items-center"><PhoneCall className="w-4 h-4" /></span>
                   <div className="leading-tight">
-                    <div className="text-xs text-zinc-400">Incoming call</div>
+                    <div className="text-xs text-zinc-400">Illustrative demo call</div>
                     <div className="text-sm font-medium">+91 98•• answered</div>
                   </div>
                 </div>
@@ -179,7 +179,7 @@ export default function Landing() {
                   <span className="w-8 h-8 rounded-lg bg-zinc-900 text-white grid place-items-center text-[11px] font-semibold">R</span>
                   <div className="leading-tight">
                     <div className="text-sm font-medium">Riya</div>
-                    <div className="text-xs text-emerald-600 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Live</div>
+                    <div className="text-xs text-emerald-600 flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Illustrative demo</div>
                   </div>
                 </div>
               </FloatChip>
@@ -188,7 +188,7 @@ export default function Landing() {
                 <div className="flex items-center gap-2.5">
                   <span className="w-8 h-8 rounded-lg bg-green-100 text-green-700 grid place-items-center"><MessageCircle className="w-4 h-4" /></span>
                   <div className="leading-tight">
-                    <div className="text-xs text-zinc-400">WhatsApp</div>
+                    <div className="text-xs text-zinc-400">Illustrative WhatsApp</div>
                     <div className="text-sm font-medium">Booking confirmed</div>
                   </div>
                 </div>
@@ -495,9 +495,9 @@ export default function Landing() {
           </div>
           <p className="text-sm text-zinc-500">AI employees for businesses · India-first</p>
           <div className="flex gap-6 text-sm text-zinc-500">
-            <span className="hover:text-zinc-900 cursor-pointer transition-colors">Terms</span>
-            <span className="hover:text-zinc-900 cursor-pointer transition-colors">Privacy</span>
-            <span className="hover:text-zinc-900 cursor-pointer transition-colors">AI disclosure</span>
+            <Link to="/terms" className="hover:text-zinc-900 transition-colors">Terms</Link>
+            <Link to="/privacy" className="hover:text-zinc-900 transition-colors">Privacy</Link>
+            <Link to="/ai-disclosure" className="hover:text-zinc-900 transition-colors">AI disclosure</Link>
           </div>
         </div>
       </footer>

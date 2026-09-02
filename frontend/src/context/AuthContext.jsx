@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { api, formatApiErrorDetail } from "@/lib/api";
+import { api, formatApiErrorDetail, setStoredToken, clearStoredToken } from "@/lib/api";
 
 const AuthContext = createContext(null);
 
@@ -19,9 +19,12 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    // CRITICAL: If returning from Google OAuth callback, skip the /me check.
-    // AuthCallback exchanges the session_id and establishes the session first.
-    if (window.location.hash?.includes("session_id=")) {
+    // If returning from Google OAuth callback, skip the initial /me check.
+    // AuthCallback exchanges the ticket and establishes the session first.
+    if (
+      window.location.hash?.includes("auth_ticket=") ||
+      window.location.hash?.includes("session_id=")
+    ) {
       return;
     }
     checkAuth();
@@ -30,6 +33,9 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const { data } = await api.post("/auth/login", { email, password });
+      if (data?.access_token) {
+        setStoredToken(data.access_token);
+      }
       setUser(data);
       return { ok: true, user: data };
     } catch (e) {
@@ -40,6 +46,9 @@ export const AuthProvider = ({ children }) => {
   const register = async (payload) => {
     try {
       const { data } = await api.post("/auth/register", payload);
+      if (data?.access_token) {
+        setStoredToken(data.access_token);
+      }
       setUser(data);
       return { ok: true, user: data };
     } catch (e) {
@@ -47,8 +56,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const exchangeSession = async (sessionId) => {
-    const { data } = await api.post("/auth/session", {}, { headers: { "X-Session-ID": sessionId } });
+  const exchangeGoogleTicket = async (ticket) => {
+    const { data } = await api.post("/auth/google/exchange", { ticket });
+    if (data?.access_token) {
+      setStoredToken(data.access_token);
+    }
     setUser(data);
     return data;
   };
@@ -59,17 +71,29 @@ export const AuthProvider = ({ children }) => {
     } catch (e) {
       /* ignore */
     }
+    clearStoredToken();
     setUser(false);
   };
 
   const googleLogin = () => {
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    const redirectUrl = window.location.origin + "/dashboard";
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || "";
+    window.location.href = `${backendUrl}/api/auth/google/login`;
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, register, logout, googleLogin, exchangeSession, checkAuth }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser,
+        login,
+        register,
+        logout,
+        googleLogin,
+        exchangeGoogleTicket,
+        exchangeSession: exchangeGoogleTicket,
+        checkAuth,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

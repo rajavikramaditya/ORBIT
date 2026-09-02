@@ -7,7 +7,7 @@ import uuid
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://orbit-phone-ai.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8001").rstrip("/")
 API = f"{BASE_URL}/api"
 WEBHOOK_SECRET = "orbit_whsec_3a9f7c2e1b8d6045a3c9e7f1b2d4a6c8"
 
@@ -137,11 +137,13 @@ class TestWebhook:
                           headers={"X-Orbit-Signature": _sig(raw), "Content-Type": "application/json"})
         assert r.status_code == 200, r.text
         assert r.json()["status"] == "ingested"
+        ingested_id = r.json()["conversation"]["id"]
 
-        # Verify appears under Taj
+        # Verify appears under Taj (tenant surface never exposes provider IDs)
         s, _ = _login(TAJ)
         convs = s.get(f"{API}/tenant/conversations").json()
-        assert any(c["provider_conversation_id"] == conv_id for c in convs)
+        assert any(c["id"] == ingested_id for c in convs)
+        assert all("provider_conversation_id" not in c and "provider" not in c for c in convs)
 
         # (b) Duplicate
         r2 = requests.post(f"{API}/webhooks/elevenlabs/post-call", data=raw,
@@ -180,6 +182,19 @@ class TestWebhook:
         assert r.status_code == 401
 
 
+# ---------- Health ----------
+class TestHealth:
+    def test_liveness(self):
+        r = requests.get(f"{API}/", timeout=15)
+        assert r.status_code == 200
+        assert r.json().get("status") == "ok"
+
+    def test_readiness(self):
+        r = requests.get(f"{API}/health", timeout=15)
+        assert r.status_code == 200
+        assert r.json().get("status") == "ok"
+
+
 # ---------- Admin console ----------
 class TestAdminConsole:
     def test_stats_and_tenants(self):
@@ -202,6 +217,12 @@ class TestAdminConsole:
         })
         assert r.status_code == 200, r.text
         tenant_id = r.json()["id"]
+        assert r.json().get("environment") == "demo"
+        assert r.json().get("status") == "onboarding"
+
+        # Incomplete tenants cannot be marked live
+        r_live = s.patch(f"{API}/admin/tenants/{tenant_id}/status", json={"status": "live"})
+        assert r_live.status_code == 400, r_live.text
 
         # Attach AI employee
         agent_id = f"agent_test_{uuid.uuid4().hex[:8]}"
@@ -234,16 +255,18 @@ class TestAdminConsole:
         assert r6.status_code == 400
 
         # Connect phone channel
+        number = f"+91 22 {uuid.uuid4().hex[:4]} {uuid.uuid4().hex[:4]}"
         r7 = s.post(f"{API}/admin/tenants/{tenant_id}/channels", json={
-            "type": "phone", "connected_identifier": "+91 22 0000 0000",
+            "type": "phone", "connected_identifier": number,
             "assigned_ai_employee_id": ae["id"]
         })
         assert r7.status_code == 200, r7.text
-        assert r7.json()["status"] == "connected"
+        assert r7.json()["status"] in ("configured", "credentials_required")
+        assert r7.json()["status"] != "connected"
 
-        # WhatsApp
+        # WhatsApp (same digits, different channel type)
         r8 = s.post(f"{API}/admin/tenants/{tenant_id}/channels", json={
-            "type": "whatsapp", "connected_identifier": "+91 22 0000 0000",
+            "type": "whatsapp", "connected_identifier": number,
         })
         assert r8.status_code == 200
         assert r8.json()["status"] == "action_required"
@@ -284,13 +307,15 @@ class TestTenantDashboard:
 
     def test_simulate_call_creates_conversation(self):
         s, _ = _login(TAJ)
-        before = len(s.get(f"{API}/tenant/conversations").json())
         r = s.post(f"{API}/tenant/simulate-call", json={"direction": "inbound"})
         assert r.status_code == 200, r.text
         conv = r.json()
         assert conv["tenant_id"] == "tenant_taj_palace"
-        after = len(s.get(f"{API}/tenant/conversations").json())
-        assert after == before + 1
+        assert conv.get("id")
+        detail = s.get(f"{API}/tenant/conversations/{conv['id']}")
+        assert detail.status_code == 200
+        listed = s.get(f"{API}/tenant/conversations").json()
+        assert any(c["id"] == conv["id"] for c in listed) or len(listed) >= 200
 
     def test_conversation_detail_includes_transcript(self):
         s, _ = _login(TAJ)

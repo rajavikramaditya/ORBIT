@@ -7,17 +7,93 @@ from security import hash_password, verify_password
 async def create_indexes():
     await db.users.create_index("email", unique=True)
     await db.users.create_index("id", unique=True)
+    await db.users.create_index("tenant_id")
     await db.user_sessions.create_index("session_token")
+    await db.auth_tickets.create_index("ticket_hash", unique=True)
+    await db.auth_tickets.create_index("expires_at", expireAfterSeconds=0)
+    await db.tenants.create_index("id", unique=True)
     await db.ai_employees.create_index("provider_agent_id", unique=True)
     await db.ai_employees.create_index("tenant_id")
     await db.channels.create_index("tenant_id")
+    try:
+        await db.channels.create_index(
+            [("type", 1), ("normalized_identifier", 1)],
+            unique=True,
+            name="channel_type_identifier_unique",
+            partialFilterExpression={"normalized_identifier": {"$type": "string"}},
+        )
+    except Exception:
+        pass
     await db.conversations.create_index("provider_conversation_id", unique=True)
     await db.conversations.create_index("tenant_id")
+    await db.conversations.create_index([("tenant_id", 1), ("created_at", -1)])
     await db.usage_ledger.create_index("event_id", unique=True)
+    await db.usage_ledger.create_index("tenant_id")
     await db.customization_requests.create_index("tenant_id")
     await db.business_integrations.create_index("tenant_id")
     await db.tools.create_index("tenant_id")
     await db.tool_invocation_log.create_index("tenant_id")
+    await db.tenant_pricing.create_index("tenant_id", unique=True)
+    await db.invoices.create_index("tenant_id")
+    await db.webhook_quarantine.create_index("created_at")
+    await db.audit_log.create_index("tenant_id")
+    await db.leads.create_index("id", unique=True)
+    await db.leads.create_index("tenant_id")
+    await db.leads.create_index([("tenant_id", 1), ("created_at", -1)])
+    await db.leads.create_index("conversation_id", unique=True, sparse=True)
+    # Sparse unique on (tenant_id, provider_conversation_id) treats missing
+    # provider ids as null and allows only one such lead per tenant. Use a
+    # partial index so callback/tool-call enquiries without a conversation
+    # remain distinct records.
+    info = await db.leads.index_information()
+    for name, spec in info.items():
+        keys = spec.get("key") or []
+        if list(keys) == [("tenant_id", 1), ("provider_conversation_id", 1)]:
+            try:
+                await db.leads.drop_index(name)
+            except Exception:
+                pass
+    await db.leads.create_index(
+        [("tenant_id", 1), ("provider_conversation_id", 1)],
+        unique=True,
+        name="tenant_provider_conv_unique",
+        partialFilterExpression={"provider_conversation_id": {"$type": "string"}},
+    )
+    await db.owner_callback_requests.create_index("id", unique=True)
+    await db.owner_callback_requests.create_index("tenant_id")
+    cb_info = await db.owner_callback_requests.index_information()
+    for name, spec in cb_info.items():
+        keys = spec.get("key") or []
+        if list(keys) == [("tenant_id", 1), ("conversation_id", 1)]:
+            try:
+                await db.owner_callback_requests.drop_index(name)
+            except Exception:
+                pass
+    await db.owner_callback_requests.create_index(
+        [("tenant_id", 1), ("conversation_id", 1)],
+        unique=True,
+        name="tenant_callback_conv_unique",
+        partialFilterExpression={"conversation_id": {"$type": "string"}},
+    )
+    await db.inbound_events.create_index("tenant_id")
+    await db.inbound_events.create_index(
+        [("provider", 1), ("provider_event_id", 1)], unique=True
+    )
+    await db.tenants.create_index("intake_key", unique=True, sparse=True)
+    lead_info = await db.leads.index_information()
+    for name, spec in lead_info.items():
+        keys = spec.get("key") or []
+        if list(keys) == [("tenant_id", 1), ("intake_idempotency_key", 1)]:
+            try:
+                await db.leads.drop_index(name)
+            except Exception:
+                pass
+    await db.leads.create_index(
+        [("tenant_id", 1), ("intake_idempotency_key", 1)],
+        unique=True,
+        name="tenant_intake_idempotency",
+        partialFilterExpression={"intake_idempotency_key": {"$type": "string"}},
+    )
 
 
 async def _upsert(collection, doc):
@@ -104,6 +180,7 @@ async def seed_demo_data():
         "provider": "exotel",
         "status": "connected",
         "connected_identifier": "+91 22 6789 0000",
+        "normalized_identifier": "912267890000",
         "assigned_ai_employee_id": "ae_taj_aria",
         "meta": {"circle": "Mumbai"},
         "created_at": now_iso(),
@@ -115,6 +192,7 @@ async def seed_demo_data():
         "provider": "elevenlabs_whatsapp",
         "status": "action_required",
         "connected_identifier": "+91 22 6789 0000",
+        "normalized_identifier": "912267890000",
         "assigned_ai_employee_id": "ae_taj_aria",
         "meta": {"note": "Meta Business verification pending — ORBIT team completing onboarding."},
         "created_at": now_iso(),

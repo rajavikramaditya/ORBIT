@@ -58,9 +58,14 @@ export default function Settings() {
 
       <div className="rounded-2xl border border-black/5 bg-white p-6 space-y-5">
         <h2 className="font-display text-lg font-semibold">Business profile</h2>
+        {!(t.profile?.contact_email && t.profile?.contact_phone && t.profile?.address) && (
+          <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+            Contact email, phone and address are needed before ORBIT can take this workspace live.
+          </p>
+        )}
         <div>
-          <Label className="text-sm">Hotel name</Label>
-          <Input value={t.name || ""} onChange={(e) => setName(e.target.value)} placeholder="The Grand Palace" className="mt-1.5" data-testid="settings-name" />
+          <Label className="text-sm">Business name</Label>
+          <Input value={t.name || ""} onChange={(e) => setName(e.target.value)} placeholder="Business / Property name" className="mt-1.5" data-testid="settings-name" />
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
@@ -74,8 +79,9 @@ export default function Settings() {
         </div>
         <div>
           <Label className="text-sm">Contact email</Label>
-          <Input value={t.profile.contact_email || ""} onChange={(e) => setProfile("contact_email", e.target.value)} placeholder="frontdesk@hotel.in" className="mt-1.5" data-testid="settings-email" />
+          <Input value={t.profile.contact_email || ""} onChange={(e) => setProfile("contact_email", e.target.value)} placeholder="contact@business.in" className="mt-1.5" data-testid="settings-email" />
         </div>
+
         <div>
           <Label className="text-sm">Address</Label>
           <Input value={t.profile.address || ""} onChange={(e) => setProfile("address", e.target.value)} placeholder="Street, City, PIN" className="mt-1.5" data-testid="settings-address" />

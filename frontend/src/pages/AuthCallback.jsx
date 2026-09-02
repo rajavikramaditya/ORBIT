@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react";
 export default function AuthCallback() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { exchangeSession } = useAuth();
+  const { exchangeGoogleTicket } = useAuth();
   const processed = useRef(false);
   const [error, setError] = useState("");
 
@@ -14,15 +14,21 @@ export default function AuthCallback() {
     if (processed.current) return;
     processed.current = true;
     const hash = location.hash || window.location.hash;
-    const match = hash.match(/session_id=([^&]+)/);
-    const sessionId = match ? decodeURIComponent(match[1]) : null;
-    if (!sessionId) {
+    const ticketMatch = hash.match(/auth_ticket=([^&]+)/);
+    const sessionMatch = hash.match(/session_id=([^&]+)/);
+    const ticket = ticketMatch
+      ? decodeURIComponent(ticketMatch[1])
+      : sessionMatch
+      ? decodeURIComponent(sessionMatch[1])
+      : null;
+
+    if (!ticket) {
       navigate("/login", { replace: true });
       return;
     }
     (async () => {
       try {
-        const user = await exchangeSession(sessionId);
+        const user = await exchangeGoogleTicket(ticket);
         window.history.replaceState(null, "", window.location.pathname);
         navigate(user.role === "platform_admin" ? "/admin" : "/dashboard", { replace: true });
       } catch (e) {
@@ -30,7 +36,7 @@ export default function AuthCallback() {
         setTimeout(() => navigate("/login", { replace: true }), 1600);
       }
     })();
-  }, [location.hash, exchangeSession, navigate]);
+  }, [location.hash, exchangeGoogleTicket, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white gap-4" data-testid="auth-callback">

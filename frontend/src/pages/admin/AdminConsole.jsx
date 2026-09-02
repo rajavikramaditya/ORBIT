@@ -67,10 +67,10 @@ function CreateTenantDialog({ onCreated }) {
         <Button data-testid="create-tenant-btn" className="rounded-full h-10 px-5 bg-zinc-900 hover:bg-zinc-800"><Plus className="w-4 h-4 mr-2" /> Create tenant</Button>
       </DialogTrigger>
       <DialogContent data-testid="create-tenant-dialog">
-        <DialogHeader><DialogTitle className="font-display">Onboard a new hotel</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="font-display">Onboard a new business</DialogTitle></DialogHeader>
         <div className="space-y-4 py-2">
-          <div><Label className="text-sm">Hotel name</Label>
-            <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="The Oberoi, Delhi" className="mt-1.5" data-testid="ct-name" /></div>
+          <div><Label className="text-sm">Business name</Label>
+            <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Business / Property name" className="mt-1.5" data-testid="ct-name" /></div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label className="text-sm">Owner name</Label>
               <Input value={f.owner_name} onChange={(e) => setF({ ...f, owner_name: e.target.value })} placeholder="Owner name" className="mt-1.5" data-testid="ct-owner-name" /></div>
@@ -78,7 +78,8 @@ function CreateTenantDialog({ onCreated }) {
               <Input value={f.brand_color} onChange={(e) => setF({ ...f, brand_color: e.target.value })} className="mt-1.5" data-testid="ct-brand" /></div>
           </div>
           <div><Label className="text-sm">Owner email</Label>
-            <Input type="email" value={f.owner_email} onChange={(e) => setF({ ...f, owner_email: e.target.value })} placeholder="owner@hotel.in" className="mt-1.5" data-testid="ct-owner-email" /></div>
+            <Input type="email" value={f.owner_email} onChange={(e) => setF({ ...f, owner_email: e.target.value })} placeholder="owner@business.in" className="mt-1.5" data-testid="ct-owner-email" /></div>
+
           <div><Label className="text-sm">Temporary password</Label>
             <Input value={f.owner_password} onChange={(e) => setF({ ...f, owner_password: e.target.value })} placeholder="min 6 characters" className="mt-1.5" data-testid="ct-owner-password" /></div>
         </div>
@@ -189,10 +190,17 @@ function ConnectChannelDialog({ tenantId, aiEmployees, onDone }) {
   );
 }
 
-function AddIntegrationDialog({ tenantId, onDone }) {
+function AddIntegrationDialog({ tenantId, environment, onDone }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [f, setF] = useState({ type: "pms", name: "", provider: "mock_pms", mode: "mock", status: "connected" });
+  const [connectors, setConnectors] = useState([]);
+  const isProd = environment === "production";
+  const [f, setF] = useState({ type: "pms", name: "", connector_key: "mock_pms", mode: "mock" });
+  useEffect(() => {
+    if (!open) return;
+    setF({ type: "pms", name: "", connector_key: isProd ? "custom" : "mock_pms", mode: isProd ? "live" : "mock" });
+    api.get("/admin/connectors").then((r) => setConnectors(r.data)).catch(() => setConnectors([]));
+  }, [open, isProd]);
   const submit = async () => {
     if (!f.name) { toast.error("Name is required"); return; }
     setSaving(true);
@@ -200,7 +208,6 @@ function AddIntegrationDialog({ tenantId, onDone }) {
       await api.post(`/admin/tenants/${tenantId}/integrations`, f);
       toast.success("Integration added");
       setOpen(false);
-      setF({ type: "pms", name: "", provider: "mock_pms", mode: "mock", status: "connected" });
       onDone();
     } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
     finally { setSaving(false); }
@@ -232,15 +239,25 @@ function AddIntegrationDialog({ tenantId, onDone }) {
               <Select value={f.mode} onValueChange={(v) => setF({ ...f, mode: v })}>
                 <SelectTrigger className="mt-1.5" data-testid="ai-mode"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="mock">Mock (demo)</SelectItem>
+                  {!isProd && <SelectItem value="mock">Mock (demo)</SelectItem>}
                   <SelectItem value="live">Live (real)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-          <div><Label className="text-sm">Provider key</Label>
-            <Input value={f.provider} onChange={(e) => setF({ ...f, provider: e.target.value })} className="mt-1.5 font-mono text-sm" data-testid="ai-provider" /></div>
-          <p className="text-xs text-zinc-400">Live mode requires a real connector. Until one is wired, live tools safely report "not connected" instead of returning data.</p>
+          <div><Label className="text-sm">Connector</Label>
+            <Select value={f.connector_key} onValueChange={(v) => setF({ ...f, connector_key: v })}>
+              <SelectTrigger className="mt-1.5" data-testid="ai-connector"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {connectors.filter((c) => !isProd || c.kind !== "demo").map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="text-xs text-zinc-400">
+            {f.connector_key === "custom"
+              ? "Custom integrations start as Action Required and go Connected only once the real system is wired by ORBIT."
+              : "Live mode requires a real connector. Until one is wired, live tools safely report \"not connected\" instead of returning data."}
+          </p>
         </div>
         <DialogFooter>
           <Button onClick={submit} disabled={saving} data-testid="ai-submit" className="rounded-full bg-zinc-900 hover:bg-zinc-800">
@@ -357,6 +374,74 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
               </Select>
             </div>
 
+            {/* Onboarding & Go-Live Readiness Overview */}
+            {d.readiness && (
+              <div className="mt-6 rounded-2xl border border-black/5 bg-zinc-50/80 p-4 space-y-3" data-testid="admin-readiness-panel">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-semibold text-zinc-800 uppercase tracking-wider">
+                    Onboarding Stage: <span className="text-zinc-900 font-bold capitalize">{d.readiness.onboarding_stage?.replace(/_/g, " ")}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {d.readiness.operational_state && (
+                      <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-zinc-100 text-zinc-700 capitalize" data-testid="operational-state">
+                        {(d.readiness.operational_state || "").replace(/_/g, " ")}
+                      </span>
+                    )}
+                    <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${
+                      d.readiness.ready_for_live
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-amber-100 text-amber-800"
+                    }`}>
+                      {d.readiness.ready_for_live ? "Ready for Live" : `${d.readiness.blockers?.length || 0} Blockers`}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-xs text-zinc-500">Channels in this customer&apos;s plan</div>
+                  <Select value={d.readiness.channel_plan || "phone_and_whatsapp"} onValueChange={async (channel_plan) => {
+                    try {
+                      await api.patch(`/admin/tenants/${tenantId}/channel-plan`, { channel_plan });
+                      toast.success("Channel plan updated");
+                      refresh();
+                    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+                  }}>
+                    <SelectTrigger className="h-8 w-48" data-testid="channel-plan-select"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="phone">Phone only</SelectItem>
+                      <SelectItem value="whatsapp">WhatsApp only</SelectItem>
+                      <SelectItem value="phone_and_whatsapp">Phone + WhatsApp</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="text-xs text-zinc-500">
+                  Data Source: <span className="font-medium text-zinc-800">{d.readiness.data_source_label}</span>
+                </div>
+
+                {d.readiness.blockers?.length > 0 ? (
+                  <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 space-y-1">
+                    <div className="text-[11px] font-semibold text-amber-900">Go-Live Blockers:</div>
+                    <ul className="list-disc list-inside text-xs text-amber-800 space-y-0.5">
+                      {d.readiness.blockers.map((b) => (
+                        <li key={b} className="leading-snug">{b}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-2.5 flex items-center justify-between">
+                    <span className="text-xs font-medium text-emerald-800">All go-live requirements satisfied.</span>
+                    {d.status !== "live" && (
+                      <Button size="sm" className="h-7 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3" onClick={() => setStatus("live")} data-testid="activate-live-btn">
+                        Go Live Now
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+
             {/* AI employees */}
             <div className="mt-8">
               <div className="flex items-center justify-between mb-3">
@@ -409,7 +494,7 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
             <div className="mt-8">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-display font-semibold">Business Integrations</h3>
-                <AddIntegrationDialog tenantId={tenantId} onDone={refresh} />
+                <AddIntegrationDialog tenantId={tenantId} environment={d.environment} onDone={refresh} />
               </div>
               <div className="space-y-3">
                 {(d.integrations || []).length === 0 && <p className="text-sm text-zinc-400">No business systems connected.</p>}
@@ -503,7 +588,19 @@ function TenantsTab({ reloadStats }) {
                 <span className="w-10 h-10 rounded-xl grid place-items-center text-white font-semibold" style={{ backgroundColor: t.branding?.brand_color || "#18181B" }}>{t.name.charAt(0)}</span>
                 <div>
                   <div className="font-medium text-sm">{t.name}</div>
-                  <div className="mt-1"><StatusBadge kind="tenant" value={t.status} /></div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <StatusBadge kind="tenant" value={t.status} />
+                    <span className="text-[10px] rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-600 font-medium capitalize">
+                      {t.stage_label || t.onboarding_stage?.replace(/_/g, " ") || "Setup"}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-[11px] text-zinc-400 capitalize flex items-center gap-2">
+                    <span>{t.environment || "demo"}</span>
+                    <span>·</span>
+                    <span className={t.ready_for_live ? "text-emerald-600 font-medium" : "text-amber-600"}>
+                      {t.ready_for_live ? "Ready for live" : `${t.blockers_count || 0} blockers`}
+                    </span>
+                  </div>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-zinc-300" />
@@ -581,9 +678,12 @@ function QuarantineTab() {
 
 const STATUS_COLORS = {
   live: "bg-emerald-50 text-emerald-700", connected: "bg-emerald-50 text-emerald-700", ok: "bg-emerald-50 text-emerald-700", paid: "bg-emerald-50 text-emerald-700",
+  verified: "bg-emerald-50 text-emerald-700", ready: "bg-emerald-50 text-emerald-700",
   configured: "bg-blue-50 text-blue-700", integrating: "bg-blue-50 text-blue-700", issued: "bg-blue-50 text-blue-700",
   testing: "bg-amber-50 text-amber-700", action_required: "bg-amber-50 text-amber-700", warning: "bg-amber-50 text-amber-700", credentials_required: "bg-amber-50 text-amber-700", due: "bg-amber-50 text-amber-700", payment_config_required: "bg-amber-50 text-amber-700",
+  pending: "bg-amber-50 text-amber-700", ready_for_test: "bg-blue-50 text-blue-700", blocked: "bg-amber-50 text-amber-700", onboarding: "bg-amber-50 text-amber-700",
   not_connected: "bg-zinc-100 text-zinc-500", draft: "bg-zinc-100 text-zinc-500", demo: "bg-zinc-100 text-zinc-500",
+  not_configured: "bg-zinc-100 text-zinc-500", not_included: "bg-zinc-100 text-zinc-500",
   suspended: "bg-red-50 text-red-700", error: "bg-red-50 text-red-700", capped: "bg-red-50 text-red-700", failed: "bg-red-50 text-red-700",
 };
 const Pill = ({ v, label }) => (
@@ -591,6 +691,96 @@ const Pill = ({ v, label }) => (
     {label || (v === "credentials_required" ? "Credentials required" : (v || "").replace(/_/g, " "))}
   </span>
 );
+
+function HealthTab() {
+  const [health, setHealth] = useState(null);
+  useEffect(() => {
+    api.get("/admin/system-health")
+      .then((r) => setHealth(r.data))
+      .catch(() => setHealth({ items: [], capacity: null }));
+  }, []);
+
+  const items = health?.items;
+  const cap = health?.capacity;
+
+  return (
+    <div className="space-y-6" data-testid="admin-health-tab">
+      <div>
+        <h2 className="font-display text-lg font-semibold">System health</h2>
+        <p className="text-sm text-zinc-500">Platform status. Unconfigured providers show credentials required — never a fake healthy state.</p>
+      </div>
+
+      {/* Service health grid */}
+      {!health && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
+      <div className="rounded-2xl border border-black/5 bg-white divide-y divide-black/5">
+        {items?.map((it) => (
+          <div key={it.key} className="px-5 py-4 flex items-center justify-between gap-4" data-testid={`health-${it.key}`}>
+            <div>
+              <div className="text-sm font-medium">{it.label}</div>
+              {it.detail && <div className="text-xs text-zinc-400 mt-0.5">{it.detail}</div>}
+            </div>
+            <Pill v={it.status} />
+          </div>
+        ))}
+      </div>
+
+      {/* Capacity / Concurrency panel */}
+      {cap && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 space-y-3" data-testid="health-capacity">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-semibold text-amber-900">Concurrent call capacity</div>
+              <div className="text-xs text-amber-700 mt-0.5">{cap.message}</div>
+            </div>
+            <Pill v={cap.status} label="Unconfirmed" />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white rounded-xl p-3 text-center border border-amber-100">
+              <div className="text-xl font-semibold text-zinc-900">{cap.active_calls ?? "—"}</div>
+              <div className="text-xs text-zinc-400 mt-0.5">Active calls</div>
+            </div>
+            <div className="bg-white rounded-xl p-3 text-center border border-amber-100">
+              <div className="text-xl font-semibold text-zinc-900">{cap.configured_limit ?? "—"}</div>
+              <div className="text-xs text-zinc-400 mt-0.5">Plan limit</div>
+            </div>
+            <div className="bg-white rounded-xl p-3 text-center border border-amber-100">
+              <div className="text-xl font-semibold text-zinc-900">{cap.utilization_pct != null ? `${cap.utilization_pct}%` : "—"}</div>
+              <div className="text-xs text-zinc-400 mt-0.5">Utilization</div>
+            </div>
+          </div>
+          <p className="text-xs text-amber-600">
+            ⚠ Do not promise a concurrency level to customers until the ElevenLabs commercial plan is confirmed and capacity is verified.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function AuditTab() {
+  const [items, setItems] = useState(null);
+  useEffect(() => { api.get("/admin/audit-log").then((r) => setItems(r.data)).catch(() => setItems([])); }, []);
+  return (
+    <div className="space-y-4" data-testid="admin-audit-tab">
+      <h2 className="font-display text-lg font-semibold">Audit log</h2>
+      <p className="text-sm text-zinc-500">Admin actions: tenant, agent, channel, billing and customization changes.</p>
+      {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
+      {items && items.length === 0 && <p className="text-sm text-zinc-500">No audit entries yet.</p>}
+      <div className="rounded-2xl border border-black/5 bg-white divide-y divide-black/5">
+        {items?.map((a) => (
+          <div key={a.id} className="px-5 py-3 text-sm" data-testid="audit-row">
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-medium">{a.action}</span>
+              <span className="text-xs text-zinc-400 shrink-0">{a.created_at ? new Date(a.created_at).toLocaleString("en-IN") : ""}</span>
+            </div>
+            <div className="text-xs text-zinc-500 mt-0.5 truncate">{a.actor_email || "system"}{a.target ? ` · ${a.target}` : ""}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function OperationsTab() {
   const [rows, setRows] = useState(null);
@@ -603,19 +793,26 @@ function OperationsTab() {
         <div className="rounded-2xl border border-black/5 bg-white overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="text-left text-xs text-zinc-400 border-b border-black/5">
-              <th className="px-4 py-3">Tenant</th><th className="px-3 py-3">Env</th><th className="px-3 py-3">AI</th>
+              <th className="px-4 py-3">Tenant</th><th className="px-3 py-3">Env</th><th className="px-3 py-3">Plan</th><th className="px-3 py-3">State</th><th className="px-3 py-3">AI</th>
               <th className="px-3 py-3">Phone</th><th className="px-3 py-3">WhatsApp</th><th className="px-3 py-3">Business</th><th className="px-3 py-3">Billing</th>
+              <th className="px-3 py-3">Go-live</th>
             </tr></thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.tenant_id} className="border-b border-black/5 last:border-0" data-testid="ops-row">
                   <td className="px-4 py-3 font-medium">{r.name}</td>
                   <td className="px-3 py-3"><Pill v={r.environment} /></td>
+                  <td className="px-3 py-3"><Pill v={r.channel_plan} /></td>
+                  <td className="px-3 py-3"><Pill v={r.operational_state} /></td>
                   <td className="px-3 py-3"><Pill v={r.ai_employee} /></td>
                   <td className="px-3 py-3"><Pill v={r.phone} /></td>
                   <td className="px-3 py-3"><Pill v={r.whatsapp} /></td>
                   <td className="px-3 py-3"><Pill v={r.business_integration} /></td>
                   <td className="px-3 py-3"><Pill v={r.billing} /></td>
+                  <td className="px-3 py-3">
+                    <Pill v={r.is_live ? "live" : (r.ready_for_live ? "ok" : "action_required")}
+                      label={r.is_live ? "Live" : (r.ready_for_live ? "Ready" : `${(r.blockers || []).length} pending`)} />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -630,10 +827,12 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
   const [prov, setProv] = useState(null);
   const [pricing, setPricing] = useState(null);
   const [invoices, setInvoices] = useState([]);
+  const [readiness, setReadiness] = useState(null);
   const [kb, setKb] = useState({});
   const ae0 = aiEmployees?.[0];
 
   const load = useCallback(() => {
+    api.get(`/admin/tenants/${tenantId}/readiness`).then((r) => setReadiness(r.data)).catch(() => {});
     api.get(`/admin/tenants/${tenantId}/provisioning`).then((r) => setProv(r.data)).catch(() => {});
     api.get(`/admin/tenants/${tenantId}/pricing`).then((r) => setPricing(r.data)).catch(() => {});
     api.get(`/admin/tenants/${tenantId}/invoices`).then((r) => setInvoices(r.data)).catch(() => {});
@@ -648,6 +847,7 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
   const issueInv = (id) => wrap(() => api.post(`/admin/invoices/${id}/issue`), "Invoice issued");
   const verifyVoice = (aeId) => wrap(async () => { const r = await api.post(`/admin/ai-employees/${aeId}/verify-voice`); toast.message(r.data.message); });
   const verifyTel = (chId) => wrap(async () => { const r = await api.post(`/admin/channels/${chId}/verify-telephony`); toast.message(r.data.message); });
+  const verifyWa = (chId) => wrap(async () => { const r = await api.post(`/admin/channels/${chId}/verify-whatsapp`); toast.message(r.data.message); });
   const saveKb = () => wrap(() => api.patch(`/admin/ai-employees/${ae0.id}/knowledge`, kb), "Knowledge base saved");
 
   const num = (k) => (
@@ -660,6 +860,31 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
   return (
     <div className="mt-8 space-y-6" data-testid="production-panel">
       <h3 className="font-display font-semibold">Production readiness</h3>
+
+      {readiness && (
+        <div className="rounded-xl border border-black/5 p-4" data-testid="readiness-checklist">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-sm font-medium">Go-live checklist</div>
+            <div className="flex items-center gap-1.5">
+              {readiness.operational_state && <Pill v={readiness.operational_state} />}
+              <Pill v={readiness.is_live ? "live" : (readiness.ready_for_live ? "ok" : "action_required")}
+                label={readiness.is_live ? "Live" : (readiness.ready_for_live ? "Ready for live" : `${readiness.blockers.length} pending`)} />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            {readiness.items.map((it) => (
+              <div key={it.key} className="flex items-center justify-between gap-3 text-sm" data-testid={`readiness-${it.key}`}>
+                <span className="text-zinc-600 min-w-0 truncate">
+                  {it.label}
+                  {!it.required && <span className="ml-1.5 text-[10px] text-zinc-400">optional</span>}
+                  {it.detail && <span className="ml-2 text-xs text-zinc-400">{it.detail}</span>}
+                </span>
+                <Pill v={it.status} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="rounded-xl border border-black/5 p-4">
         <div className="flex items-center justify-between">
@@ -678,6 +903,10 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
       {prov && (
         <div className="rounded-xl border border-black/5 p-4 space-y-3">
           <div className="flex items-center gap-2 text-sm font-medium"><KeyRound className="w-4 h-4" /> Provider connections</div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-zinc-600">ElevenLabs webhooks</span>
+            <Pill v={prov.elevenlabs.webhooks_configured ? "verified" : "credentials_required"} />
+          </div>
           {prov.elevenlabs.agents.map((a) => (
             <div key={a.ai_employee_id} className="flex items-center justify-between text-sm" data-testid="prov-voice">
               <span className="text-zinc-600">Voice · {a.name}</span>
@@ -690,9 +919,15 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
               <div className="flex items-center gap-2"><Pill v={n.status} /><Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={() => verifyTel(n.channel_id)}>Verify</Button></div>
             </div>
           ))}
+          {(prov.whatsapp?.numbers || []).map((n) => (
+            <div key={n.channel_id} className="flex items-center justify-between text-sm" data-testid="prov-wa">
+              <span className="text-zinc-600">WhatsApp · {n.number}</span>
+              <div className="flex items-center gap-2"><Pill v={n.status} /><Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={() => verifyWa(n.channel_id)}>Verify</Button></div>
+            </div>
+          ))}
           <div className="flex items-center justify-between text-sm">
             <span className="text-zinc-600">Payments · Razorpay</span>
-            <Pill v={prov.razorpay.credentials_configured ? "connected" : "credentials_required"} />
+            <Pill v={prov.razorpay.credentials_configured ? "configured" : "credentials_required"} />
           </div>
         </div>
       )}
@@ -791,11 +1026,15 @@ export default function AdminConsole() {
             <TabsTrigger value="queue" className="rounded-full" data-testid="tab-queue">Customization queue</TabsTrigger>
             <TabsTrigger value="quarantine" className="rounded-full" data-testid="tab-quarantine">Quarantine</TabsTrigger>
             <TabsTrigger value="operations" className="rounded-full" data-testid="tab-operations">Operations</TabsTrigger>
+            <TabsTrigger value="health" className="rounded-full" data-testid="tab-health">System health</TabsTrigger>
+            <TabsTrigger value="audit" className="rounded-full" data-testid="tab-audit">Audit log</TabsTrigger>
           </TabsList>
           <TabsContent value="tenants" className="mt-6"><TenantsTab reloadStats={loadStats} /></TabsContent>
           <TabsContent value="queue" className="mt-6"><QueueTab /></TabsContent>
           <TabsContent value="quarantine" className="mt-6"><QuarantineTab /></TabsContent>
           <TabsContent value="operations" className="mt-6"><OperationsTab /></TabsContent>
+          <TabsContent value="health" className="mt-6"><HealthTab /></TabsContent>
+          <TabsContent value="audit" className="mt-6"><AuditTab /></TabsContent>
         </Tabs>
       </main>
     </div>
