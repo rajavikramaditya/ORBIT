@@ -1,12 +1,17 @@
+import os
+import secrets
 from fastapi import APIRouter, Request, Response, HTTPException
+from fastapi.responses import RedirectResponse
 from datetime import datetime, timezone, timedelta
 
 from db import db
-from models import RegisterBody, LoginBody, gen_id, now_iso
+from models import RegisterBody, LoginBody, GoogleExchangeBody, gen_id, now_iso
 from security import (
     hash_password, verify_password, create_access_token, set_auth_cookie,
     set_session_cookie, clear_auth_cookies, serialize_user, get_current_user,
-    exchange_emergent_session, enforce_auth_rate_limit,
+    enforce_auth_rate_limit, _cookie_secure, _cookie_samesite,
+    build_google_auth_url, exchange_google_code, verify_google_identity,
+    create_auth_ticket, redeem_auth_ticket,
 )
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -82,29 +87,82 @@ async def login(body: LoginBody, request: Request, response: Response):
     return out
 
 
-@router.post("/session")
-async def google_session(request: Request, response: Response):
-    session_id = request.headers.get("X-Session-ID")
-    if not session_id:
-        raise HTTPException(status_code=400, detail="Missing session id")
-    data = exchange_emergent_session(session_id)
-    email = data["email"].lower()
+@router.get("/google/login")
+async def google_login(request: Request):
+    """Initiate ORBIT-native Google OAuth flow.
+    Generates a cryptographically secure state token, stores it in an HttpOnly cookie,
+    and redirects the browser to Google's consent screen."""
+    state = secrets.token_urlsafe(32)
+    google_url = build_google_auth_url(state)
+    response = RedirectResponse(url=google_url, status_code=302)
+    response.set_cookie(
+        key="orbit_oauth_state",
+        value=state,
+        httponly=True,
+        secure=_cookie_secure(),
+        samesite=_cookie_samesite(),
+        max_age=300,
+        path="/api/auth",
+    )
+    return response
+
+
+@router.get("/google/callback")
+async def google_callback(request: Request):
+    """Handle Google OAuth callback.
+    Validates state cookie, exchanges code for Google tokens server-side,
+    verifies Google identity, provisions or finds the user and tenant in MongoDB,
+    generates a single-use 60-second auth ticket, and redirects to frontend."""
+    frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+    error = request.query_params.get("error")
+    if error:
+        return RedirectResponse(url=f"{frontend_url}/login?error={error}", status_code=302)
+
+    state = request.query_params.get("state")
+    state_cookie = request.cookies.get("orbit_oauth_state")
+    if not state or not state_cookie or state != state_cookie:
+        raise HTTPException(status_code=400, detail="Invalid or expired OAuth state")
+
+    code = request.query_params.get("code")
+    if not code:
+        raise HTTPException(status_code=400, detail="Missing authorization code from Google")
+
+    tokens = exchange_google_code(code)
+    identity = verify_google_identity(tokens)
+    email = identity["email"]
+    name = identity["name"]
+    sub = identity["sub"]
+
     user = await db.users.find_one({"email": email})
     if not user:
-        hotel_name = f"{data.get('name', 'New')}'s Hotel"
-        user = await _create_tenant_with_owner(email, data.get("name", email), hotel_name, None, "google")
-    session_token = data["session_token"]
-    await db.user_sessions.insert_one({
-        "id": gen_id("sess_"),
-        "user_id": user["id"],
-        "session_token": session_token,
-        "expires_at": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
-        "created_at": now_iso(),
-    })
-    set_session_cookie(response, session_token)
+        hotel_name = f"{name}'s Hotel"
+        user = await _create_tenant_with_owner(email, name, hotel_name, None, "google")
+        await db.users.update_one({"id": user["id"]}, {"$set": {"google_sub": sub}})
+    elif not user.get("google_sub"):
+        await db.users.update_one({"id": user["id"]}, {"$set": {"google_sub": sub}})
+
+    ticket = await create_auth_ticket(user["id"], user["email"])
+    response = RedirectResponse(url=f"{frontend_url}/dashboard#auth_ticket={ticket}", status_code=302)
+    response.delete_cookie("orbit_oauth_state", path="/api/auth")
+    return response
+
+
+@router.post("/google/exchange")
+async def google_exchange(body: GoogleExchangeBody, response: Response):
+    """Redeem a single-use 60-second auth ticket for an ORBIT JWT access token."""
+    user = await redeem_auth_ticket(body.ticket)
+    token = create_access_token(user["id"], user["email"])
+    set_auth_cookie(response, token)
     out = serialize_user(user)
     out["tenant"] = await _tenant_summary(user.get("tenant_id"))
+    out["access_token"] = token
     return out
+
+
+@router.post("/session")
+async def retired_session_endpoint():
+    """Emergent session exchange endpoint has been retired in favor of native Google OAuth."""
+    raise HTTPException(status_code=410, detail="Emergent session auth has been retired. Use /api/auth/google/login")
 
 
 @router.get("/me")

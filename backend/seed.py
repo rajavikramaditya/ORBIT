@@ -9,6 +9,8 @@ async def create_indexes():
     await db.users.create_index("id", unique=True)
     await db.users.create_index("tenant_id")
     await db.user_sessions.create_index("session_token")
+    await db.auth_tickets.create_index("ticket_hash", unique=True)
+    await db.auth_tickets.create_index("expires_at", expireAfterSeconds=0)
     await db.tenants.create_index("id", unique=True)
     await db.ai_employees.create_index("provider_agent_id", unique=True)
     await db.ai_employees.create_index("tenant_id")

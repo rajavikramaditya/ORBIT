@@ -23,7 +23,7 @@ import Legal from "@/pages/Legal";
 function AppRoutes() {
   const location = useLocation();
   // Process Google OAuth callback synchronously during render (prevents race conditions).
-  if (location.hash?.includes("session_id=")) {
+  if (location.hash?.includes("auth_ticket=") || location.hash?.includes("session_id=")) {
     return <AuthCallback />;
   }
   return (

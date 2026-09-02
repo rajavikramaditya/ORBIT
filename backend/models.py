@@ -27,6 +27,10 @@ class LoginBody(BaseModel):
     password: str
 
 
+class GoogleExchangeBody(BaseModel):
+    ticket: str
+
+
 # ---- Admin bodies ----
 class CreateTenantBody(BaseModel):
     name: str
