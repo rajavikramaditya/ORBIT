@@ -7,6 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const BUSINESS_TYPES = [
+  { value: "hotel", label: "Hotel" },
+  { value: "restaurant", label: "Restaurant" },
+  { value: "salon", label: "Salon" },
+  { value: "clinic", label: "Clinic" },
+  { value: "retail", label: "Retail" },
+  { value: "other", label: "Other" },
+];
 
 const BRAND_SWATCHES = ["#18181B", "#1E3A5F", "#7A5C2E", "#3F3F46", "#155E4B", "#7C2D12"];
 
@@ -22,12 +32,14 @@ export default function Settings() {
   const setName = (v) => setT((p) => ({ ...p, name: v }));
   const setProfile = (k, v) => setT((p) => ({ ...p, profile: { ...p.profile, [k]: v } }));
   const setBrand = (v) => setT((p) => ({ ...p, branding: { ...p.branding, brand_color: v } }));
+  const setBusinessType = (v) => setT((p) => ({ ...p, business_type: v }));
 
   const save = async () => {
     setSaving(true);
     try {
       const payload = {
         name: t.name,
+        business_type: t.business_type || "hotel",
         website: t.profile.website,
         address: t.profile.address,
         contact_email: t.profile.contact_email,
@@ -66,6 +78,18 @@ export default function Settings() {
         <div>
           <Label className="text-sm">Business name</Label>
           <Input value={t.name || ""} onChange={(e) => setName(e.target.value)} placeholder="Business / Property name" className="mt-1.5" data-testid="settings-name" />
+        </div>
+        <div>
+          <Label className="text-sm">Business type</Label>
+          <Select value={t.business_type || "hotel"} onValueChange={setBusinessType}>
+            <SelectTrigger className="mt-1.5" data-testid="settings-business-type"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {BUSINESS_TYPES.map((bt) => (
+                <SelectItem key={bt.value} value={bt.value}>{bt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="mt-1.5 text-xs text-zinc-400">Changes which fields show on your Business Data page.</p>
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           <div>

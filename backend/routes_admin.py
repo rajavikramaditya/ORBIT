@@ -5,9 +5,9 @@ from db import db, write_audit
 from models import (
     CreateTenantBody, TenantStatusBody, CreateAIEmployeeBody, LifecycleBody,
     ConnectChannelBody, UpdateChannelBody, CustomizationStatusBody,
-    EnvironmentBody, KnowledgeBaseBody, ChannelPlanBody,
+    EnvironmentBody, KnowledgeBaseBody, ChannelPlanBody, BusinessTypeBody,
     gen_id, now_iso, LIFECYCLE_TRANSITIONS, TENANT_STATUSES, TENANT_ENVIRONMENTS,
-    CHANNEL_PLANS,
+    CHANNEL_PLANS, BUSINESS_TYPES,
 )
 from security import require_platform_admin, hash_password
 from provisioning import (
@@ -553,6 +553,19 @@ async def set_environment(tenant_id: str, body: EnvironmentBody, admin=Depends(r
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Tenant not found")
     await write_audit(admin, "tenant.environment", tenant_id, tenant_id, {"environment": body.environment})
+    return await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+
+
+@router.patch("/tenants/{tenant_id}/business-type")
+async def set_business_type(tenant_id: str, body: BusinessTypeBody, admin=Depends(require_platform_admin)):
+    """Admin correction for an existing tenant's vertical — customers can also change
+    this themselves from Settings. Either path just flips which Business Data fields show."""
+    if body.business_type not in BUSINESS_TYPES:
+        raise HTTPException(status_code=400, detail="Invalid business type")
+    res = await db.tenants.update_one({"id": tenant_id}, {"$set": {"business_type": body.business_type}})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    await write_audit(admin, "tenant.business_type", tenant_id, tenant_id, {"business_type": body.business_type})
     return await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
 
 

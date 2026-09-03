@@ -428,6 +428,27 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
                   </Select>
                 </div>
 
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-xs text-zinc-500">Business type</div>
+                  <Select value={d.business_type || "hotel"} onValueChange={async (business_type) => {
+                    try {
+                      await api.patch(`/admin/tenants/${tenantId}/business-type`, { business_type });
+                      toast.success("Business type updated");
+                      refresh();
+                    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+                  }}>
+                    <SelectTrigger className="h-8 w-48" data-testid="admin-business-type-select"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hotel">Hotel</SelectItem>
+                      <SelectItem value="restaurant">Restaurant</SelectItem>
+                      <SelectItem value="salon">Salon</SelectItem>
+                      <SelectItem value="clinic">Clinic</SelectItem>
+                      <SelectItem value="retail">Retail</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="text-xs text-zinc-500">
                   Data Source: <span className="font-medium text-zinc-800">{d.readiness.data_source_label}</span>
                 </div>

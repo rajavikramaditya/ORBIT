@@ -128,9 +128,14 @@ class ORBITLiveConnector(BusinessConnector):
             name = s.get("name") or s.get("service") or s.get("title") or s.get("room_type")
             if not name:
                 continue
+            price = s.get("price")
+            if price is None:
+                price = s.get("price_inr")
+            if price is None:
+                price = s.get("rate_inr", s.get("rate"))
             items.append({
                 "name": name,
-                "price": s.get("price") if s.get("price") is not None else s.get("rate_inr", s.get("rate")),
+                "price": price,
                 "available": s.get("available"),
                 "available_units": s.get("available_units"),
                 "notes": s.get("notes") or s.get("description"),
@@ -193,7 +198,12 @@ class ORBITLiveConnector(BusinessConnector):
 
         if tool_key in ("get_business_policy", "get_policies", "get_operating_hours"):
             category = (args.get("category") or "").lower()
-            hours_val = extra.get("hours") or extra.get("operating_hours") or self._data.get("hours")
+            # business_hours is the generic (non-hotel) field from Business Data;
+            # check_in_time/check_out_time remain the hotel-specific pair, untouched.
+            hours_val = (
+                extra.get("hours") or extra.get("operating_hours")
+                or self._data.get("hours") or self._data.get("business_hours")
+            )
             website = extra.get("website") or self._data.get("website")
             result = {}
             if any(k in category for k in ("website", "web", "url", "site", "link")):
@@ -207,6 +217,7 @@ class ORBITLiveConnector(BusinessConnector):
                     "check_out_time": self._data.get("check_out_time"),
                     "hours": hours_val,
                     "operating_hours": hours_val,
+                    "business_hours": self._data.get("business_hours"),
                 }
             elif any(k in category for k in ("buffet", "food", "meal", "breakfast", "dining", "menu")):
                 result = {
@@ -231,6 +242,7 @@ class ORBITLiveConnector(BusinessConnector):
                     "check_out_time": self._data.get("check_out_time"),
                     "hours": hours_val,
                     "operating_hours": hours_val,
+                    "business_hours": self._data.get("business_hours"),
                     "website": website,
                     "buffet_breakfast": self._data.get("buffet_breakfast"),
                     "buffet_lunch": self._data.get("buffet_lunch"),

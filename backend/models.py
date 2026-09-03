@@ -19,6 +19,8 @@ class RegisterBody(BaseModel):
     name: str
     business_name: Optional[str] = None
     hotel_name: Optional[str] = None
+    # Self-serve signups pick their own vertical too — not just admin-created tenants.
+    business_type: Optional[str] = None
 
 
 
@@ -49,6 +51,10 @@ class CreateTenantBody(BaseModel):
 
 class TenantStatusBody(BaseModel):
     status: str  # onboarding | live | suspended
+
+
+class BusinessTypeBody(BaseModel):
+    business_type: str  # one of BUSINESS_TYPES — admin can correct an existing tenant's vertical
 
 
 class CreateAIEmployeeBody(BaseModel):
@@ -90,6 +96,8 @@ class TenantProfileBody(BaseModel):
     contact_phone: Optional[str] = None
     description: Optional[str] = None
     brand_color: Optional[str] = None
+    # Customer can change their own vertical any time from Settings — not admin-only.
+    business_type: Optional[str] = None
 
 
 class CustomizationRequestBody(BaseModel):

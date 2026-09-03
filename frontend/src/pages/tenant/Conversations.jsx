@@ -138,7 +138,7 @@ export default function Conversations() {
                       <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                         t.role === "agent" ? "bg-zinc-100 text-zinc-800" : "bg-zinc-900 text-white"
                       }`}>
-                        <div className="text-[10px] uppercase tracking-wide opacity-50 mb-0.5">{t.role === "agent" ? "AI" : "Guest"}</div>
+                        <div className="text-[10px] uppercase tracking-wide opacity-50 mb-0.5">{t.role === "agent" ? "AI" : "Customer"}</div>
                         {t.message}
                       </div>
                     </div>

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from db import db, write_audit
 from models import (
     TenantProfileBody, CustomizationRequestBody, SimulateCallBody,
-    LiveDataBody, LeadPatchBody, gen_id, now_iso,
+    LiveDataBody, LeadPatchBody, BUSINESS_TYPES, gen_id, now_iso,
 )
 from security import require_tenant_user
 from providers import elevenlabs
@@ -67,6 +67,10 @@ async def update_profile(body: TenantProfileBody, user=Depends(require_tenant_us
     if data.get("logo_url") is not None:
         updates["branding.logo_url"] = data["logo_url"]
         updates["profile.logo_url"] = data["logo_url"]
+    # Customer-editable vertical — same field admin sets at tenant creation, but the
+    # owner can change it themselves any time (e.g. picked wrong type at signup).
+    if data.get("business_type") is not None and data["business_type"] in BUSINESS_TYPES:
+        updates["business_type"] = data["business_type"]
     for f in PROFILE_FIELDS:
         if f == "logo_url":
             continue

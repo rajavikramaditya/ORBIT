@@ -5,7 +5,7 @@ from fastapi.responses import RedirectResponse
 from datetime import datetime, timezone, timedelta
 
 from db import db
-from models import RegisterBody, LoginBody, GoogleExchangeBody, gen_id, now_iso
+from models import RegisterBody, LoginBody, GoogleExchangeBody, BUSINESS_TYPES, gen_id, now_iso
 from security import (
     hash_password, verify_password, create_access_token, set_auth_cookie,
     set_session_cookie, clear_auth_cookies, serialize_user, get_current_user,
@@ -63,7 +63,8 @@ async def register(body: RegisterBody, request: Request, response: Response):
     if await db.users.find_one({"email": email}):
         raise HTTPException(status_code=400, detail="An account with this email already exists")
     b_name = body.business_name or body.hotel_name or "My Business"
-    user = await _create_tenant_with_owner(email, body.name, b_name, body.password)
+    b_type = body.business_type if body.business_type in BUSINESS_TYPES else "hotel"
+    user = await _create_tenant_with_owner(email, body.name, b_name, body.password, business_type=b_type)
     token = create_access_token(user["id"], email)
 
     set_auth_cookie(response, token)

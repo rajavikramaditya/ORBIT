@@ -4,6 +4,7 @@ import { Orbit, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 
 const IMG =
@@ -19,7 +20,7 @@ const GOOGLE_LOGIN_ENABLED = process.env.REACT_APP_ENABLE_GOOGLE_LOGIN === "true
 export default function Register() {
   const { user, register, googleLogin } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", hotel_name: "", email: "", password: "" });
+  const [form, setForm] = useState({ name: "", hotel_name: "", business_type: "hotel", email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -75,6 +76,22 @@ export default function Register() {
                 <Input value={form.hotel_name} onChange={set("hotel_name")} required data-testid="register-hotel"
                   placeholder="Business or Property name" className="mt-1.5 h-11 rounded-xl bg-zinc-50 border-black/10" />
               </div>
+            </div>
+            <div>
+              <Label className="text-sm">Business type</Label>
+              <Select value={form.business_type} onValueChange={(v) => setForm({ ...form, business_type: v })}>
+                <SelectTrigger className="mt-1.5 h-11 rounded-xl bg-zinc-50 border-black/10" data-testid="register-business-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="hotel">Hotel</SelectItem>
+                  <SelectItem value="restaurant">Restaurant</SelectItem>
+                  <SelectItem value="salon">Salon</SelectItem>
+                  <SelectItem value="clinic">Clinic</SelectItem>
+                  <SelectItem value="retail">Retail</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label className="text-sm">Email</Label>

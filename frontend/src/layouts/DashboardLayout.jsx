@@ -44,10 +44,10 @@ export default function DashboardLayout() {
         <div className="px-4 py-4 border-b border-black/5">
           <div className="flex items-center gap-2.5">
             <span className="w-9 h-9 rounded-xl grid place-items-center text-white text-sm font-semibold" style={{ backgroundColor: brand }}>
-              {(tenant?.name || "H").charAt(0)}
+              {(tenant?.name || "B").charAt(0)}
             </span>
             <div className="min-w-0">
-              <div className="text-sm font-medium truncate" data-testid="sidebar-tenant-name">{tenant?.name || "Your Hotel"}</div>
+              <div className="text-sm font-medium truncate" data-testid="sidebar-tenant-name">{tenant?.name || "Your Business"}</div>
               <div className="mt-0.5"><StatusBadge kind="tenant" value={tenant?.status || "onboarding"} /></div>
             </div>
           </div>
