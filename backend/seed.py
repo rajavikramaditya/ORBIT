@@ -103,7 +103,11 @@ async def _upsert(collection, doc):
 async def seed_platform_admin():
     email = os.environ["ADMIN_EMAIL"].lower()
     password = os.environ["ADMIN_PASSWORD"]
-    existing = await db.users.find_one({"email": email})
+    existing = (
+        await db.users.find_one({"id": "usr_orbit_admin"})
+        or await db.users.find_one({"email": email})
+        or await db.users.find_one({"role": "platform_admin"})
+    )
     if existing is None:
         await db.users.insert_one({
             "id": "usr_orbit_admin",
@@ -115,8 +119,14 @@ async def seed_platform_admin():
             "auth_provider": "password",
             "created_at": now_iso(),
         })
-    elif not verify_password(password, existing.get("password_hash", "")):
-        await db.users.update_one({"email": email}, {"$set": {"password_hash": hash_password(password)}})
+    else:
+        update_fields = {}
+        if existing.get("email") != email:
+            update_fields["email"] = email
+        if not verify_password(password, existing.get("password_hash", "")):
+            update_fields["password_hash"] = hash_password(password)
+        if update_fields:
+            await db.users.update_one({"_id": existing["_id"]}, {"$set": update_fields})
 
 
 async def seed_demo_data():
