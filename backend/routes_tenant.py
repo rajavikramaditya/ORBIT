@@ -316,6 +316,7 @@ async def get_live_data(user=Depends(require_tenant_user)):
             "seasonal_note": None,
             "catalogue_url": None,
             "services": [],
+            "business_hours": None,
             "extra": {},
             "updated_at": None,
         }

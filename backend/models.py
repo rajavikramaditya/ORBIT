@@ -32,12 +32,19 @@ class GoogleExchangeBody(BaseModel):
 
 
 # ---- Admin bodies ----
+# ORBIT started with hotels; this platform is meant to serve any business.
+# New verticals get added here as ORBIT signs them up — this list does not
+# gate what a tenant can do, it only picks which Business Data fields show.
+BUSINESS_TYPES = {"hotel", "restaurant", "salon", "clinic", "retail", "other"}
+
+
 class CreateTenantBody(BaseModel):
     name: str
     owner_email: EmailStr
     owner_name: str
     owner_password: str = Field(min_length=6)
     brand_color: Optional[str] = "#18181B"
+    business_type: Optional[str] = "hotel"
 
 
 class TenantStatusBody(BaseModel):
@@ -257,6 +264,9 @@ class LiveDataBody(BaseModel):
     seasonal_note: Optional[str] = None       # e.g. "Diwali special package available"
     catalogue_url: Optional[str] = None
     services: Optional[list] = None
+    # Generic operating-hours text for non-hotel business types (hotels keep
+    # using check_in_time/check_out_time/buffet_* above, unchanged).
+    business_hours: Optional[str] = None
     # Extra free-form key-value pairs for business-specific data
     extra: Optional[dict] = None
 

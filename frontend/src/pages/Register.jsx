@@ -100,7 +100,7 @@ export default function Register() {
         </div>
       </div>
       <div className="hidden lg:block relative">
-        <img src={IMG} alt="Hotel reception" className="absolute inset-0 w-full h-full object-cover" />
+        <img src={IMG} alt="Business workspace" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
         <div className="absolute bottom-12 left-12 right-12 text-white">
           <p className="font-display text-2xl font-medium leading-snug">Your AI employee, live in days.</p>

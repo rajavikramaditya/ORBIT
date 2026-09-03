@@ -48,7 +48,7 @@ function StatPill({ icon: Icon, label, value, testid }) {
 function CreateTenantDialog({ onCreated }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [f, setF] = useState({ name: "", owner_name: "", owner_email: "", owner_password: "", brand_color: "#18181B" });
+  const [f, setF] = useState({ name: "", owner_name: "", owner_email: "", owner_password: "", brand_color: "#18181B", business_type: "hotel" });
   const submit = async () => {
     if (!f.name || !f.owner_email || !f.owner_password) { toast.error("Name, owner email and password are required"); return; }
     setSaving(true);
@@ -56,7 +56,7 @@ function CreateTenantDialog({ onCreated }) {
       await api.post("/admin/tenants", f);
       toast.success("Tenant created");
       setOpen(false);
-      setF({ name: "", owner_name: "", owner_email: "", owner_password: "", brand_color: "#18181B" });
+      setF({ name: "", owner_name: "", owner_email: "", owner_password: "", brand_color: "#18181B", business_type: "hotel" });
       onCreated();
     } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
     finally { setSaving(false); }
@@ -71,6 +71,19 @@ function CreateTenantDialog({ onCreated }) {
         <div className="space-y-4 py-2">
           <div><Label className="text-sm">Business name</Label>
             <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Business / Property name" className="mt-1.5" data-testid="ct-name" /></div>
+          <div><Label className="text-sm">Business type</Label>
+            <Select value={f.business_type} onValueChange={(v) => setF({ ...f, business_type: v })}>
+              <SelectTrigger className="mt-1.5" data-testid="ct-business-type"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hotel">Hotel</SelectItem>
+                <SelectItem value="restaurant">Restaurant</SelectItem>
+                <SelectItem value="salon">Salon</SelectItem>
+                <SelectItem value="clinic">Clinic</SelectItem>
+                <SelectItem value="retail">Retail</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div><Label className="text-sm">Owner name</Label>
               <Input value={f.owner_name} onChange={(e) => setF({ ...f, owner_name: e.target.value })} placeholder="Owner name" className="mt-1.5" data-testid="ct-owner-name" /></div>

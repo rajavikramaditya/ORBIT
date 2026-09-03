@@ -9,6 +9,38 @@ import { Textarea } from "@/components/ui/textarea";
 
 const ROOM_TYPE_SUGGESTIONS = ["Deluxe Room", "Super Deluxe Room", "Suite", "Premium Suite", "Standard Room", "Executive Room"];
 
+function ServiceRow({ service, onChange, onRemove }) {
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-xl border border-zinc-200 bg-white group">
+      <div className="flex-1 min-w-0">
+        <Input
+          placeholder="Service name (e.g. Haircut)"
+          value={service.name}
+          onChange={(e) => onChange({ ...service, name: e.target.value })}
+          className="h-8 text-sm border-0 p-0 focus-visible:ring-0 font-medium"
+        />
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <span className="text-zinc-400 text-sm">₹</span>
+        <Input
+          type="number"
+          placeholder="Price"
+          value={service.price_inr || ""}
+          onChange={(e) => onChange({ ...service, price_inr: parseFloat(e.target.value) || 0 })}
+          className="h-8 w-24 text-sm"
+        />
+      </div>
+      <button
+        onClick={onRemove}
+        className="text-zinc-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+        title="Remove"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
 function RoomRateRow({ rate, onChange, onRemove }) {
   return (
     <div className="flex items-center gap-3 p-3 rounded-xl border border-zinc-200 bg-white group">
@@ -66,6 +98,10 @@ function RoomRateRow({ rate, onChange, onRemove }) {
 export default function BusinessData() {
   const [data, setData] = useState(null);
   const [saving, setSaving] = useState(false);
+  // Until the tenant's business type is known, default to "hotel" so the
+  // existing hotel screen never flashes the generic form first.
+  const [businessType, setBusinessType] = useState("hotel");
+  const isHotel = businessType === "hotel";
 
   const loadData = () => {
     api.get("/tenant/live-data").then((r) => setData(r.data)).catch(() =>
@@ -73,8 +109,10 @@ export default function BusinessData() {
         room_rates: [], check_in_time: "", check_out_time: "",
         buffet_breakfast: "", buffet_lunch: "", buffet_dinner: "",
         cancellation_policy: "", refund_policy: "", active_offer: "", seasonal_note: "",
+        services: [], business_hours: "",
       })
     );
+    api.get("/tenant/profile").then((r) => setBusinessType(r.data?.business_type || "hotel")).catch(() => {});
   };
 
   useEffect(() => { loadData(); }, []);
@@ -93,6 +131,15 @@ export default function BusinessData() {
   const removeRoom = (idx) =>
     setData((p) => ({ ...p, room_rates: p.room_rates.filter((_, i) => i !== idx) }));
 
+  const addService = () =>
+    setData((p) => ({ ...p, services: [...(p.services || []), { name: "", price_inr: 0 }] }));
+
+  const updateService = (idx, val) =>
+    setData((p) => ({ ...p, services: p.services.map((s, i) => (i === idx ? val : s)) }));
+
+  const removeService = (idx) =>
+    setData((p) => ({ ...p, services: p.services.filter((_, i) => i !== idx) }));
+
   const save = async () => {
     setSaving(true);
     try {
@@ -108,6 +155,8 @@ export default function BusinessData() {
       if (data.active_offer) payload.active_offer = data.active_offer;
       if (data.seasonal_note) payload.seasonal_note = data.seasonal_note;
       if (data.catalogue_url) payload.catalogue_url = data.catalogue_url;
+      if (data.services?.length) payload.services = data.services;
+      if (data.business_hours) payload.business_hours = data.business_hours;
       const r = await api.patch("/tenant/live-data", payload);
       setData(r.data);
       toast.success("Live data updated — your AI will use these on the next call");
@@ -145,6 +194,8 @@ export default function BusinessData() {
       </div>
 
 
+      {isHotel && (
+      <>
       {/* Room Rates */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
@@ -212,6 +263,45 @@ export default function BusinessData() {
           ))}
         </div>
       </section>
+      </>
+      )}
+
+      {!isHotel && (
+      <>
+      {/* Services & Pricing (generic, non-hotel business types) */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-semibold text-zinc-800">Services & Pricing</Label>
+          <Button variant="outline" size="sm" onClick={addService} className="gap-1.5 h-8 text-xs">
+            <Plus className="w-3.5 h-3.5" /> Add Service
+          </Button>
+        </div>
+        {(!data.services || data.services.length === 0) ? (
+          <div className="border border-dashed border-zinc-300 rounded-xl p-6 text-center text-sm text-zinc-400">
+            No services added yet. Click "Add Service" to list what you offer and their price.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {data.services.map((service, idx) => (
+              <ServiceRow key={idx} service={service} onChange={(v) => updateService(idx, v)} onRemove={() => removeService(idx)} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Business Hours */}
+      <section className="space-y-4">
+        <Label className="text-sm font-semibold text-zinc-800">Business Hours</Label>
+        <div className="space-y-1.5">
+          <Input
+            placeholder="e.g. Mon–Sat, 10:00 AM – 8:00 PM. Closed Sundays."
+            value={data.business_hours || ""}
+            onChange={(e) => setField("business_hours", e.target.value)}
+          />
+        </div>
+      </section>
+      </>
+      )}
 
       {/* Policies */}
       <section className="space-y-4">

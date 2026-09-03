@@ -297,6 +297,7 @@ async def create_tenant(body: CreateTenantBody, admin=Depends(require_platform_a
         "name": body.name,
         "status": "onboarding",
         "environment": "demo",
+        "business_type": body.business_type or "hotel",
         "profile": {"logo_url": "", "website": "", "address": "", "contact_email": email,
                     "contact_phone": "", "description": ""},
         "branding": {"brand_color": body.brand_color or "#18181B", "logo_url": ""},
@@ -330,6 +331,10 @@ async def tenant_detail(tenant_id: str, admin=Depends(require_platform_admin)):
     tenant["tools"] = await db.tools.find({"tenant_id": tenant_id}, {"_id": 0}).to_list(200)
     tenant["live_data"] = await db.tenant_live_data.find_one({"tenant_id": tenant_id}, {"_id": 0})
     tenant["readiness"] = await compute_readiness(tenant_id)
+    # Read-access audit: admin viewed this tenant's full record (business data,
+    # users, live data). Customer confidentiality requires knowing who looked,
+    # not just who changed something.
+    await write_audit(admin, "tenant.view", tenant_id, tenant_id, {})
     return tenant
 
 
@@ -341,6 +346,7 @@ async def admin_tenant_leads(tenant_id: str, admin=Depends(require_platform_admi
     rows = await db.leads.find(
         {"tenant_id": tenant_id}, {"_id": 0, "provider_conversation_id": 0}
     ).sort("created_at", -1).to_list(200)
+    await write_audit(admin, "leads.view", tenant_id, tenant_id, {"count": len(rows)})
     return [public_lead(r) for r in rows]
 
 
@@ -350,6 +356,7 @@ async def admin_lead_detail(lead_id: str, admin=Depends(require_platform_admin))
     lead = await db.leads.find_one({"id": lead_id}, {"_id": 0, "provider_conversation_id": 0})
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
+    await write_audit(admin, "lead.view", lead_id, lead.get("tenant_id"), {})
     return public_lead(lead)
 
 

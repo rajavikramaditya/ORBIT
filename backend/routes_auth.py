@@ -26,14 +26,15 @@ async def _tenant_summary(tenant_id):
     return {"id": t["id"], "name": t["name"], "status": t["status"], "branding": t.get("branding", {})}
 
 
-async def _create_tenant_with_owner(email, name, hotel_name, password=None, auth_provider="password"):
+async def _create_tenant_with_owner(email, name, business_name, password=None, auth_provider="password", business_type="hotel"):
     tenant_id = gen_id("tenant_")
     await db.tenants.insert_one({
         "id": tenant_id,
-        "slug": hotel_name.lower().replace(" ", "-")[:40],
-        "name": hotel_name,
+        "slug": business_name.lower().replace(" ", "-")[:40],
+        "name": business_name,
         "status": "onboarding",
         "environment": "demo",
+        "business_type": business_type or "hotel",
         "profile": {"logo_url": "", "website": "", "address": "", "contact_email": email,
                     "contact_phone": "", "description": ""},
         "branding": {"brand_color": "#18181B", "logo_url": ""},
@@ -135,8 +136,8 @@ async def google_callback(request: Request):
 
     user = await db.users.find_one({"email": email})
     if not user:
-        hotel_name = f"{name}'s Hotel"
-        user = await _create_tenant_with_owner(email, name, hotel_name, None, "google")
+        default_business_name = f"{name}'s Business"
+        user = await _create_tenant_with_owner(email, name, default_business_name, None, "google")
         await db.users.update_one({"id": user["id"]}, {"$set": {"google_sub": sub}})
     elif not user.get("google_sub"):
         await db.users.update_one({"id": user["id"]}, {"$set": {"google_sub": sub}})
