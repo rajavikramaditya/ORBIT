@@ -3,6 +3,7 @@ from db import db, write_audit
 from models import (
     TenantProfileBody, CustomizationRequestBody, SimulateCallBody,
     LiveDataBody, LeadPatchBody, BUSINESS_TYPES, gen_id, now_iso,
+    ONBOARDING_STAGES, ONBOARDING_STAGE_LABELS_CUSTOMER,
 )
 from security import require_tenant_user
 from providers import elevenlabs
@@ -366,6 +367,7 @@ async def readiness(user=Depends(require_tenant_user)):
         (live_data or {}).get("catalogue_url") or extra.get("catalogue_url")
         or extra.get("website") or profile.get("website")
     )
+    data_source_ok = r["data_source"] != "none"
 
     needs_from_you = []
     if not profile_ok:
@@ -468,6 +470,82 @@ async def readiness(user=Depends(require_tenant_user)):
         _progress_row("Go Live", customer_items["go_live"]["status"]),
     ) if p]
 
+    # ---- Guided onboarding wizard (customer-facing Overview page) ----
+    # Single source of truth for step order/labels/status — the frontend used to
+    # hardcode this same list; it now just renders whatever this returns.
+    current_idx = ONBOARDING_STAGES.index(r["onboarding_stage"]) if r["onboarding_stage"] in ONBOARDING_STAGES else 1
+    can_simulate = environment != "production"
+
+    def _step(key, action=None, detail=None):
+        # Status mirrors the existing stage-index comparison the frontend used to
+        # do client-side (isPast/isCurrent in the old Overview.jsx stepper) — a
+        # step is "done" purely because onboarding has moved past it, matching
+        # today's behavior exactly (not a new completion check).
+        idx = ONBOARDING_STAGES.index(key)
+        if r["is_live"] or current_idx > idx:
+            status = "done"
+        elif current_idx == idx:
+            status = "active"
+        else:
+            status = "upcoming"
+        return {
+            "key": key,
+            "number": idx,  # "created" is index 0, so customer-facing steps start at 1
+            "label": ONBOARDING_STAGE_LABELS_CUSTOMER.get(key, key),
+            "owner": "you" if action and action.get("type") in ("navigate", "simulate_call") else "orbit",
+            "status": status,
+            "detail": detail or ("Completed" if status == "done" else "ORBIT setup team needs this information"),
+            "action": None if status == "done" else action,
+        }
+
+    wizard_steps = [
+        _step(
+            "business_details",
+            action={"type": "navigate", "route": "/dashboard/settings", "label": "Complete business profile"},
+            detail="Your business profile is complete." if profile_ok
+                   else "Add your contact phone, email and address in Settings.",
+        ),
+        _step(
+            "ai_employee_setup",
+            action={"type": "ask_orbit", "label": "Ask ORBIT about this"},
+            detail=(f"{ae['name']} is ready." if ae and ae.get("lifecycle_state") in ("live", "approved")
+                    else (f"ORBIT is testing and verifying {ae['name']}'s voice quality and behavior." if ae
+                          else "ORBIT will assign and fine-tune your dedicated AI employee.")),
+        ),
+        _step(
+            "business_data",
+            action={"type": "navigate", "route": "/dashboard/live-data", "label": "Add business information"},
+            detail=r["data_source_label"] if data_source_ok
+                   else "Add services, hours, or policies in Business Data.",
+        ),
+        _step(
+            "channel_setup",
+            action={"type": "ask_orbit", "label": "Ask ORBIT about this"},
+            detail="Your channels are connected." if ((not want_phone or phone_view == "ready") and (not want_wa or wa_view == "ready"))
+                   else "ORBIT is configuring your phone/WhatsApp channel. No action needed from you.",
+        ),
+        _step(
+            "testing",
+            action=({"type": "simulate_call", "label": "Simulate inbound call"} if can_simulate
+                    else {"type": "ask_orbit", "label": "Ask ORBIT about this"}),
+            detail="Testing complete." if (is_live or test_ok)
+                   else ("Try a simulated call so ORBIT can confirm everything works." if can_simulate
+                         else "ORBIT is running test calls against your AI employee."),
+        ),
+        _step(
+            "ready_for_approval",
+            action={"type": "ask_orbit", "label": "Ask ORBIT about this"},
+            detail="Approved for live operations." if (is_live or (ae is not None and len(r["blockers"]) == 0))
+                   else "ORBIT is reviewing everything above before approving you for launch.",
+        ),
+        _step(
+            "live",
+            action={"type": "ask_orbit", "label": "Ask ORBIT about this"},
+            detail="You're live!" if is_live
+                   else "ORBIT will switch you to live once every step above is ready.",
+        ),
+    ]
+
     return {
         "environment": r["environment"],
         "is_live": r["is_live"],
@@ -482,5 +560,6 @@ async def readiness(user=Depends(require_tenant_user)):
         "waiting_for_orbit": waiting_for_orbit,
         "configured": configured,
         "blockers": _sanitize_owner_blockers(r["blockers"]),
+        "wizard_steps": wizard_steps,
     }
 

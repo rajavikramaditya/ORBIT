@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { PhoneCall, MessagesSquare, Clock, Bot, Wand2, Loader2, Radio } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { PhoneCall, MessagesSquare, Clock, Bot, Wand2, Loader2, Radio, Check, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ const StatCard = ({ icon: Icon, label, value, testid }) => (
 );
 
 export default function Overview() {
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [ready, setReady] = useState(null);
   const [simulating, setSimulating] = useState(false);
@@ -43,6 +45,15 @@ export default function Overview() {
     } finally {
       setSimulating(false);
     }
+  };
+
+  const runStepAction = (step) => {
+    const action = step.action;
+    if (!action) return;
+    if (action.type === "navigate") navigate(action.route);
+    else if (action.type === "simulate_call") simulate();
+    else if (action.type === "ask_orbit")
+      navigate(`/dashboard/customization?ask=${encodeURIComponent(step.key)}&label=${encodeURIComponent(step.label)}`);
   };
 
   const s = data?.stats;
@@ -84,89 +95,77 @@ export default function Overview() {
             </span>
           </div>
 
-          {/* Customer Onboarding Journey Stepper */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-            {[
-              { key: "business_details", label: "1. Business Setup" },
-              { key: "ai_employee_setup", label: "2. AI Employee" },
-              { key: "business_data", label: "3. Information" },
-              { key: "channel_setup", label: "4. Channels" },
-              { key: "testing", label: "5. Testing" },
-              { key: "ready_for_approval", label: "6. Approval" },
-              { key: "live", label: "7. Go Live" },
-            ].map((step, idx) => {
-              const stagesOrder = ["created", "business_details", "ai_employee_setup", "business_data", "channel_setup", "testing", "ready_for_approval", "live"];
-              const currentIdx = stagesOrder.indexOf(ready.onboarding_stage || "business_details");
-              const stepIdx = stagesOrder.indexOf(step.key);
-              const isPast = currentIdx > stepIdx || ready.is_live;
-              const isCurrent = currentIdx === stepIdx && !ready.is_live;
-
-              return (
-                <div
-                  key={step.key}
-                  className={`rounded-xl p-2.5 text-center border transition-all ${
-                    isPast
-                      ? "bg-emerald-50/70 border-emerald-200 text-emerald-800"
-                      : isCurrent
-                      ? "bg-zinc-900 border-zinc-900 text-white font-medium shadow-sm"
-                      : "bg-zinc-50 border-zinc-100 text-zinc-400"
-                  }`}
-                >
-                  <div className="text-[11px] truncate">{step.label}</div>
-                  <div className={`text-[10px] mt-0.5 ${isCurrent ? "text-zinc-300" : isPast ? "text-emerald-600" : "text-zinc-400"}`}>
-                    {isPast ? "Completed" : isCurrent ? "Active" : "Upcoming"}
+          {/* Guided onboarding wizard — one row per step, driven entirely by the backend
+              (backend/routes_tenant.py's readiness() builds `wizard_steps`, so the frontend
+              never guesses stage order or ownership). Active step always shows a real button. */}
+          {ready.wizard_steps?.length > 0 && (
+            <div className="space-y-2" data-testid="onboarding-wizard">
+              {ready.wizard_steps.map((step) => {
+                const isDone = step.status === "done";
+                const isActive = step.status === "active";
+                return (
+                  <div
+                    key={step.key}
+                    data-testid={`wizard-step-${step.key}`}
+                    className={`rounded-xl border transition-all ${
+                      isActive
+                        ? "border-zinc-900/10 bg-zinc-50 p-4"
+                        : "border-black/5 bg-white px-4 py-3"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`w-6 h-6 rounded-full grid place-items-center text-[11px] font-semibold shrink-0 ${
+                          isDone
+                            ? "bg-emerald-100 text-emerald-700"
+                            : isActive
+                            ? "bg-zinc-900 text-white"
+                            : "bg-zinc-100 text-zinc-400"
+                        }`}
+                      >
+                        {isDone ? <Check className="w-3.5 h-3.5" /> : step.number}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className={`text-sm ${isActive ? "font-semibold text-zinc-900" : "font-medium text-zinc-700"}`}>
+                          {step.label}
+                        </div>
+                        {(isActive || isDone) && (
+                          <p className="mt-0.5 text-xs text-zinc-500 leading-relaxed">{step.detail}</p>
+                        )}
+                      </div>
+                      <span
+                        className={`text-[11px] font-semibold rounded-full px-2.5 py-1 shrink-0 ${
+                          isDone
+                            ? "bg-emerald-50 text-emerald-700"
+                            : isActive
+                            ? "bg-amber-50 text-amber-800"
+                            : "bg-zinc-50 text-zinc-400"
+                        }`}
+                      >
+                        {isDone ? "Completed" : isActive ? "In progress" : "Upcoming"}
+                      </span>
+                    </div>
+                    {isActive && step.action && (
+                      <div className="mt-3 pl-9">
+                        <Button
+                          size="sm"
+                          onClick={() => runStepAction(step)}
+                          disabled={step.action.type === "simulate_call" && simulating}
+                          data-testid={`wizard-action-${step.key}`}
+                          className="rounded-full h-9 px-4 bg-zinc-900 hover:bg-zinc-800"
+                        >
+                          {step.action.type === "simulate_call" && simulating ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" />
+                          ) : (
+                            <ArrowRight className="w-3.5 h-3.5 mr-2" />
+                          )}
+                          {step.action.label}
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {ready.progress?.length > 0 && (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2" data-testid="readiness-progress">
-              {ready.progress.map((row) => (
-                <div key={row.label} className="rounded-xl border border-black/5 bg-zinc-50 px-3 py-2.5 flex items-center justify-between gap-2">
-                  <span className="text-xs font-medium text-zinc-700">{row.label}</span>
-                  <span className={`text-[11px] font-semibold ${row.status === "ready" ? "text-emerald-700" : "text-amber-800"}`}>
-                    {row.status === "ready" ? "✓ Ready" : row.detail}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* What We Need From You / What ORBIT Is Handling */}
-          {(ready.needs_from_you?.length > 0 || ready.waiting_for_orbit?.length > 0) && (
-            <div className="grid sm:grid-cols-2 gap-4 pt-2 border-t border-black/5">
-              {ready.needs_from_you?.length > 0 && (
-                <div className="rounded-xl bg-amber-50/70 border border-amber-200/80 p-4 space-y-2" data-testid="needs-from-you">
-                  <div className="text-xs font-semibold text-amber-900 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-amber-500" />
-                    Action Required From You
-                  </div>
-                  <ul className="space-y-1.5 text-xs text-amber-800">
-                    {ready.needs_from_you.map((n) => (
-                      <li key={n.label} className="leading-relaxed">
-                        <strong className="font-medium">{n.label}:</strong> {n.detail}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {ready.waiting_for_orbit?.length > 0 && (
-                <div className="rounded-xl bg-zinc-50 border border-black/5 p-4 space-y-2" data-testid="waiting-for-orbit">
-                  <div className="text-xs font-semibold text-zinc-800 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-zinc-400" />
-                    ORBIT Is Currently Handling
-                  </div>
-                  <ul className="space-y-1.5 text-xs text-zinc-600">
-                    {ready.waiting_for_orbit.map((n) => (
-                      <li key={n.label} className="leading-relaxed">
-                        <strong className="font-medium text-zinc-700">{n.label}:</strong> {n.detail}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+                );
+              })}
             </div>
           )}
         </div>

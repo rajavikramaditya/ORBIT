@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Wand2, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -27,6 +28,7 @@ const CATEGORIES = [
 const CAT_LABEL = Object.fromEntries(CATEGORIES);
 
 export default function Customization() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState(null);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -34,6 +36,19 @@ export default function Customization() {
 
   const load = () => api.get("/tenant/customization-requests").then((r) => setItems(r.data)).catch(() => setItems([]));
   useEffect(() => { load(); }, []);
+
+  // Arriving from an Overview onboarding-wizard step ("Ask ORBIT about this")
+  // pre-fills and opens the same request dialog instead of a separate flow.
+  useEffect(() => {
+    const ask = searchParams.get("ask");
+    if (!ask) return;
+    const label = searchParams.get("label") || ask;
+    setForm({ category: "other", title: `Question: ${label}`, details: "", priority: "normal" });
+    setOpen(true);
+    // Clear the query params so refreshing/closing doesn't reopen the dialog.
+    setSearchParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const submit = async () => {
     if (!form.title || !form.details) { toast.error("Please add a title and details"); return; }
