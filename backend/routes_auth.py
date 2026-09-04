@@ -38,7 +38,8 @@ async def _reject_if_tenant_deleted(tenant_id):
         raise HTTPException(status_code=403, detail="This account has been deleted.")
 
 
-async def _create_tenant_with_owner(email, name, business_name, password=None, auth_provider="password", business_type="hotel"):
+async def _create_tenant_with_owner(email, name, business_name, password=None, auth_provider="password",
+                                     business_type="hotel", contact_phone="", address=""):
     tenant_id = gen_id("tenant_")
     await db.tenants.insert_one({
         "id": tenant_id,
@@ -47,8 +48,8 @@ async def _create_tenant_with_owner(email, name, business_name, password=None, a
         "status": "onboarding",
         "environment": "demo",
         "business_type": business_type or "hotel",
-        "profile": {"logo_url": "", "website": "", "address": "", "contact_email": email,
-                    "contact_phone": "", "description": ""},
+        "profile": {"logo_url": "", "website": "", "address": address or "", "contact_email": email,
+                    "contact_phone": contact_phone or "", "description": ""},
         "branding": {"brand_color": "#18181B", "logo_url": ""},
         "created_at": now_iso(),
     })
@@ -76,7 +77,8 @@ async def register(body: RegisterBody, request: Request, response: Response):
         raise HTTPException(status_code=400, detail="An account with this email already exists")
     b_name = body.business_name or body.hotel_name or "My Business"
     b_type = body.business_type if body.business_type in BUSINESS_TYPES else "hotel"
-    user = await _create_tenant_with_owner(email, body.name, b_name, body.password, business_type=b_type)
+    user = await _create_tenant_with_owner(email, body.name, b_name, body.password, business_type=b_type,
+                                            contact_phone=body.contact_phone, address=body.address)
     token = create_access_token(user["id"], email)
 
     set_auth_cookie(response, token)

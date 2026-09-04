@@ -20,7 +20,10 @@ const GOOGLE_LOGIN_ENABLED = process.env.REACT_APP_ENABLE_GOOGLE_LOGIN === "true
 export default function Register() {
   const { user, register, googleLogin } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", hotel_name: "", business_type: "hotel", email: "", password: "" });
+  const [form, setForm] = useState({
+    name: "", hotel_name: "", business_type: "hotel", email: "", password: "",
+    contact_phone: "", address: "",
+  });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -34,7 +37,10 @@ export default function Register() {
     setLoading(true);
     const res = await register(form);
     setLoading(false);
-    if (res.ok) navigate("/dashboard", { replace: true });
+    // Straight to the one-time "you're all set" confirmation, not the dashboard —
+    // the profile is already complete from this form, so OnboardingWelcome shows
+    // only that reassurance screen (no second data-entry page) before /dashboard.
+    if (res.ok) navigate("/onboarding", { replace: true });
     else setError(res.error);
   };
 
@@ -97,6 +103,18 @@ export default function Register() {
               <Label className="text-sm">Email</Label>
               <Input type="email" value={form.email} onChange={set("email")} required data-testid="register-email"
                 placeholder="you@business.in" className="mt-1.5 h-11 rounded-xl bg-zinc-50 border-black/10" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-sm">Contact phone</Label>
+                <Input value={form.contact_phone} onChange={set("contact_phone")} required data-testid="register-phone"
+                  placeholder="+91 …" className="mt-1.5 h-11 rounded-xl bg-zinc-50 border-black/10" />
+              </div>
+              <div>
+                <Label className="text-sm">Business address</Label>
+                <Input value={form.address} onChange={set("address")} required data-testid="register-address"
+                  placeholder="Street, City, PIN" className="mt-1.5 h-11 rounded-xl bg-zinc-50 border-black/10" />
+              </div>
             </div>
 
             <div>

@@ -21,6 +21,10 @@ class RegisterBody(BaseModel):
     hotel_name: Optional[str] = None
     # Self-serve signups pick their own vertical too — not just admin-created tenants.
     business_type: Optional[str] = None
+    # Collected on the same signup screen so the business profile is complete
+    # from the start — no separate "a few more details" page right after signup.
+    contact_phone: Optional[str] = None
+    address: Optional[str] = None
 
 
 

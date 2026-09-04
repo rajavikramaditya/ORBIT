@@ -8,11 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 // Full-screen first-run flow — deliberately NOT inside DashboardLayout (no sidebar,
-// no nav). Two short screens: get the one thing ORBIT genuinely can't proceed
-// without (the owner's contact profile), then a "you're set" moment that explains
-// what happens next before handing off to the real dashboard. DashboardLayout.jsx
-// is what redirects a fresh signup here in the first place — this page only ever
-// needs to get the owner from "just signed up" to "inside the dashboard".
+// no nav). The normal signup form (Register.jsx) already collects phone/email/
+// address, so most owners land here with a complete profile and see ONLY the
+// "you're set" reassurance screen below — never a second data-entry page right
+// after signup. The profile form (step 0) is a fallback for the rare case it's
+// still incomplete (Google sign-in, or an older/admin-created tenant) —
+// DashboardLayout.jsx is what redirects such a tenant here on later visits.
 function StepDots({ step }) {
   return (
     <div className="flex items-center gap-1.5" data-testid="onboarding-step-dots">
@@ -38,6 +39,9 @@ export default function OnboardingWelcome() {
         contact_email: p.contact_email || "",
         address: p.address || "",
       });
+      // Already complete (the normal case — Register.jsx collects all three) —
+      // skip straight to the confirmation screen, no form to fill in again.
+      if (p.contact_phone && p.contact_email && p.address) setStep(1);
     }).catch(() => {}).finally(() => setLoaded(true));
   }, []);
 
