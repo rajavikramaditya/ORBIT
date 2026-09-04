@@ -109,7 +109,7 @@ function CreateTenantDialog({ onCreated }) {
 function AttachAgentDialog({ tenantId, onDone }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [f, setF] = useState({ name: "", role_title: "Front Desk Concierge", provider_agent_id: "", voice_name: "Aria", voice_description: "Warm, professional Indian English" });
+  const [f, setF] = useState({ name: "", role_title: "Front Desk Concierge", provider: "elevenlabs", provider_agent_id: "", voice_name: "Aria", voice_description: "Warm, professional Indian English" });
   const submit = async () => {
     if (!f.name || !f.provider_agent_id) { toast.error("Name and provider_agent_id are required"); return; }
     setSaving(true);
@@ -117,7 +117,7 @@ function AttachAgentDialog({ tenantId, onDone }) {
       await api.post(`/admin/tenants/${tenantId}/ai-employees`, f);
       toast.success("AI employee created (Draft)");
       setOpen(false);
-      setF({ name: "", role_title: "Front Desk Concierge", provider_agent_id: "", voice_name: "Aria", voice_description: "Warm, professional Indian English" });
+      setF({ name: "", role_title: "Front Desk Concierge", provider: "elevenlabs", provider_agent_id: "", voice_name: "Aria", voice_description: "Warm, professional Indian English" });
       onDone();
     } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
     finally { setSaving(false); }
@@ -128,13 +128,22 @@ function AttachAgentDialog({ tenantId, onDone }) {
         <Button size="sm" variant="outline" className="rounded-full h-8" data-testid="attach-agent-btn"><Link2 className="w-3.5 h-3.5 mr-1.5" /> Attach AI employee</Button>
       </DialogTrigger>
       <DialogContent data-testid="attach-agent-dialog">
-        <DialogHeader><DialogTitle className="font-display">Attach ElevenLabs agent</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="font-display">Attach voice agent</DialogTitle></DialogHeader>
         <div className="space-y-4 py-2">
           <div><Label className="text-sm">Name</Label>
             <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Aria" className="mt-1.5" data-testid="aa-name" /></div>
           <div><Label className="text-sm">Role title</Label>
             <Input value={f.role_title} onChange={(e) => setF({ ...f, role_title: e.target.value })} className="mt-1.5" data-testid="aa-role" /></div>
-          <div><Label className="text-sm">provider_agent_id (ElevenLabs)</Label>
+          <div><Label className="text-sm">Voice provider</Label>
+            <Select value={f.provider} onValueChange={(v) => setF({ ...f, provider: v })}>
+              <SelectTrigger className="mt-1.5" data-testid="aa-provider"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="elevenlabs">ElevenLabs</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-zinc-400 mt-1">More providers appear here once connected — no code change needed to pick them.</p>
+          </div>
+          <div><Label className="text-sm">provider_agent_id</Label>
             <Input value={f.provider_agent_id} onChange={(e) => setF({ ...f, provider_agent_id: e.target.value })} placeholder="agent_xxx" className="mt-1.5 font-mono text-sm" data-testid="aa-agent-id" /></div>
           <div><Label className="text-sm">Voice</Label>
             <Input value={f.voice_name} onChange={(e) => setF({ ...f, voice_name: e.target.value })} className="mt-1.5" data-testid="aa-voice" /></div>

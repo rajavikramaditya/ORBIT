@@ -14,6 +14,7 @@ from db import db
 from connectors import get_orbit_live_connector, connector_supports
 from models import ORBIT_LEAD_PERSIST_TOOLS, FormIntakeBody, gen_id, now_iso
 from leads import persist_from_tool_call
+from voice_providers import get_voice_provider
 from channel_adapters import (
     exotel_configured, meta_whatsapp_configured, meta_whatsapp_verify_configured,
 )
@@ -48,49 +49,6 @@ def _json_object(payload) -> dict:
     if not isinstance(payload, dict):
         raise HTTPException(status_code=400, detail="Invalid JSON")
     return payload
-
-
-def _parse_tool_call(payload: dict) -> dict:
-    """Accept both flat and ElevenLabs-wrapped tool-call bodies.
-
-    Tenant is NEVER taken from the payload. conversation_id is copied from the
-    envelope so capture_lead can link to the later post-call record.
-    """
-    inner = payload.get("data") if isinstance(payload.get("data"), dict) else payload
-    tool_obj = None
-    if isinstance(inner.get("tool_call"), dict):
-        tool_obj = inner["tool_call"]
-    elif isinstance(inner.get("tool"), dict):
-        tool_obj = inner["tool"]
-    elif isinstance(inner.get("tool_calls"), list) and inner["tool_calls"] and isinstance(inner["tool_calls"][0], dict):
-        tool_obj = inner["tool_calls"][0]
-    agent_id = inner.get("agent_id") or payload.get("agent_id")
-    if not agent_id and isinstance(inner.get("agent"), dict):
-        agent_id = inner["agent"].get("id") or inner["agent"].get("agent_id")
-    tool_name = inner.get("tool_name") or payload.get("tool_name")
-    if not tool_name and isinstance(inner.get("tool"), str):
-        tool_name = inner.get("tool")
-    if not tool_name and tool_obj:
-        tool_name = tool_obj.get("tool_name") or tool_obj.get("name") or tool_obj.get("tool")
-    parameters = inner.get("parameters") or inner.get("args") or inner.get("arguments") or payload.get("parameters")
-    if not isinstance(parameters, dict) and tool_obj:
-        parameters = tool_obj.get("parameters") or tool_obj.get("args") or tool_obj.get("arguments")
-    if not isinstance(parameters, dict):
-        parameters = {}
-    conversation_id = inner.get("conversation_id") or payload.get("conversation_id")
-    tool_call_id = (
-        inner.get("tool_call_id") or payload.get("tool_call_id")
-        or inner.get("request_id") or payload.get("request_id")
-    )
-    if not tool_call_id and tool_obj:
-        tool_call_id = tool_obj.get("tool_call_id") or tool_obj.get("id")
-    return {
-        "agent_id": agent_id,
-        "tool_name": tool_name,
-        "parameters": parameters,
-        "conversation_id": conversation_id,
-        "tool_call_id": tool_call_id,
-    }
 
 
 async def _cached_tool_result(tool_call_id: str | None):
@@ -177,7 +135,10 @@ async def elevenlabs_tool_call(request: Request):
     payload = _json_object(payload)
     payload.pop("tenant_id", None)
 
-    parsed = _parse_tool_call(payload)
+    # This route only ever receives ElevenLabs-shaped bodies (the URL path is
+    # provider-specific); a future provider gets its own /webhooks/{provider}/
+    # route pair using its own adapter's parse_tool_call.
+    parsed = get_voice_provider("elevenlabs").parse_tool_call(payload)
     agent_id = parsed.get("agent_id")
     tool_name = parsed.get("tool_name")
     parameters = parsed.get("parameters") or {}

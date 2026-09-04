@@ -1,22 +1,18 @@
 """Shared conversation-capture ingest used by both the ElevenLabs webhook and the
 simulate-call demo endpoint. Tenant is resolved ONLY via provider_agent_id ->
 ai_employee -> tenant_id. Payload-supplied tenant is ignored. Idempotent on
-conversation_id."""
+conversation_id.
+
+Provider-specific payload parsing (ElevenLabs' JSON shape today) lives in
+voice_providers.py's adapters — this module only consumes the canonical dict
+an adapter's parse_post_call() returns, so it stays provider-agnostic."""
 import logging
 from pymongo.errors import DuplicateKeyError
 from db import db
 from models import gen_id, now_iso
+from voice_providers import get_voice_provider
 
 logger = logging.getLogger("orbit.ingest")
-
-
-def _as_int(value, default: int = 0) -> int:
-    try:
-        if value is None or value == "":
-            return default
-        return int(float(value))
-    except (TypeError, ValueError):
-        return default
 
 
 def _clean_str(value) -> str | None:
@@ -26,56 +22,6 @@ def _clean_str(value) -> str | None:
         text = value.strip()
         return text or None
     return None
-
-
-def _eval_flag(eval_criteria: dict, key: str) -> bool:
-    val = (eval_criteria or {}).get(key)
-    if isinstance(val, dict):
-        result = str(val.get("result") or "").lower()
-        return result in ("success", "true", "yes")
-    if val is True:
-        return True
-    if isinstance(val, str):
-        return val.strip().lower() in ("true", "yes", "1", "success")
-    return False
-
-
-def _recording_ref(data: dict, meta: dict) -> str | None:
-    """Store a provider reference only when the payload actually includes one.
-
-    ElevenLabs post-call transcription typically has no permanent audio URL.
-    Do not invent a local path — missing recording still creates the conversation.
-    """
-    candidates = (
-        meta.get("recording_url"),
-        meta.get("audio_url"),
-        meta.get("recording_ref"),
-        data.get("recording_url"),
-        data.get("audio_url"),
-        data.get("recording_ref"),
-    )
-    for raw in candidates:
-        text = _clean_str(raw)
-        if text:
-            return text
-    return None
-
-
-def _transcript(data: dict) -> list:
-    raw = data.get("transcript")
-    return raw if isinstance(raw, list) else []
-
-
-def _derive_outcome(follow_up: bool, call_success, custom_data: dict) -> str | None:
-    """Never default to resolved. Only set an outcome when the payload supports it."""
-    if follow_up:
-        return "follow_up_required"
-    if call_success == "failure" or call_success is False:
-        return "unresolved"
-    if call_success == "success" or call_success is True:
-        return "resolved"
-    intent = _clean_str((custom_data or {}).get("intent"))
-    return intent.lower() if intent else None
 
 
 async def _resolve_channel(tenant_id: str, ae: dict, meta: dict) -> dict | None:
@@ -91,24 +37,6 @@ async def _resolve_channel(tenant_id: str, ae: dict, meta: dict) -> dict | None:
         if found:
             return found
     return await db.channels.find_one(query, {"_id": 0})
-
-
-def _external_number(meta: dict) -> str | None:
-    phone = meta.get("phone_call") if isinstance(meta.get("phone_call"), dict) else {}
-    wa = meta.get("whatsapp") if isinstance(meta.get("whatsapp"), dict) else {}
-    return (
-        _clean_str(phone.get("external_number"))
-        or _clean_str(wa.get("user_id"))
-        or _clean_str(wa.get("from"))
-        or _clean_str(wa.get("external_number"))
-        or _clean_str(meta.get("user_id"))
-    )
-
-
-def _direction(meta: dict) -> str:
-    phone = meta.get("phone_call") if isinstance(meta.get("phone_call"), dict) else {}
-    wa = meta.get("whatsapp") if isinstance(meta.get("whatsapp"), dict) else {}
-    return phone.get("direction") or wa.get("direction") or "inbound"
 
 
 async def ingest_post_call(data: dict) -> dict:
@@ -135,9 +63,12 @@ async def ingest_post_call(data: dict) -> dict:
 
     tenant_id = ae["tenant_id"]
 
-    meta = data.get("metadata") if isinstance(data.get("metadata"), dict) else {}
-    analysis = data.get("analysis") if isinstance(data.get("analysis"), dict) else {}
-    duration = _as_int(meta.get("call_duration_secs"), 0)
+    # Provider-specific field extraction happens inside the adapter; ingest
+    # only ever sees the canonical shape from here on.
+    adapter = get_voice_provider(ae.get("provider"))
+    parsed = adapter.parse_post_call(data)
+    meta = parsed.get("meta") or {}
+    duration = parsed.get("duration_secs") or 0
 
     channel = await _resolve_channel(tenant_id, ae, meta)
 
@@ -150,45 +81,27 @@ async def ingest_post_call(data: dict) -> dict:
             logger.warning("lead upsert on duplicate ingest failed conv=%s", conv_id, exc_info=True)
         return {"status": "duplicate", "conversation_id": conv_id}
 
-    custom_data = analysis.get("custom_analysis_data") or analysis.get("data_collection_results") or {}
-    if not isinstance(custom_data, dict):
-        custom_data = {}
-    eval_criteria = analysis.get("evaluation_criteria_results") or {}
-    if not isinstance(eval_criteria, dict):
-        eval_criteria = {}
-    follow_up = bool(custom_data.get("follow_up_required")) or _eval_flag(eval_criteria, "follow_up_required")
-    if isinstance(custom_data.get("follow_up_required"), str):
-        follow_up = custom_data.get("follow_up_required").strip().lower() in ("true", "yes", "1")
-    call_success = analysis.get("call_successful")
-    outcome = _derive_outcome(follow_up, call_success, custom_data)
-    summary = analysis.get("transcript_summary")
-    if not isinstance(summary, str):
-        summary = ""
-    title = analysis.get("call_summary_title")
-    if not isinstance(title, str) or not title.strip():
-        title = "Conversation"
-
     conv = {
         "id": gen_id("cv_"),
         "tenant_id": tenant_id,
         "ai_employee_id": ae["id"],
         "channel_id": channel["id"] if channel else None,
         "channel_type": (channel or {}).get("type"),
-        "provider": "elevenlabs",
+        "provider": ae.get("provider") or "elevenlabs",
         "provider_conversation_id": conv_id,
-        "direction": _direction(meta),
-        "external_number": _external_number(meta),
-        "caller_name": _clean_str(custom_data.get("caller_name") or analysis.get("caller_name")),
-        "status": data.get("status") or "done",
-        "call_successful": call_success,
-        "outcome": outcome,
-        "follow_up_required": follow_up,
+        "direction": parsed.get("direction") or "inbound",
+        "external_number": parsed.get("external_number"),
+        "caller_name": _clean_str(parsed.get("caller_name")),
+        "status": parsed.get("status") or "done",
+        "call_successful": parsed.get("call_successful"),
+        "outcome": parsed.get("outcome"),
+        "follow_up_required": parsed.get("follow_up_required"),
         "duration_secs": duration,
-        "transcript": _transcript(data),
-        "summary_title": title,
-        "summary": summary,
-        "custom_analysis": custom_data,
-        "recording_ref": _recording_ref(data, meta),
+        "transcript": parsed.get("transcript") or [],
+        "summary_title": parsed.get("summary_title") or "Conversation",
+        "summary": parsed.get("summary") or "",
+        "custom_analysis": parsed.get("custom_analysis") or {},
+        "recording_ref": parsed.get("recording_ref"),
         "started_at": now_iso(),
         "created_at": now_iso(),
     }

@@ -60,6 +60,7 @@ class BusinessTypeBody(BaseModel):
 class CreateAIEmployeeBody(BaseModel):
     name: str
     role_title: str = "Front Desk Concierge"
+    provider: Optional[str] = "elevenlabs"  # voice AI platform key (see voice_providers.py registry)
     provider_agent_id: str
     voice_name: str = "Aria"
     voice_description: str = "Warm, professional Indian English"

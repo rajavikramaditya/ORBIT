@@ -1,6 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException
-import os
-import requests
 from db import db, write_audit
 from models import (
     CreateTenantBody, TenantStatusBody, CreateAIEmployeeBody, LifecycleBody,
@@ -19,6 +17,7 @@ from channel_adapters import (
     phone_connect_status, whatsapp_connect_status, platform_whatsapp_status,
     normalize_identifier, exotel_adapter, whatsapp_adapter,
 )
+from voice_providers import get_voice_provider
 import billing as B
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -390,7 +389,7 @@ async def create_ai_employee(tenant_id: str, body: CreateAIEmployeeBody, admin=D
         "tenant_id": tenant_id,
         "name": body.name,
         "role_title": body.role_title,
-        "provider": "elevenlabs",
+        "provider": body.provider or "elevenlabs",
         "provider_agent_id": body.provider_agent_id,
         "lifecycle_state": "draft",
         "voice_name": body.voice_name,
@@ -610,14 +609,8 @@ async def verify_voice(ae_id: str, admin=Depends(require_platform_admin)):
         raise HTTPException(status_code=404, detail="AI employee not found")
     if not elevenlabs_configured():
         return {"status": "credentials_required", "message": "Production credentials required (ELEVENLABS_API_KEY)."}
-    try:
-        r = requests.get(
-            f"https://api.elevenlabs.io/v1/convai/agents/{ae.get('provider_agent_id')}",
-            headers={"xi-api-key": os.environ["ELEVENLABS_API_KEY"]}, timeout=10,
-        )
-        ok = r.status_code == 200
-    except Exception:
-        ok = False
+    adapter = get_voice_provider(ae.get("provider"))
+    ok = bool(adapter.verify_agent(ae.get("provider_agent_id")).get("ok"))
     await db.ai_employees.update_one({"id": ae_id}, {"$set": {"provider_verified": ok, "updated_at": now_iso()}})
     return {"status": "verified" if ok else "failed",
             "message": "Agent verified." if ok else "Could not verify the agent with ElevenLabs."}
