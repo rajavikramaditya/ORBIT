@@ -26,6 +26,18 @@ async def _tenant_summary(tenant_id):
     return {"id": t["id"], "name": t["name"], "status": t["status"], "branding": t.get("branding", {})}
 
 
+async def _reject_if_tenant_deleted(tenant_id):
+    """Blocks sign-in for a soft-deleted tenant's users. Checked only at the
+    points that issue a new session (login / google exchange) — an already
+    logged-in session simply expires on its own short TTL, so this doesn't need
+    to touch require_tenant_user's hot path on every request."""
+    if not tenant_id:
+        return
+    t = await db.tenants.find_one({"id": tenant_id}, {"_id": 0, "deleted_at": 1})
+    if t and t.get("deleted_at"):
+        raise HTTPException(status_code=403, detail="This account has been deleted.")
+
+
 async def _create_tenant_with_owner(email, name, business_name, password=None, auth_provider="password", business_type="hotel"):
     tenant_id = gen_id("tenant_")
     await db.tenants.insert_one({
@@ -81,6 +93,7 @@ async def login(body: LoginBody, request: Request, response: Response):
     user = await db.users.find_one({"email": email})
     if not user or not verify_password(body.password, user.get("password_hash", "")):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    await _reject_if_tenant_deleted(user.get("tenant_id"))
     token = create_access_token(user["id"], email)
     set_auth_cookie(response, token)
     out = serialize_user(user)
@@ -153,6 +166,7 @@ async def google_callback(request: Request):
 async def google_exchange(body: GoogleExchangeBody, response: Response):
     """Redeem a single-use 60-second auth ticket for an ORBIT JWT access token."""
     user = await redeem_auth_ticket(body.ticket)
+    await _reject_if_tenant_deleted(user.get("tenant_id"))
     token = create_access_token(user["id"], user["email"])
     set_auth_cookie(response, token)
     out = serialize_user(user)
@@ -247,6 +261,9 @@ async def reset_password(request: Request, response: Response):
         await db.password_reset_tokens.delete_one({"token": validated.token})
         raise HTTPException(status_code=400, detail="Reset token has expired. Please request a new one.")
 
+    user = await db.users.find_one({"id": record["user_id"]}, {"_id": 0, "tenant_id": 1})
+    if user:
+        await _reject_if_tenant_deleted(user.get("tenant_id"))
     new_hash = hash_password(validated.new_password)
     await db.users.update_one({"id": record["user_id"]}, {"$set": {"password_hash": new_hash}})
     await db.password_reset_tokens.delete_one({"token": validated.token})

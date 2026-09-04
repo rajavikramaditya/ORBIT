@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Orbit, LogOut, Plus, Loader2, Building2, Bot, Radio, MessagesSquare,
   Wand2, ShieldAlert, ChevronRight, Link2, Activity, KeyRound, Receipt, BookOpen,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -344,6 +345,9 @@ function AddToolDialog({ integrationId, onDone }) {
 
 function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
   const [d, setD] = useState(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const load = useCallback(() => {
     if (!tenantId) return;
     setD(null);
@@ -352,6 +356,34 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
   useEffect(() => { if (open) load(); }, [open, load]);
 
   const refresh = () => { load(); onChanged && onChanged(); };
+
+  const deleteTenant = async () => {
+    setDeleting(true);
+    try {
+      await api.post(`/admin/tenants/${tenantId}/delete`);
+      toast.success("Tenant deleted — recoverable for 30 days");
+      setDeleteOpen(false);
+      setDeleteConfirmText("");
+      refresh();
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const restoreTenant = async () => {
+    setDeleting(true);
+    try {
+      await api.post(`/admin/tenants/${tenantId}/restore`);
+      toast.success("Tenant restored");
+      refresh();
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const setLifecycle = async (aeId, to) => {
     try { await api.patch(`/admin/ai-employees/${aeId}/lifecycle`, { to_state: to }); toast.success(`Moved to ${to}`); refresh(); }
@@ -601,6 +633,52 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
             </div>
 
             <ProductionPanel tenantId={tenantId} environment={d.environment} aiEmployees={d.ai_employees} onChanged={refresh} />
+
+            {/* Danger zone */}
+            <div className="mt-8 rounded-2xl border border-red-200 bg-red-50/50 p-5 space-y-3" data-testid="admin-danger-zone">
+              <div className="flex items-center gap-2 text-red-900 font-semibold text-sm">
+                <AlertTriangle className="w-4 h-4" /> Danger zone
+              </div>
+              {d.deleted_at ? (
+                <>
+                  <p className="text-sm text-zinc-700">
+                    Deleted on {new Date(d.deleted_at).toLocaleDateString("en-IN")} — will be permanently erased on{" "}
+                    {new Date(d.purge_at).toLocaleDateString("en-IN")}.
+                  </p>
+                  <Button variant="outline" size="sm" onClick={restoreTenant} disabled={deleting} data-testid="restore-tenant-btn" className="rounded-full">
+                    {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Restore tenant"}
+                  </Button>
+                </>
+              ) : (
+                <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="destructive" size="sm" data-testid="delete-tenant-btn" className="rounded-full">
+                      Delete tenant
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent data-testid="delete-tenant-dialog">
+                    <DialogHeader><DialogTitle className="font-display">Delete {d.name}?</DialogTitle></DialogHeader>
+                    <div className="space-y-4 py-2">
+                      <p className="text-sm text-zinc-600 leading-relaxed">
+                        Blocks new sign-ins right away (an already-open session may continue briefly) and
+                        permanently erases all this tenant's data in 30 days, unless restored before then.
+                      </p>
+                      <div>
+                        <Label className="text-sm">Type the tenant name ({d.name}) to confirm</Label>
+                        <Input value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)}
+                          className="mt-1.5" data-testid="delete-tenant-confirm-input" />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={deleteTenant} disabled={deleting || deleteConfirmText !== d.name} variant="destructive"
+                        data-testid="delete-tenant-confirm-submit" className="rounded-full">
+                        {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete tenant"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
           </>
         )}
       </SheetContent>
@@ -693,6 +771,74 @@ function QueueTab() {
             <Input placeholder="Note to customer…" defaultValue={r.admin_notes}
               onChange={(e) => setNotes({ ...notes, [r.id]: e.target.value })} className="h-9 flex-1 min-w-[180px]" data-testid="request-note" />
             <Button size="sm" variant="outline" className="h-9 rounded-full" onClick={() => update(r.id, r.status, notes[r.id] ?? r.admin_notes)} data-testid="request-save-note">Save note</Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DeletionQueueTab() {
+  const [items, setItems] = useState(null);
+  const [busyId, setBusyId] = useState(null);
+  const [purging, setPurging] = useState(false);
+  const load = () => api.get("/admin/deletion-requests").then((r) => setItems(r.data)).catch(() => setItems([]));
+  useEffect(() => { load(); }, []);
+  const resolve = async (id, action) => {
+    setBusyId(id);
+    try {
+      await api.post(`/admin/deletion-requests/${id}/${action}`);
+      toast.success(action === "approve" ? "Tenant deleted — recoverable for 30 days" : "Request rejected");
+      load();
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    } finally {
+      setBusyId(null);
+    }
+  };
+  const runPurge = async () => {
+    setPurging(true);
+    try {
+      const r = await api.post("/admin/purge-expired-deletions");
+      toast.success(r.data.purged_count ? `Permanently erased ${r.data.purged_count} tenant(s)` : "Nothing past its 30-day window yet");
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    } finally {
+      setPurging(false);
+    }
+  };
+  return (
+    <div className="space-y-4" data-testid="admin-deletion-queue-tab">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="font-display text-lg font-semibold">Deletion requests</h2>
+        <Button size="sm" variant="outline" className="h-9 rounded-full" onClick={runPurge} disabled={purging} data-testid="run-purge-btn">
+          {purging ? <Loader2 className="w-4 h-4 animate-spin" /> : "Run purge now"}
+        </Button>
+      </div>
+      <p className="text-xs text-zinc-400 -mt-2">
+        "Run purge now" permanently erases any tenant already past its 30-day soft-delete window — approving a
+        request above only starts that window.
+      </p>
+      {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
+      {items && items.length === 0 && <p className="text-sm text-zinc-500">No pending deletion requests.</p>}
+      {items?.map((r) => (
+        <div key={r.id} className="rounded-2xl border border-red-200 bg-red-50/40 p-5" data-testid="admin-deletion-request-card">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="text-xs text-zinc-400">{r.tenant_name} · requested by {r.requested_by_email}</div>
+              <p className="mt-1 text-sm text-zinc-700">{r.reason || "No reason given."}</p>
+              <div className="mt-1 text-xs text-zinc-400">{new Date(r.created_at).toLocaleDateString("en-IN")}</div>
+            </div>
+          </div>
+          <div className="mt-4 flex items-center gap-2">
+            <Button size="sm" variant="destructive" className="h-9 rounded-full" disabled={busyId === r.id}
+              onClick={() => resolve(r.id, "approve")} data-testid="approve-deletion-request">
+              {busyId === r.id ? <Loader2 className="w-4 h-4 animate-spin" /> : "Approve & delete"}
+            </Button>
+            <Button size="sm" variant="outline" className="h-9 rounded-full" disabled={busyId === r.id}
+              onClick={() => resolve(r.id, "reject")} data-testid="reject-deletion-request">
+              Reject
+            </Button>
           </div>
         </div>
       ))}
@@ -1067,6 +1213,7 @@ export default function AdminConsole() {
           <TabsList className="rounded-full">
             <TabsTrigger value="tenants" className="rounded-full" data-testid="tab-tenants">Tenants</TabsTrigger>
             <TabsTrigger value="queue" className="rounded-full" data-testid="tab-queue">Customization queue</TabsTrigger>
+            <TabsTrigger value="deletions" className="rounded-full" data-testid="tab-deletions">Deletion requests</TabsTrigger>
             <TabsTrigger value="quarantine" className="rounded-full" data-testid="tab-quarantine">Quarantine</TabsTrigger>
             <TabsTrigger value="operations" className="rounded-full" data-testid="tab-operations">Operations</TabsTrigger>
             <TabsTrigger value="health" className="rounded-full" data-testid="tab-health">System health</TabsTrigger>
@@ -1074,6 +1221,7 @@ export default function AdminConsole() {
           </TabsList>
           <TabsContent value="tenants" className="mt-6"><TenantsTab reloadStats={loadStats} /></TabsContent>
           <TabsContent value="queue" className="mt-6"><QueueTab /></TabsContent>
+          <TabsContent value="deletions" className="mt-6"><DeletionQueueTab /></TabsContent>
           <TabsContent value="quarantine" className="mt-6"><QuarantineTab /></TabsContent>
           <TabsContent value="operations" className="mt-6"><OperationsTab /></TabsContent>
           <TabsContent value="health" className="mt-6"><HealthTab /></TabsContent>

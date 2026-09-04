@@ -4,6 +4,7 @@ from models import (
     TenantProfileBody, CustomizationRequestBody, SimulateCallBody,
     LiveDataBody, LeadPatchBody, BUSINESS_TYPES, gen_id, now_iso,
     ONBOARDING_STAGES, ONBOARDING_STAGE_LABELS_CUSTOMER,
+    AccountDeletionRequestBody,
 )
 from security import require_tenant_user
 from providers import elevenlabs
@@ -299,6 +300,55 @@ async def create_request(body: CustomizationRequestBody, user=Depends(require_te
     await db.customization_requests.insert_one(dict(doc))
     doc.pop("_id", None)
     return doc
+
+
+@router.get("/deletion-request")
+async def get_deletion_request(user=Depends(require_tenant_user)):
+    """Current pending account-deletion request for this tenant, if any — lets
+    Settings show its status instead of the 'Delete my account' button."""
+    return await db.account_deletion_requests.find_one(
+        {"tenant_id": tid(user), "status": "pending"}, {"_id": 0}
+    )
+
+
+@router.post("/deletion-request")
+async def create_deletion_request(body: AccountDeletionRequestBody, user=Depends(require_tenant_user)):
+    """Requests the whole account + all its data be deleted. Deliberately does
+    NOT delete anything itself — ORBIT staff confirm from the admin console
+    (see routes_admin.py's /deletion-requests/{id}/approve), same concierge
+    pattern as customization requests. Only the account owner can request this
+    — a tenant 'admin' sub-user shouldn't be able to trigger deleting the whole
+    account."""
+    if user.get("role") != "owner":
+        raise HTTPException(status_code=403, detail="Only the account owner can request account deletion")
+    t = tid(user)
+    if await db.account_deletion_requests.find_one({"tenant_id": t, "status": "pending"}):
+        raise HTTPException(status_code=400, detail="A deletion request is already pending")
+    doc = {
+        "id": gen_id("adr_"),
+        "tenant_id": t,
+        "requested_by_user_id": user["id"],
+        "requested_by_email": user.get("email"),
+        "reason": body.reason,
+        "status": "pending",
+        "created_at": now_iso(),
+        "resolved_at": None,
+        "resolved_by_email": None,
+    }
+    await db.account_deletion_requests.insert_one(dict(doc))
+    doc.pop("_id", None)
+    return doc
+
+
+@router.post("/deletion-request/cancel")
+async def cancel_deletion_request(user=Depends(require_tenant_user)):
+    """Owner changes their mind before ORBIT has acted on the request."""
+    if user.get("role") != "owner":
+        raise HTTPException(status_code=403, detail="Only the account owner can cancel a deletion request")
+    res = await db.account_deletion_requests.delete_one({"tenant_id": tid(user), "status": "pending"})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="No pending deletion request found")
+    return {"status": "cancelled"}
 
 
 @router.get("/live-data")

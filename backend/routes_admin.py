@@ -18,6 +18,7 @@ from channel_adapters import (
     normalize_identifier, exotel_adapter, whatsapp_adapter,
 )
 from voice_providers import get_voice_provider
+from tenant_deletion import soft_delete_tenant, restore_tenant, purge_expired_tenants
 import billing as B
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -501,6 +502,73 @@ async def update_request(req_id: str, body: CustomizationStatusBody, admin=Depen
     await db.customization_requests.update_one({"id": req_id}, {"$set": updates})
     await write_audit(admin, "customization.update", req_id, r["tenant_id"], {"status": body.status})
     return await db.customization_requests.find_one({"id": req_id}, {"_id": 0})
+
+
+@router.get("/deletion-requests")
+async def all_deletion_requests(admin=Depends(require_platform_admin)):
+    reqs = await db.account_deletion_requests.find({"status": "pending"}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    for r in reqs:
+        t = await db.tenants.find_one({"id": r["tenant_id"]}, {"_id": 0, "name": 1})
+        r["tenant_name"] = t["name"] if t else "Unknown"
+    return reqs
+
+
+@router.post("/deletion-requests/{req_id}/approve")
+async def approve_deletion_request(req_id: str, admin=Depends(require_platform_admin)):
+    r = await db.account_deletion_requests.find_one({"id": req_id}, {"_id": 0})
+    if not r:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if r["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Request already resolved")
+    try:
+        tenant = await soft_delete_tenant(r["tenant_id"], admin, r.get("reason"))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    await db.account_deletion_requests.update_one(
+        {"id": req_id},
+        {"$set": {"status": "approved", "resolved_at": now_iso(), "resolved_by_email": admin.get("email")}},
+    )
+    return tenant
+
+
+@router.post("/deletion-requests/{req_id}/reject")
+async def reject_deletion_request(req_id: str, admin=Depends(require_platform_admin)):
+    res = await db.account_deletion_requests.update_one(
+        {"id": req_id, "status": "pending"},
+        {"$set": {"status": "rejected", "resolved_at": now_iso(), "resolved_by_email": admin.get("email")}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Request not found or already resolved")
+    return await db.account_deletion_requests.find_one({"id": req_id}, {"_id": 0})
+
+
+@router.post("/tenants/{tenant_id}/delete")
+async def admin_delete_tenant(tenant_id: str, admin=Depends(require_platform_admin)):
+    """Direct staff-initiated soft-delete — no customer request needed (e.g. a
+    dummy/test tenant, or acting on a request received outside the product)."""
+    try:
+        return await soft_delete_tenant(tenant_id, admin)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/tenants/{tenant_id}/restore")
+async def admin_restore_tenant(tenant_id: str, admin=Depends(require_platform_admin)):
+    try:
+        return await restore_tenant(tenant_id, admin)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/purge-expired-deletions")
+async def admin_purge_expired_deletions(admin=Depends(require_platform_admin)):
+    """Manual 'run purge now' — permanently erases every tenant past its 30-day
+    grace window. Same function a daily scheduled job would call
+    (purge_deleted_tenants.py); exists here so this doesn't have to wait on a
+    cron job being set up to be usable."""
+    result = await purge_expired_tenants()
+    await write_audit(admin, "tenant.purge_run", "", None, result)
+    return result
 
 
 @router.get("/quarantine")

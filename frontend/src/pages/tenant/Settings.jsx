@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2, Lock, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -8,6 +8,115 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
+} from "@/components/ui/dialog";
+
+function DangerZone() {
+  const { user } = useAuth();
+  const [request, setRequest] = useState(null);
+  const [loaded, setLoaded] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [confirmText, setConfirmText] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const isOwner = user?.role === "owner";
+  const load = () => api.get("/tenant/deletion-request").then((r) => setRequest(r.data)).catch(() => setRequest(null)).finally(() => setLoaded(true));
+  useEffect(() => { if (isOwner) load(); }, [isOwner]);
+
+  if (!isOwner) return null;
+
+  const submit = async () => {
+    setSaving(true);
+    try {
+      await api.post("/tenant/deletion-request", { reason });
+      toast.success("Deletion request sent to ORBIT");
+      setOpen(false);
+      setReason("");
+      setConfirmText("");
+      await load();
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const cancel = async () => {
+    setSaving(true);
+    try {
+      await api.post("/tenant/deletion-request/cancel");
+      toast.success("Deletion request cancelled");
+      await load();
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!loaded) return null;
+
+  return (
+    <div className="rounded-2xl border border-red-200 bg-red-50/50 p-6 space-y-4" data-testid="danger-zone">
+      <div className="flex items-start gap-3">
+        <AlertTriangle className="w-4.5 h-4.5 text-red-500 mt-0.5 shrink-0" />
+        <div>
+          <h2 className="font-display text-lg font-semibold text-red-900">Danger zone</h2>
+          <p className="mt-1 text-sm text-red-800/80 leading-relaxed">
+            Deleting your account permanently removes your business profile, AI employee, channels,
+            conversations and leads. This cannot be undone once ORBIT confirms it.
+          </p>
+        </div>
+      </div>
+
+      {request ? (
+        <div className="rounded-xl bg-white border border-red-200 p-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-zinc-700">
+            Deletion requested on {new Date(request.created_at).toLocaleDateString("en-IN")} — ORBIT will confirm shortly.
+          </p>
+          <Button variant="outline" size="sm" onClick={cancel} disabled={saving} data-testid="cancel-deletion-request" className="rounded-full">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Cancel request"}
+          </Button>
+        </div>
+      ) : (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button variant="destructive" data-testid="delete-account-btn" className="rounded-full h-10 px-5">
+              Delete my account
+            </Button>
+          </DialogTrigger>
+          <DialogContent data-testid="delete-account-dialog">
+            <DialogHeader><DialogTitle className="font-display">Delete your account?</DialogTitle></DialogHeader>
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-zinc-600 leading-relaxed">
+                This sends a deletion request to ORBIT. Nothing is deleted immediately — our team confirms
+                it and your data is permanently removed shortly after.
+              </p>
+              <div>
+                <Label className="text-sm">Reason (optional)</Label>
+                <Textarea value={reason} onChange={(e) => setReason(e.target.value)}
+                  placeholder="Let us know why you're leaving…" rows={3} className="mt-1.5" data-testid="delete-reason" />
+              </div>
+              <div>
+                <Label className="text-sm">Type DELETE to confirm</Label>
+                <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)}
+                  placeholder="DELETE" className="mt-1.5" data-testid="delete-confirm-input" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={submit} disabled={saving || confirmText !== "DELETE"} variant="destructive"
+                data-testid="delete-confirm-submit" className="rounded-full">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Request deletion"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
 
 const BUSINESS_TYPES = [
   { value: "hotel", label: "Hotel" },
@@ -145,6 +254,8 @@ export default function Settings() {
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save changes"}
         </Button>
       </div>
+
+      <DangerZone />
     </div>
   );
 }

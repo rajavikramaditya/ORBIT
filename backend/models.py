@@ -330,6 +330,11 @@ ORBIT_LEAD_PERSIST_TOOLS = {"capture_lead", "qualify_lead", "request_owner_callb
 LEAD_STATUS_ALIASES = {"converted": "won", "other": "unknown", "social": "unknown"}
 
 
+# ---- Account deletion (customer request -> ORBIT confirm -> 30-day soft delete) ----
+class AccountDeletionRequestBody(BaseModel):
+    reason: Optional[str] = None
+
+
 class LeadPatchBody(BaseModel):
     lead_status: Optional[str] = None
     qualification_status: Optional[str] = None
