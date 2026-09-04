@@ -559,8 +559,8 @@ async def readiness(user=Depends(require_tenant_user)):
             "ai_employee_setup",
             action={"type": "ask_orbit", "label": "Ask ORBIT about this"},
             detail=(f"{ae['name']} is ready." if ae and ae.get("lifecycle_state") in ("live", "approved")
-                    else (f"ORBIT is testing and verifying {ae['name']}'s voice quality and behavior." if ae
-                          else "ORBIT will assign and fine-tune your dedicated AI employee.")),
+                    else (f"ORBIT is testing and verifying {ae['name']}'s voice quality and behavior — usually within 1-2 business days." if ae
+                          else "ORBIT will assign and fine-tune your dedicated AI employee — usually within 1-2 business days.")),
         ),
         _step(
             "business_data",
@@ -572,7 +572,7 @@ async def readiness(user=Depends(require_tenant_user)):
             "channel_setup",
             action={"type": "ask_orbit", "label": "Ask ORBIT about this"},
             detail="Your channels are connected." if ((not want_phone or phone_view == "ready") and (not want_wa or wa_view == "ready"))
-                   else "ORBIT is configuring your phone/WhatsApp channel. No action needed from you.",
+                   else "ORBIT is configuring your phone/WhatsApp channel — usually within 1-2 business days. No action needed from you.",
         ),
         _step(
             "testing",
@@ -586,7 +586,7 @@ async def readiness(user=Depends(require_tenant_user)):
             "ready_for_approval",
             action={"type": "ask_orbit", "label": "Ask ORBIT about this"},
             detail="Approved for live operations." if (is_live or (ae is not None and len(r["blockers"]) == 0))
-                   else "ORBIT is reviewing everything above before approving you for launch.",
+                   else "ORBIT is reviewing everything above before approving you for launch — usually within 1 business day.",
         ),
         _step(
             "live",

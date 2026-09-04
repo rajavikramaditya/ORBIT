@@ -7,6 +7,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import AuthCallback from "@/pages/AuthCallback";
 import DashboardLayout from "@/layouts/DashboardLayout";
+import OnboardingWelcome from "@/pages/tenant/OnboardingWelcome";
 import Overview from "@/pages/tenant/Overview";
 import AIEmployees from "@/pages/tenant/AIEmployees";
 import Channels from "@/pages/tenant/Channels";
@@ -39,6 +40,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute adminOnly>
             <AdminConsole />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute>
+            <OnboardingWelcome />
           </ProtectedRoute>
         }
       />

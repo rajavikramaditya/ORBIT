@@ -1,8 +1,10 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
 import {
   Orbit, LayoutGrid, Bot, Radio, MessagesSquare, Wand2, Settings as SettingsIcon,
-  LogOut, ChevronDown, PlugZap, Receipt, Zap, Inbox,
+  LogOut, ChevronDown, PlugZap, Receipt, Zap, Inbox, Loader2,
 } from "lucide-react";
+import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
@@ -28,10 +30,35 @@ export default function DashboardLayout() {
   const tenant = user?.tenant;
   const brand = tenant?.branding?.brand_color || "#18181B";
 
+  // A brand-new (or still-incomplete) owner sees the full-screen onboarding
+  // flow instead of the dashboard shell — OnboardingWelcome.jsx sends them back
+  // here once their business profile is filled in, at which point this check
+  // naturally passes and the sidebar renders as normal. Platform admins never
+  // reach this layout, so no check needed for that role here.
+  const [gateChecked, setGateChecked] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  useEffect(() => {
+    api.get("/tenant/readiness")
+      .then((r) => setNeedsOnboarding(r.data?.onboarding_stage === "business_details"))
+      // Fail OPEN on a transient error (network blip, brief auth hiccup) — never
+      // trap a real user behind a broken gate just because one fetch failed.
+      .catch(() => setNeedsOnboarding(false))
+      .finally(() => setGateChecked(true));
+  }, []);
+
   const doLogout = async () => {
     await logout();
     navigate("/login", { replace: true });
   };
+
+  if (!gateChecked) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-white" data-testid="dashboard-gate-loading">
+        <Loader2 className="w-6 h-6 animate-spin text-zinc-400" />
+      </div>
+    );
+  }
+  if (needsOnboarding) return <Navigate to="/onboarding" replace />;
 
   return (
     <div className="min-h-screen bg-zinc-50 flex">
