@@ -3,8 +3,7 @@ import { Link } from "react-router-dom";
 import { AlertCircle, Phone, PhoneOff, Play } from "lucide-react";
 import { ScenarioSelect } from "./ScenarioSelect";
 import { OrbitLogo } from "@/components/OrbitLogo";
-import { Waveform } from "./Waveform";
-import { DEMO_STATE, formatDuration } from "./useDemoSession";
+import { DEMO_STATE } from "./useDemoSession";
 
 /**
  * The hero's demo control: one glass pill in the idle state, a compact call
@@ -22,12 +21,10 @@ export function VoiceDemo({ demo }) {
     scenarioKey,
     setScenarioKey,
     activeScenario,
-    seconds,
     errorMessage,
     start,
     stop,
     dismissError,
-    getOutputData,
   } = demo;
 
   if (state === DEMO_STATE.LOADING) {
@@ -49,42 +46,34 @@ export function VoiceDemo({ demo }) {
     );
   }
 
+  // While a call is running the conversation card carries the status, the
+  // waveform and the timer — this control is reduced to the one thing the
+  // visitor still needs: a way out.
   if (state === DEMO_STATE.LIVE || state === DEMO_STATE.STARTING) {
     const connecting = state === DEMO_STATE.STARTING;
     return (
-      <motion.div
+      <motion.button
         layout
+        type="button"
+        onClick={stop}
+        data-testid="demo-end"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-3"
+        className="inline-flex h-[54px] items-center gap-3 rounded-2xl border border-white/12 bg-white/[0.06] px-6 text-[15px] font-medium text-orbit-cream backdrop-blur-2xl transition-colors hover:border-red-400/40 hover:bg-red-500/15"
       >
-        <button
-          type="button"
-          onClick={stop}
-          data-testid="demo-end"
-          aria-label="End the demo call"
-          className="grid h-[54px] w-[54px] place-items-center rounded-full border border-white/15 bg-white/[0.08] text-orbit-cream backdrop-blur-2xl transition-colors hover:border-red-400/40 hover:bg-red-500/20"
-        >
-          <PhoneOff className="h-[18px] w-[18px]" />
-        </button>
-
-        <div className="flex h-[54px] items-center gap-3.5 rounded-2xl border border-white/10 bg-black/35 px-5 backdrop-blur-2xl">
-          {connecting ? (
-            <>
-              {/* The mark itself is the spinner — the ring is already a rotation. */}
-              <OrbitLogo spinning className="h-[18px] w-[18px] text-orbit-cream/60" />
-              <span className="text-[15px] text-orbit-cream/70">Connecting…</span>
-            </>
-          ) : (
-            <>
-              <Waveform getData={getOutputData} />
-              <span className="font-mono text-[15px] tabular-nums text-orbit-cream/80">
-                {formatDuration(seconds)}
-              </span>
-            </>
-          )}
-        </div>
-      </motion.div>
+        {connecting ? (
+          <>
+            {/* The mark itself is the spinner — the ring is already a rotation. */}
+            <OrbitLogo spinning className="h-[18px] w-[18px] text-orbit-cream/60" />
+            Connecting…
+          </>
+        ) : (
+          <>
+            <PhoneOff className="h-[18px] w-[18px]" />
+            End call
+          </>
+        )}
+      </motion.button>
     );
   }
 
