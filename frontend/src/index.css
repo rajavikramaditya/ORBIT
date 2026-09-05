@@ -43,7 +43,11 @@ body {
         --orbit-surface: #101015;
         --orbit-cream: #F4F1EA;
         --orbit-gold: #E4B871;
-        --orbit-live: #4ADE9B;
+        --orbit-goldink: #8A6A2F;
+        --orbit-paper: #ffffff;
+        --orbit-sand: #F5F4F0;
+        --orbit-text: #14141A;
+        --orbit-live: #2FA36B;
     }
 }
 

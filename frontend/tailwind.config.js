@@ -30,12 +30,20 @@ module.exports = {
         // Literal hex, not var(), so Tailwind's /opacity modifiers work
         // (text-orbit-cream/45 etc.) — a var() colour silently drops them in v3.
         // The matching CSS variables in index.css are for raw-CSS use.
+        //
+        // The page runs light with dark bands, so there are two text colours and
+        // two golds: `gold` is a decorative fill that only works on dark, and
+        // `goldink` is the readable-on-white version for label text.
         orbit: {
           ink: '#08080B',
           surface: '#101015',
           cream: '#F4F1EA',
           gold: '#E4B871',
-          live: '#4ADE9B',
+          goldink: '#8A6A2F',
+          paper: '#FFFFFF',
+          sand: '#F5F4F0',
+          text: '#14141A',
+          live: '#2FA36B',
         },
       },
       keyframes: {

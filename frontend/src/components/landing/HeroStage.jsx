@@ -9,15 +9,22 @@ import { DEMO_STATE, useDemoSession } from "./useDemoSession";
 
 const EASE = [0.16, 1, 0.3, 1];
 
+// Unsplash, free licence. Warm lantern-lit hospitality interior — it carries the
+// brand gold, and it says "your venue" rather than "a call centre".
+const HERO_IMAGE =
+  "https://images.unsplash.com/photo-1735045634800-957fd0dad45e?auto=format&fit=crop&w=2000&q=80";
+
 /**
  * The hero, in two states.
  *
  * Resting, it's a headline and the demo pill. The moment a call connects the
  * whole stage re-composes around the conversation: the headline becomes the
  * scenario, a transcript card appears, and fact cards slide in from the right.
- * The background is CSS — layered gradients plus a slow drift — with a video
- * slot ready underneath (drop a file at /hero.webm and it takes over, poster
- * and all, with no code change).
+ *
+ * This is the page's one dark band — a real photograph carries it, graded down
+ * under a left-weighted scrim so the headline holds contrast without the image
+ * turning to mud. A video slot sits ready above the photo (drop /hero.webm in
+ * public/ and uncomment; the photo stays as its poster).
  */
 export function HeroStage() {
   const demo = useDemoSession();
@@ -163,40 +170,43 @@ export function HeroStage() {
 }
 
 /**
- * Layered CSS backdrop. Two slow-drifting gradient blooms over a deep base,
- * a fine grain overlay, and a vignette so the headline always holds contrast.
- * `orbit-drift` is disabled under prefers-reduced-motion (see index.css).
- *
- * To use footage instead: drop hero.webm + hero-poster.jpg in `public/` and
- * uncomment the <video> below — the gradients stay as the poster/fallback.
+ * Photograph + scrim. The scrim is left-weighted rather than uniform: the
+ * headline sits on near-solid ink while the right third of the image stays
+ * readable, which is what keeps it looking like a photograph instead of a
+ * darkened rectangle. It deepens further during a call so the transcript card
+ * and fact cards read cleanly over it.
  */
 function HeroBackdrop({ inCall }) {
   return (
-    <div aria-hidden="true" className="absolute inset-0">
+    <div aria-hidden="true" className="absolute inset-0 bg-orbit-ink">
       {/*
       <video
-        className="absolute inset-0 h-full w-full object-cover opacity-45"
-        src="/hero.webm" poster="/hero-poster.jpg"
+        className="absolute inset-0 h-full w-full object-cover"
+        src="/hero.webm" poster={HERO_IMAGE}
         autoPlay loop muted playsInline
       />
       */}
-      <div className="absolute inset-0 bg-orbit-ink" />
-
-      <motion.div
-        animate={{ opacity: inCall ? 0.5 : 0.32 }}
-        transition={{ duration: 1.2 }}
-        className="animate-orbit-drift absolute -left-[15%] top-[-30%] h-[820px] w-[820px] rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.30),transparent_65%)] blur-3xl"
+      <img
+        src={HERO_IMAGE}
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover object-center"
+        fetchPriority="high"
       />
-      <motion.div
-        animate={{ opacity: inCall ? 0.55 : 0.3 }}
-        transition={{ duration: 1.2 }}
-        className="animate-orbit-drift-slow absolute -right-[12%] top-[8%] h-[720px] w-[720px] rounded-full bg-[radial-gradient(circle,rgba(74,222,155,0.16),transparent_62%)] blur-3xl"
-      />
-      <div className="absolute bottom-[-20%] left-[25%] h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(120,130,255,0.12),transparent_65%)] blur-3xl" />
 
-      <div className="grain absolute inset-0 opacity-[0.55]" />
-      <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_0%,transparent_25%,rgba(8,8,11,0.75)_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-orbit-ink" />
+      {/* Left-weighted scrim for the copy, plus a base tint over the whole frame. */}
+      <div className="absolute inset-0 bg-gradient-to-r from-orbit-ink via-orbit-ink/85 to-orbit-ink/25" />
+      <motion.div
+        animate={{ opacity: inCall ? 0.72 : 0.42 }}
+        transition={{ duration: 1.2 }}
+        className="absolute inset-0 bg-orbit-ink"
+      />
+
+      {/* A single warm bloom ties the photograph to the brand gold. */}
+      <div className="animate-orbit-drift-slow absolute -right-[10%] top-[6%] h-[680px] w-[680px] rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.20),transparent_62%)] blur-3xl" />
+
+      <div className="grain absolute inset-0 opacity-40" />
+      {/* Fades into the light section that follows. */}
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent to-orbit-ink" />
     </div>
   );
 }
