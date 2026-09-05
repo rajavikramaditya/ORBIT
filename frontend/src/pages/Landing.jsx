@@ -8,6 +8,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/Reveal";
 import { HeroStage } from "@/components/landing/HeroStage";
+import { VideoLayer } from "@/components/landing/VideoLayer";
+import { LANDING_MEDIA } from "@/components/landing/media";
 import { OrbitLogo, OrbitRing } from "@/components/OrbitLogo";
 import { ConversationProvider } from "@/components/landing/useDemoSession";
 
@@ -544,6 +546,14 @@ export default function Landing() {
                 <div className="absolute inset-x-16 -top-8 h-48 rounded-full bg-orbit-gold/50 blur-[100px]" />
                 <div className="relative rounded-[26px] border border-black/[0.08] bg-orbit-ink p-3 shadow-[0_40px_110px_rgba(20,20,26,0.3)]">
                   <div className="overflow-hidden rounded-[18px] border border-white/[0.08] bg-[#0B0B0F]">
+                    {/* A screen recording of the real dashboard replaces the mock
+                        the moment one is configured in media.js. */}
+                    {LANDING_MEDIA.dashboard?.src ? (
+                      <VideoLayer
+                        media={LANDING_MEDIA.dashboard}
+                        className="block min-h-[380px] w-full object-cover"
+                      />
+                    ) : (
                     <div className="grid min-h-[380px] grid-cols-12">
                       <div className="col-span-3 hidden border-r border-white/[0.07] p-5 md:block">
                         <div className="mb-8 flex items-center gap-2 text-orbit-cream">
@@ -605,6 +615,7 @@ export default function Landing() {
                         </p>
                       </div>
                     </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -774,6 +785,10 @@ export default function Landing() {
         {/* ── DARK BAND 3: CTA ── */}
         <section className="relative overflow-hidden bg-orbit-ink py-28 lg:py-32">
           <div aria-hidden="true" className="absolute inset-0">
+            <VideoLayer
+              media={LANDING_MEDIA.cta}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
             <div className="animate-orbit-drift absolute left-1/2 top-1/2 h-[640px] w-[900px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.24),transparent_62%)] blur-3xl" />
             <OrbitRing className="absolute left-1/2 top-1/2 h-[480px] w-[480px] -translate-x-1/2 -translate-y-1/2 text-orbit-cream/[0.05]" />
             <div className="grain absolute inset-0" />

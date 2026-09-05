@@ -68,13 +68,20 @@ export function Waveform({ getData, bars = 22, className = "", active = true }) 
             const idx = Math.floor((i / bars) * Math.min(data.length, 48));
             target = (data[idx] || 0) / 255;
           } else if (reduced) {
-            target = 0.18;
+            // Static but shaped, so it still reads as a waveform rather than a rule.
+            target = 0.25 + 0.2 * Math.abs(Math.sin(i * 0.9));
           } else {
-            // Idle breath: a slow travelling wave, never fully flat.
-            target = 0.12 + 0.09 * Math.abs(Math.sin(time / 620 + i * 0.45));
+            // Idle: a travelling wave with real amplitude. Two offset sines keep
+            // it from looking like a metronome. This has to be clearly alive —
+            // a low-amplitude ripple just reads as a row of static dots.
+            const t = time / 430;
+            target =
+              0.22 +
+              0.34 * Math.abs(Math.sin(t + i * 0.55)) +
+              0.16 * Math.abs(Math.sin(t * 0.6 + i * 0.23));
           }
           // Ease toward the target so loud syllables don't strobe.
-          levels[i] += (target - levels[i]) * 0.28;
+          levels[i] += (target - levels[i]) * 0.3;
 
           const h = Math.max(2, levels[i] * height * 0.92);
           const x = i * (barWidth + gap);
@@ -102,11 +109,12 @@ export function Waveform({ getData, bars = 22, className = "", active = true }) 
     };
   }, [bars, active]);
 
+  // A caller-supplied size wins; the default suits a small inline waveform.
   return (
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      className={`h-4 w-[92px] ${className}`}
+      className={className || "h-4 w-[92px]"}
     />
   );
 }

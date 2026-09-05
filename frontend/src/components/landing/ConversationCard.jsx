@@ -74,6 +74,12 @@ export function ConversationCard({
       className="relative rounded-[28px] border border-white/12 bg-white/[0.055] p-5 backdrop-blur-2xl"
       style={{ boxShadow: "0 40px 120px rgba(0,0,0,0.6)" }}
     >
+      {/* A slow warm breath behind the card — the difference between "a screenshot
+          of a product" and "a product that is running". */}
+      <div
+        aria-hidden="true"
+        className="animate-orbit-breathe pointer-events-none absolute -inset-8 -z-10 rounded-[40px] bg-[radial-gradient(circle,rgba(228,184,113,0.28),transparent_68%)] blur-2xl"
+      />
       {/* Header — who is speaking, and the live signal */}
       <div className="flex items-center justify-between border-b border-white/10 pb-4">
         <div className="flex items-center gap-3">
@@ -97,9 +103,12 @@ export function ConversationCard({
             </div>
           </div>
         </div>
-        <div className="h-6">
-          <Waveform getData={getOutputData} active={live && !connecting} bars={16} />
-        </div>
+        <Waveform
+          getData={getOutputData}
+          active={live && !connecting}
+          bars={18}
+          className="h-7 w-[104px]"
+        />
       </div>
 
       {/* Transcript */}

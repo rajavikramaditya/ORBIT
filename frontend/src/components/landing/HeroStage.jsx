@@ -1,28 +1,17 @@
-import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { VoiceDemo } from "./VoiceDemo";
 import { ConversationCard } from "./ConversationCard";
+import { VideoLayer } from "./VideoLayer";
+import { LANDING_MEDIA } from "./media";
 import { DEMO_STATE, useDemoSession } from "./useDemoSession";
 
 const EASE = [0.16, 1, 0.3, 1];
 
-/**
- * ── Hero background media ──────────────────────────────────────────────────
- * To use footage: drop the file in `frontend/public/` and point `src` at it.
- * To change it later, swap the file (or edit this one line) — nothing else in
- * the codebase needs touching. Set `src: null` for the animated backdrop alone.
- *
- * Free hotel/reception footage: pexels.com (search "hotel receptionist
- * telephone"). Download the HD mp4 and save it as public/hero.mp4.
- *
- * If the file is missing or fails to decode, the video hides itself and the
- * gradient backdrop underneath carries the hero — the page never looks broken.
- */
 const HERO_MEDIA = {
-  src: null, // e.g. "/hero.mp4"
-  poster: null, // e.g. "/hero-poster.jpg"
+  src: "/hero.mp4",
+  poster: null,
   opacity: 0.42,
 };
 
@@ -160,28 +149,21 @@ export function HeroStage() {
  * present. `orbit-drift` is disabled under prefers-reduced-motion (index.css).
  */
 function HeroBackdrop({ inCall }) {
-  const [videoFailed, setVideoFailed] = useState(false);
-  const showVideo = Boolean(HERO_MEDIA.src) && !videoFailed;
-
   return (
     <div aria-hidden="true" className="absolute inset-0">
-      <div className="animate-orbit-drift absolute -left-[14%] top-[-28%] h-[820px] w-[820px] rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.30),transparent_65%)] blur-3xl" />
-      <div className="animate-orbit-drift-slow absolute -right-[10%] top-[4%] h-[760px] w-[760px] rounded-full bg-[radial-gradient(circle,rgba(120,140,255,0.16),transparent_62%)] blur-3xl" />
-      <div className="absolute bottom-[-24%] left-[28%] h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle,rgba(47,163,107,0.14),transparent_65%)] blur-3xl" />
+      {/* Four blooms, deliberately spread top-to-bottom. Clustering them at the
+          top leaves the lower half of the hero as flat black, which reads as an
+          unfinished page rather than a dark one. */}
+      <div className="animate-orbit-drift absolute -left-[14%] top-[-24%] h-[820px] w-[820px] rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.32),transparent_65%)] blur-3xl" />
+      <div className="animate-orbit-drift-slow absolute -right-[10%] top-[2%] h-[780px] w-[780px] rounded-full bg-[radial-gradient(circle,rgba(120,140,255,0.18),transparent_62%)] blur-3xl" />
+      <div className="animate-orbit-drift-slow absolute bottom-[-8%] left-[18%] h-[720px] w-[900px] rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.16),transparent_66%)] blur-3xl" />
+      <div className="animate-orbit-drift absolute bottom-[2%] -right-[6%] h-[560px] w-[620px] rounded-full bg-[radial-gradient(circle,rgba(47,163,107,0.13),transparent_68%)] blur-3xl" />
 
-      {showVideo && (
-        <video
-          className="absolute inset-0 h-full w-full object-cover"
-          style={{ opacity: HERO_MEDIA.opacity }}
-          src={HERO_MEDIA.src}
-          poster={HERO_MEDIA.poster || undefined}
-          onError={() => setVideoFailed(true)}
-          autoPlay
-          loop
-          muted
-          playsInline
-        />
-      )}
+      {/* Configured in media.js — absent by default, and absent is fine. */}
+      <VideoLayer
+        media={HERO_MEDIA}
+        className="absolute inset-0 h-full w-full object-cover"
+      />
 
       <motion.div
         animate={{ opacity: inCall ? 0.35 : 0 }}
@@ -189,7 +171,9 @@ function HeroBackdrop({ inCall }) {
         className="absolute inset-0 bg-orbit-ink"
       />
       <div className="grain absolute inset-0" />
-      <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_0%,transparent_30%,rgba(8,8,11,0.8)_100%)]" />
+      {/* Light vignette only — heavy enough to hold the headline, not so heavy
+          that it crushes the blooms back into flat ink. */}
+      <div className="absolute inset-0 bg-[radial-gradient(130%_90%_at_50%_0%,transparent_40%,rgba(8,8,11,0.55)_100%)]" />
     </div>
   );
 }

@@ -127,6 +127,13 @@ body {
     from { transform: translate3d(0, 0, 0); }
     to { transform: translate3d(-50%, 0, 0); }
 }
+/* Slow breath behind the hero conversation card, so it reads as something
+   running rather than a static screenshot. */
+@keyframes orbit-breathe {
+    0%, 100% { opacity: 0.30; transform: scale(1); }
+    50% { opacity: 0.62; transform: scale(1.05); }
+}
+.animate-orbit-breathe { animation: orbit-breathe 6.5s ease-in-out infinite; }
 
 .animate-orbit-drift { animation: orbit-drift 26s ease-in-out infinite; }
 .animate-orbit-drift-slow { animation: orbit-drift-slow 34s ease-in-out infinite; }
@@ -134,6 +141,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
     .animate-orbit-drift,
     .animate-orbit-drift-slow,
+    .animate-orbit-breathe,
     .marquee-track {
         animation: none !important;
     }
