@@ -12,6 +12,7 @@ import routes_tenant
 import routes_webhooks
 import routes_business
 import routes_billing
+import routes_public
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("orbit")
@@ -51,6 +52,7 @@ app.include_router(routes_webhooks.router)
 app.include_router(routes_webhooks.intake_router)
 app.include_router(routes_business.router)
 app.include_router(routes_billing.router)
+app.include_router(routes_public.router)
 
 _origins = cors_origins()
 app.add_middleware(

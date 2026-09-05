@@ -4,6 +4,14 @@
    Do not redesign, restyle, or replace the current professional theme.
    Make only minimal UI changes when required for a functional fix.
 
+   Exception — the public marketing surface. `frontend/src/pages/Landing.jsx`,
+   `frontend/src/components/landing/*`, and the landing-only tokens in
+   `index.css` / `tailwind.config.js` are a deliberate exception: this is
+   positioning material and is expected to evolve. Everything behind login —
+   dashboard, tenant, admin, and auth pages — remains fully protected by
+   this rule. Shared CSS utilities (`.glass`, `.soft-shadow`, `.grain`) are
+   used by Login, Register and Legal, so extend them rather than change them.
+
 2. Do not rebuild working architecture.
    Prefer small, controlled changes over rewrites.
 

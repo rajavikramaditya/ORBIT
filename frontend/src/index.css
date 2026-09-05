@@ -36,6 +36,14 @@ body {
         --ring: 240 6% 10%;
         --radius: 0.85rem;
         --orbit-brand: #18181B;
+
+        /* Public marketing surface only (Landing + components/landing).
+           The app behind login stays on the light shadcn palette above. */
+        --orbit-ink: #08080B;
+        --orbit-surface: #101015;
+        --orbit-cream: #F4F1EA;
+        --orbit-gold: #E4B871;
+        --orbit-live: #4ADE9B;
     }
 }
 
@@ -80,6 +88,50 @@ body {
     }
     .grain {
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+    }
+
+    /* ---- Public marketing surface ---- */
+    .glass-frost {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(28px);
+        -webkit-backdrop-filter: blur(28px);
+        border: 1px solid rgba(255, 255, 255, 0.09);
+    }
+    .text-gradient-cream {
+        background: linear-gradient(180deg, #ffffff 0%, #f4f1ea 45%, rgba(244, 241, 234, 0.62) 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    /* Marquee track is duplicated in markup, so -50% is one seamless loop. */
+    .marquee-track {
+        animation: orbit-marquee 42s linear infinite;
+    }
+}
+
+/* Slow ambient drift for the hero gradient blooms. Motion-only decoration —
+   fully disabled for visitors who ask for reduced motion. */
+@keyframes orbit-drift {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(4%, -3%, 0) scale(1.08); }
+}
+@keyframes orbit-drift-slow {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); }
+    50% { transform: translate3d(-5%, 4%, 0) scale(1); }
+}
+@keyframes orbit-marquee {
+    from { transform: translate3d(0, 0, 0); }
+    to { transform: translate3d(-50%, 0, 0); }
+}
+
+.animate-orbit-drift { animation: orbit-drift 26s ease-in-out infinite; }
+.animate-orbit-drift-slow { animation: orbit-drift-slow 34s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-orbit-drift,
+    .animate-orbit-drift-slow,
+    .marquee-track {
+        animation: none !important;
     }
 }
 

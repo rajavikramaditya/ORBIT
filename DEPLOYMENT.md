@@ -29,6 +29,7 @@ Set on the **backend** host (never in the frontend bundle except `REACT_APP_BACK
 | `ADMIN_PASSWORD` | Unique production password (not `OrbitAdmin@2026`) |
 | `ELEVENLABS_API_KEY` | When connecting voice |
 | `ELEVENLABS_WEBHOOK_SECRET` | Required for production post-call webhooks |
+| `ORBIT_DEMO_AGENT_HOTEL` / `ORBIT_DEMO_AGENT_RESTAURANT` / `ORBIT_DEMO_AGENT_CLINIC` | Optional — each one set enables that scenario in the public landing-page voice demo. Leave all empty to switch the demo off. |
 | `EXOTEL_API_KEY` / `EXOTEL_API_TOKEN` / `EXOTEL_ACCOUNT_SID` / `EXOTEL_SUBDOMAIN` | When connecting phone |
 | `EXOTEL_WEBHOOK_SECRET` | Recommended for production Exotel inbound mapping |
 | `META_WHATSAPP_TOKEN` / `META_WHATSAPP_APP_SECRET` / `META_WHATSAPP_VERIFY_TOKEN` / `META_WHATSAPP_PHONE_NUMBER_ID` | Only if Meta Cloud API inbound webhook is used |

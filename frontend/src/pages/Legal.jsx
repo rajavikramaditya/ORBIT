@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Orbit } from "lucide-react";
+import { OrbitLogo } from "@/components/OrbitLogo";
 
 const PAGES = {
   terms: {
@@ -50,7 +50,7 @@ export default function Legal({ page }) {
       <header className="border-b border-black/5">
         <nav className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-zinc-900 text-white grid place-items-center"><Orbit className="w-4.5 h-4.5" strokeWidth={1.6} /></div>
+            <OrbitLogo className="w-7 h-7 text-zinc-900" />
             <span className="font-display font-semibold">ORBIT</span>
           </Link>
           <Link to="/login" className="text-sm text-zinc-500 hover:text-zinc-900">Sign in</Link>

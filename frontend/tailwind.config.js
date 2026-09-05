@@ -26,6 +26,17 @@ module.exports = {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
+        // Public marketing surface (Landing + components/landing) only.
+        // Literal hex, not var(), so Tailwind's /opacity modifiers work
+        // (text-orbit-cream/45 etc.) — a var() colour silently drops them in v3.
+        // The matching CSS variables in index.css are for raw-CSS use.
+        orbit: {
+          ink: '#08080B',
+          surface: '#101015',
+          cream: '#F4F1EA',
+          gold: '#E4B871',
+          live: '#4ADE9B',
+        },
       },
       keyframes: {
         'accordion-down': { from: { height: '0' }, to: { height: 'var(--radix-accordion-content-height)' } },
@@ -33,12 +44,17 @@ module.exports = {
         float: { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-10px)' } },
         'float-slow': { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-18px)' } },
         shimmer: { '0%': { backgroundPosition: '-200% 0' }, '100%': { backgroundPosition: '200% 0' } },
+        'orbit-rise': {
+          from: { opacity: '0', transform: 'translateY(14px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         float: 'float 6s ease-in-out infinite',
         'float-slow': 'float-slow 9s ease-in-out infinite',
+        'orbit-rise': 'orbit-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both',
       }
     }
   },

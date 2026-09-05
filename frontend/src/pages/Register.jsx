@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { Orbit, Loader2 } from "lucide-react";
+import { OrbitLogo } from "@/components/OrbitLogo";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,7 +49,7 @@ export default function Register() {
     <div className="min-h-screen grid lg:grid-cols-2 bg-white">
       <div className="flex flex-col justify-center px-6 sm:px-12 lg:px-20 py-12">
         <Link to="/" className="flex items-center gap-2.5 mb-12" data-testid="register-logo">
-          <div className="w-9 h-9 rounded-xl bg-zinc-900 text-white grid place-items-center"><Orbit className="w-5 h-5" strokeWidth={1.6} /></div>
+          <OrbitLogo className="w-8 h-8 text-zinc-900" />
           <span className="font-display text-lg font-semibold">ORBIT</span>
         </Link>
         <div className="max-w-sm w-full">

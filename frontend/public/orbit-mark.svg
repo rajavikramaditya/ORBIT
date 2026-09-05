@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <style>
+    .ring { fill: none; stroke: #08080B; stroke-width: 9.5 }
+    .solid { fill: #08080B }
+    @media (prefers-color-scheme: dark) {
+      .ring { stroke: #F4F1EA }
+      .solid { fill: #F4F1EA }
+    }
+  </style>
+  <path class="ring" d="M68.38 23.69 A33.75 33.75 0 1 1 51.18 18.27"/>
+  <path class="solid" d="M51.61 6.03 L67.03 18.59 L50.91 26.02 Z"/>
+  <circle class="solid" cx="50" cy="52" r="14.8"/>
+</svg>

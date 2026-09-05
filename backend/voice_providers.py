@@ -29,6 +29,8 @@ from security import verify_elevenlabs_signature
 
 logger = logging.getLogger("orbit.voice_providers")
 
+ELEVENLABS_API_BASE = "https://api.elevenlabs.io/v1"
+
 
 class VoiceProviderAdapter:
     """Universal base class for all voice AI platform integrations."""
@@ -37,6 +39,14 @@ class VoiceProviderAdapter:
     def verify_agent(self, agent_id: str) -> dict:
         """Check the agent still exists / is reachable with configured credentials.
         Returns {"ok": bool}. Never raises — callers treat exceptions as failure."""
+        raise NotImplementedError
+
+    def signed_url(self, agent_id: str) -> dict:
+        """Mint a short-lived, single-use URL a browser can open a voice session with.
+
+        The provider API key never leaves the server; the caller hands the browser
+        only the opaque URL this returns. Returns {"ok": bool, "signed_url": str|None}.
+        Never raises — callers treat exceptions as failure."""
         raise NotImplementedError
 
     def verify_webhook_signature(self, raw_body: bytes, header: str, secret: str) -> bool:
@@ -61,12 +71,32 @@ class ElevenLabsVoiceProvider(VoiceProviderAdapter):
     def verify_agent(self, agent_id: str) -> dict:
         try:
             r = requests.get(
-                f"https://api.elevenlabs.io/v1/convai/agents/{agent_id}",
+                f"{ELEVENLABS_API_BASE}/convai/agents/{agent_id}",
                 headers={"xi-api-key": os.environ["ELEVENLABS_API_KEY"]}, timeout=10,
             )
             return {"ok": r.status_code == 200}
         except Exception:
             return {"ok": False}
+
+    def signed_url(self, agent_id: str) -> dict:
+        try:
+            r = requests.get(
+                f"{ELEVENLABS_API_BASE}/convai/conversation/get-signed-url",
+                params={"agent_id": agent_id},
+                headers={"xi-api-key": os.environ["ELEVENLABS_API_KEY"]}, timeout=10,
+            )
+            if r.status_code != 200:
+                # agent_id is internal infrastructure — keep it out of the log line.
+                logger.warning("voice session mint failed status=%s", r.status_code)
+                return {"ok": False, "signed_url": None}
+            url = (r.json() or {}).get("signed_url")
+            if not isinstance(url, str) or not url.strip():
+                logger.warning("voice session mint returned no url")
+                return {"ok": False, "signed_url": None}
+            return {"ok": True, "signed_url": url.strip()}
+        except Exception:
+            logger.exception("voice session mint raised")
+            return {"ok": False, "signed_url": None}
 
     def verify_webhook_signature(self, raw_body: bytes, header: str, secret: str) -> bool:
         return verify_elevenlabs_signature(raw_body, header or "", secret or "")

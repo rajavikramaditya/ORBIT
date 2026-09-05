@@ -153,6 +153,27 @@ def enforce_auth_rate_limit(request: Request):
     _AUTH_HITS[ip] = hits
 
 
+# Public marketing voice demo throttle. Deliberately separate from the auth limiter:
+# every demo session costs real provider minutes, so this one also applies outside
+# production (the auth limiter no-ops in dev because tests hammer /auth/login).
+_DEMO_HITS: dict[str, list[float]] = {}
+_DEMO_WINDOW_SECS = 600
+_DEMO_MAX = 5
+
+
+def enforce_voice_demo_rate_limit(request: Request):
+    ip = (request.client.host if request.client else "unknown") or "unknown"
+    now = datetime.now(timezone.utc).timestamp()
+    hits = [t for t in _DEMO_HITS.get(ip, []) if now - t < _DEMO_WINDOW_SECS]
+    if len(hits) >= _DEMO_MAX:
+        raise HTTPException(
+            status_code=429,
+            detail="Demo limit reached. Please try again in a few minutes.",
+        )
+    hits.append(now)
+    _DEMO_HITS[ip] = hits
+
+
 def get_google_client_id() -> str:
     return os.environ.get("GOOGLE_CLIENT_ID", "").strip()
 

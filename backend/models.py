@@ -300,6 +300,13 @@ class FormIntakeBody(BaseModel):
     tenant_id: Optional[str] = None  # ignored if present
 
 
+# ---- Public marketing-site voice demo ----
+# Only a scenario key. An agent id is deliberately NOT accepted from the client:
+# the mapping is resolved server-side in routes_public.resolve_demo_agent().
+class DemoSessionBody(BaseModel):
+    scenario: str
+
+
 # ---- Password Reset ----
 class ForgotPasswordBody(BaseModel):
     email: EmailStr
