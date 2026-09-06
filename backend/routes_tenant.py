@@ -35,9 +35,16 @@ async def overview(user=Depends(require_tenant_user)):
     recent = await db.conversations.find(
         {"tenant_id": t}, {**CONV_TENANT_PROJECTION, "transcript": 0}
     ).sort("created_at", -1).to_list(6)
-    total_secs = 0
-    async for ev in db.usage_ledger.find({"tenant_id": t}, {"_id": 0, "quantity_secs": 1}):
-        total_secs += ev.get("quantity_secs", 0)
+    # One $group in the database instead of streaming every ledger row into
+    # Python and adding it up here. The old loop cost one document read per
+    # billable event, so the Overview page got slower with every call the tenant
+    # ever took — by a few thousand conversations it was the slowest thing on
+    # the dashboard.
+    usage = await db.usage_ledger.aggregate([
+        {"$match": {"tenant_id": t}},
+        {"$group": {"_id": None, "total_secs": {"$sum": "$quantity_secs"}}},
+    ]).to_list(1)
+    total_secs = (usage[0]["total_secs"] if usage else 0) or 0
     return {
         "stats": {
             "ai_employees": await db.ai_employees.count_documents({"tenant_id": t}),

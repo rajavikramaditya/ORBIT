@@ -1,4 +1,5 @@
 import os
+import asyncio
 import secrets
 from fastapi import APIRouter, Request, Response, HTTPException
 from fastapi.responses import RedirectResponse
@@ -27,10 +28,12 @@ async def _tenant_summary(tenant_id):
 
 
 async def _reject_if_tenant_deleted(tenant_id):
-    """Blocks sign-in for a soft-deleted tenant's users. Checked only at the
-    points that issue a new session (login / google exchange) — an already
-    logged-in session simply expires on its own short TTL, so this doesn't need
-    to touch require_tenant_user's hot path on every request."""
+    """Blocks sign-in for a soft-deleted tenant's users.
+
+    This runs at the points that issue a session (login / google exchange).
+    security.require_tenant_user makes the same check on every tenant request,
+    so an ALREADY signed-in user of a deleted tenant is cut off immediately
+    rather than keeping access until their token expires."""
     if not tenant_id:
         return
     t = await db.tenants.find_one({"id": tenant_id}, {"_id": 0, "deleted_at": 1})
@@ -144,8 +147,11 @@ async def google_callback(request: Request):
     if not code:
         raise HTTPException(status_code=400, detail="Missing authorization code from Google")
 
-    tokens = exchange_google_code(code)
-    identity = verify_google_identity(tokens)
+    # Both of these do blocking HTTPS round-trips to Google with a 15s timeout.
+    # Awaited directly on the event loop, one slow Google response froze every
+    # other request this worker was serving. Threads keep the loop responsive.
+    tokens = await asyncio.to_thread(exchange_google_code, code)
+    identity = await asyncio.to_thread(verify_google_identity, tokens)
     email = identity["email"]
     name = identity["name"]
     sub = identity["sub"]
@@ -221,7 +227,10 @@ async def forgot_password(request: Request):
 
     # Cryptographically secure random token (256-bit entropy)
     token = f"rst_{secrets.token_urlsafe(32)}"
-    expires_at = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+    # A BSON date, not an ISO string: MongoDB's TTL index only expires real
+    # dates, so the string version left every reset token in the collection
+    # forever. (auth_tickets already stores a datetime for the same reason.)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
     # Remove any old tokens for this user
     await db.password_reset_tokens.delete_many({"user_id": user["id"]})
     await db.password_reset_tokens.insert_one({
@@ -258,7 +267,16 @@ async def reset_password(request: Request, response: Response):
     record = await db.password_reset_tokens.find_one({"token": validated.token}, {"_id": 0})
     if not record:
         raise HTTPException(status_code=400, detail="Invalid or expired reset token")
-    expires_at = datetime.fromisoformat(record["expires_at"])
+    # Tolerate both shapes: tokens issued before the datetime change above are
+    # still ISO strings until they age out.
+    expires_at = record.get("expires_at")
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at)
+    if expires_at is None:
+        await db.password_reset_tokens.delete_one({"token": validated.token})
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
     if datetime.now(timezone.utc) > expires_at:
         await db.password_reset_tokens.delete_one({"token": validated.token})
         raise HTTPException(status_code=400, detail="Reset token has expired. Please request a new one.")

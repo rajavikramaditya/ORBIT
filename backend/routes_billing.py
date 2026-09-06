@@ -3,12 +3,16 @@ immutable invoices; tenants view invoices/usage and pay via Razorpay. Demo tenan
 are never charged. If Razorpay is not configured, the flow returns
 'payment_config_required' instead of failing."""
 import os
+import asyncio
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Request
 from db import db, write_audit
 from models import PricingBody, GenerateInvoiceBody, now_iso
 from security import require_platform_admin, require_tenant_user
 from provisioning import razorpay_configured
 import billing as B
+
+logger = logging.getLogger("orbit.billing")
 
 router = APIRouter(tags=["billing"])
 
@@ -17,6 +21,31 @@ ISSUED_STATES = {"issued", "due", "paid", "demo"}
 
 def _tid(user):
     return user["tenant_id"]
+
+
+# Only a CAPTURED payment means money actually moved. Razorpay sends
+# payment.failed and payment.authorized with the SAME order_id in the same
+# envelope shape, and the previous code read order_id out of any of them and
+# marked the invoice paid — so a declined card produced a paid invoice.
+CAPTURED_EVENT = "payment.captured"
+
+
+def parse_payment_webhook(payload: dict) -> dict:
+    """What a Razorpay webhook body means, as plain data.
+
+    Pure and I/O-free on purpose: the money decision is the part worth having
+    tests for, and it should not need a database or a live signature to check.
+    """
+    event = (payload.get("event") or "").strip()
+    entity = ((payload.get("payload") or {}).get("payment") or {}).get("entity") or {}
+    return {
+        "event": event,
+        "is_capture": event == CAPTURED_EVENT,
+        "order_id": entity.get("order_id") or None,
+        "payment_id": entity.get("id") or None,
+        "amount": entity.get("amount"),
+        "method": entity.get("method"),
+    }
 
 
 # ---------------- Admin: pricing ----------------
@@ -115,12 +144,18 @@ async def pay_invoice(invoice_id: str, user=Depends(require_tenant_user)):
         return {"status": "payment_config_required", "message": "Production payment configuration required."}
     import razorpay
     client = razorpay.Client(auth=(os.environ["RAZORPAY_KEY_ID"], os.environ["RAZORPAY_KEY_SECRET"]))
-    order = client.order.create({
-        "amount": int(round(inv["total"] * 100)),
-        "currency": inv.get("currency", "INR"),
-        "receipt": invoice_id[:40],
-        "payment_capture": 1,
-    })
+    # razorpay's SDK is synchronous. Awaiting it directly on the event loop would
+    # freeze EVERY other request in this worker for as long as Razorpay takes to
+    # answer, so it runs on a worker thread instead.
+    order = await asyncio.to_thread(
+        client.order.create,
+        {
+            "amount": int(round(inv["total"] * 100)),
+            "currency": inv.get("currency", "INR"),
+            "receipt": invoice_id[:40],
+            "payment_capture": 1,
+        },
+    )
     await db.invoices.update_one({"id": invoice_id}, {"$set": {"razorpay_order_id": order["id"]}})
     return {"status": "order_created", "order_id": order["id"], "key_id": os.environ["RAZORPAY_KEY_ID"],
             "amount": order["amount"], "currency": order["currency"]}
@@ -139,8 +174,47 @@ async def razorpay_webhook(request: Request):
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid signature")
     payload = await request.json()
-    entity = payload.get("payload", {}).get("payment", {}).get("entity", {})
-    order_id = entity.get("order_id")
-    if order_id:
-        await db.invoices.update_one({"razorpay_order_id": order_id}, {"$set": {"status": "paid", "paid_at": now_iso()}})
+    parsed = parse_payment_webhook(payload)
+    order_id = parsed["order_id"]
+
+    if not parsed["is_capture"]:
+        logger.info("razorpay webhook ignored event=%s", parsed["event"] or "(none)")
+        return {"status": "ignored", "event": parsed["event"]}
+    if not order_id:
+        return {"status": "ignored", "reason": "no order id"}
+
+    inv = await db.invoices.find_one({"razorpay_order_id": order_id}, {"_id": 0})
+    if not inv:
+        logger.warning("razorpay webhook: no invoice for order")
+        return {"status": "ignored", "reason": "unknown order"}
+    if inv.get("status") == "paid":
+        # Razorpay retries webhooks; a repeat delivery must not re-run the effects.
+        return {"status": "processed", "duplicate": True}
+
+    await db.invoices.update_one(
+        {"razorpay_order_id": order_id},
+        {"$set": {
+            "status": "paid",
+            "paid_at": now_iso(),
+            # Kept for refunds, chargebacks and reconciliation — without it there
+            # is no way to tie an ORBIT invoice back to a Razorpay payment.
+            "razorpay_payment_id": parsed["payment_id"],
+            "paid_amount": parsed["amount"],
+            "paid_method": parsed["method"],
+        }},
+    )
+
+    # Payment is the event that should lift a spend suspension. Leaving this to a
+    # manual admin step meant a customer could pay and stay switched off.
+    tenant_id = inv.get("tenant_id")
+    if tenant_id:
+        outstanding = await db.invoices.count_documents(
+            {"tenant_id": tenant_id, "status": {"$in": ["due", "failed"]}}
+        )
+        if outstanding == 0:
+            await db.tenants.update_one({"id": tenant_id}, {"$set": {"spend_status": "ok"}})
+        await write_audit(
+            None, "billing.payment_captured", target=inv.get("id", ""), tenant_id=tenant_id,
+            details={"order_id": order_id, "outstanding_after": outstanding},
+        )
     return {"status": "processed"}

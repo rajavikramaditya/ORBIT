@@ -1,6 +1,18 @@
 import axios from "axios";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+// Without the fallback, a build that forgets REACT_APP_BACKEND_URL produces the
+// baseURL "undefined/api" and every single request fails with a confusing 404 on
+// the Vercel domain itself. Falling back to a same-origin relative "/api" at
+// least fails in a way that points at the real problem, and the console warning
+// names it outright.
+const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "").replace(/\/+$/, "");
+if (!BACKEND_URL && typeof console !== "undefined") {
+  // eslint-disable-next-line no-console
+  console.warn(
+    "REACT_APP_BACKEND_URL is not set for this build — API calls will go to this origin's /api.",
+  );
+}
+
 export const TOKEN_STORAGE_KEY = "orbit_access_token";
 
 export function getStoredToken() {

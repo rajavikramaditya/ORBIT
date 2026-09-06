@@ -128,16 +128,53 @@ def require_platform_admin(user: dict = Depends(get_current_user)) -> dict:
     return user
 
 
-def require_tenant_user(user: dict = Depends(get_current_user)) -> dict:
+async def require_tenant_user(user: dict = Depends(get_current_user)) -> dict:
     if user.get("role") not in ("owner", "admin") or not user.get("tenant_id"):
         raise HTTPException(status_code=403, detail="Tenant access required")
+    # A deleted tenant used to be blocked only at sign-in. Access tokens live for
+    # hours, so someone already signed in kept full access to a deleted account
+    # until their token happened to expire. This is one indexed point lookup on
+    # tenants.id — next to the several queries every tenant route already makes,
+    # it does not register, and it closes the window immediately.
+    from db import db as _db
+    tenant = await _db.tenants.find_one(
+        {"id": user["tenant_id"]}, {"_id": 0, "deleted_at": 1}
+    )
+    if tenant and tenant.get("deleted_at"):
+        raise HTTPException(status_code=403, detail="This account has been deleted.")
     return user
 
 
-# In-memory auth throttle (per process). Production can sit behind a reverse-proxy limiter too.
+# In-memory throttles (per process). Production can sit behind a reverse-proxy
+# limiter too.
+#
+# Two known limits of this approach, recorded here so nobody mistakes it for
+# more than it is:
+#   * It is PER PROCESS. With more than one worker or container, each keeps its
+#     own counters, so the effective limit is (workers x max). Sharing state
+#     across workers needs Redis or a database-backed window — worth doing before
+#     scaling past a single worker, not before.
+#   * Keys are pruned lazily (see _prune) so an IP that stops calling doesn't
+#     occupy memory forever. Without that, every IP ever seen stayed in the dict
+#     for the life of the process.
 _AUTH_HITS: dict[str, list[float]] = {}
 _AUTH_WINDOW_SECS = 300
 _AUTH_MAX = 20
+
+# Sweep at most this often — a full pass is O(keys), and doing it on every
+# request would make the limiter itself the slow part under load.
+_PRUNE_INTERVAL_SECS = 60
+_LAST_PRUNE: dict[int, float] = {}
+
+
+def _prune(store: dict[str, list[float]], now: float, window: float) -> None:
+    """Drop IPs whose hits have all aged out of the window."""
+    key = id(store)
+    if now - _LAST_PRUNE.get(key, 0.0) < _PRUNE_INTERVAL_SECS:
+        return
+    _LAST_PRUNE[key] = now
+    for ip in [ip for ip, hits in store.items() if not hits or now - hits[-1] >= window]:
+        store.pop(ip, None)
 
 
 def enforce_auth_rate_limit(request: Request):
@@ -146,6 +183,7 @@ def enforce_auth_rate_limit(request: Request):
         return
     ip = (request.client.host if request.client else "unknown") or "unknown"
     now = datetime.now(timezone.utc).timestamp()
+    _prune(_AUTH_HITS, now, _AUTH_WINDOW_SECS)
     hits = [t for t in _AUTH_HITS.get(ip, []) if now - t < _AUTH_WINDOW_SECS]
     if len(hits) >= _AUTH_MAX:
         raise HTTPException(status_code=429, detail="Too many attempts. Try again later.")
@@ -164,6 +202,7 @@ _DEMO_MAX = 5
 def enforce_voice_demo_rate_limit(request: Request):
     ip = (request.client.host if request.client else "unknown") or "unknown"
     now = datetime.now(timezone.utc).timestamp()
+    _prune(_DEMO_HITS, now, _DEMO_WINDOW_SECS)
     hits = [t for t in _DEMO_HITS.get(ip, []) if now - t < _DEMO_WINDOW_SECS]
     if len(hits) >= _DEMO_MAX:
         raise HTTPException(

@@ -16,8 +16,16 @@
  * gradient behind it carries the section — the page never looks broken.
  *
  * A NOTE ON WEIGHT. Every video is bandwidth a visitor pays for before they
- * read a word. Download the HD (1920×1080) version, not 4K, and keep each
- * file under ~5 MB. One video is a good landing page; four is a slow one.
+ * read a word — and most ORBIT customers open this page on Indian mobile data.
+ * Download the HD (1920×1080) version, not 4K, then COMPRESS before committing:
+ *
+ *   ffmpeg -i in.mp4 -an -vf scale=1280:-2 -c:v libx264 -preset slow -crf 28 \
+ *          -pix_fmt yuv420p -movflags +faststart out.mp4
+ *
+ * That is 720p, no audio track (these are muted anyway) and web-streamable.
+ * It took hero.mp4 from 12.9 MB to 1.9 MB with no visible difference behind
+ * the scrim. Keep each file under ~2.5 MB. One video is a good landing page;
+ * four is a slow one.
  */
 export const LANDING_MEDIA = {
   /**
@@ -27,7 +35,9 @@ export const LANDING_MEDIA = {
    */
   hero: {
     src: "/hero.mp4",
-    poster: null, // "/hero-poster.jpg" — shows while the video loads
+    // The poster paints instantly while the video downloads, so the hero is
+    // never a blank rectangle on a slow connection.
+    poster: "/hero-poster.jpg",
     opacity: 0.42,
   },
 

@@ -17,6 +17,7 @@ Every minted session costs real provider minutes, so POST is IP-throttled by
 `security.enforce_voice_demo_rate_limit` in every environment.
 """
 import os
+import asyncio
 import logging
 
 from fastapi import APIRouter, HTTPException, Request
@@ -123,7 +124,11 @@ async def demo_session(body: DemoSessionBody, request: Request):
         # so this is an expected 503, not an error worth a stack trace.
         raise HTTPException(status_code=503, detail="Live demo is not available right now.")
 
-    result = get_voice_provider("elevenlabs").signed_url(agent_id)
+    # The provider SDK call is synchronous with a 10s timeout. Run straight on the
+    # event loop it would stall every other request in this worker while a slow
+    # provider answers — and this endpoint is public and unauthenticated, so it is
+    # the easiest one for a stranger to hammer. A worker thread keeps the loop free.
+    result = await asyncio.to_thread(get_voice_provider("elevenlabs").signed_url, agent_id)
     if not result.get("ok") or not result.get("signed_url"):
         logger.warning("demo session could not be minted scenario=%s", scenario_key)
         raise HTTPException(status_code=502, detail="Could not start the demo. Please try again.")

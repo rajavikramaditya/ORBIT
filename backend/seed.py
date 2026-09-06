@@ -9,8 +9,15 @@ async def create_indexes():
     await db.users.create_index("id", unique=True)
     await db.users.create_index("tenant_id")
     await db.user_sessions.create_index("session_token")
+    await db.user_sessions.create_index("expires_at", expireAfterSeconds=0)
     await db.auth_tickets.create_index("ticket_hash", unique=True)
     await db.auth_tickets.create_index("expires_at", expireAfterSeconds=0)
+    # Password reset tokens had NO index at all: every reset did a collection
+    # scan, and used/expired tokens were kept forever. The TTL index only works
+    # because routes_auth now stores expires_at as a BSON date, not a string.
+    await db.password_reset_tokens.create_index("token", unique=True)
+    await db.password_reset_tokens.create_index("user_id")
+    await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
     await db.tenants.create_index("id", unique=True)
     await db.ai_employees.create_index("provider_agent_id", unique=True)
     await db.ai_employees.create_index("tenant_id")
