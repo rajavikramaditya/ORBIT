@@ -1,14 +1,10 @@
-import { useEffect, useState } from "react";
-import { Bot, Mic, Info, Loader2 } from "lucide-react";
-import { api } from "@/lib/api";
+import { Bot, Mic, Info } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useApiResource } from "@/hooks/useApiResource";
+import { Loading, LoadError } from "@/components/AsyncState";
 
 export default function AIEmployees() {
-  const [items, setItems] = useState(null);
-
-  useEffect(() => {
-    api.get("/tenant/ai-employees").then((r) => setItems(r.data)).catch(() => setItems([]));
-  }, []);
+  const { data: items, error, loading, reload } = useApiResource("/tenant/ai-employees");
 
   return (
     <div className="space-y-8" data-testid="tenant-ai-employees">
@@ -36,8 +32,9 @@ export default function AIEmployees() {
         </div>
       </div>
 
-      {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
-      {items && items.length === 0 && (
+      {loading && <Loading />}
+      {error && <LoadError error={error} onRetry={reload} />}
+      {!loading && !error && items?.length === 0 && (
         <div className="rounded-2xl border border-black/5 bg-white p-10 text-center text-sm text-zinc-500">
           No AI employees yet. Our team will provision one during onboarding.
         </div>
@@ -49,7 +46,7 @@ export default function AIEmployees() {
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <span className="w-12 h-12 rounded-2xl bg-zinc-900 text-white grid place-items-center font-display font-semibold text-lg">
-                  {ae.name.charAt(0)}
+                  {(ae.name || "?").charAt(0)}
                 </span>
                 <div>
                   <div className="font-display text-lg font-semibold">{ae.name}</div>

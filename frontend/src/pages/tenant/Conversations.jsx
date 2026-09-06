@@ -1,28 +1,32 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { PhoneCall, Loader2, ArrowDownLeft, ArrowUpRight, Info, Play } from "lucide-react";
-import { api } from "@/lib/api";
+import { Loader2, ArrowDownLeft, ArrowUpRight, Info, AudioLines } from "lucide-react";
+import { api, formatApiErrorDetail } from "@/lib/api";
+import { useApiResource } from "@/hooks/useApiResource";
+import { Loading, LoadError } from "@/components/AsyncState";
 
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 
 export default function Conversations() {
-  const [items, setItems] = useState(null);
+  const { data: items, error, loading, reload } = useApiResource("/tenant/conversations");
   const [active, setActive] = useState(null);
   const [detail, setDetail] = useState(null);
-
-  useEffect(() => {
-    api.get("/tenant/conversations").then((r) => setItems(r.data)).catch(() => setItems([]));
-  }, []);
+  const [detailError, setDetailError] = useState(null);
 
   const open = async (c) => {
     setActive(c);
     setDetail(null);
+    setDetailError(null);
     try {
       const r = await api.get(`/tenant/conversations/${c.id}`);
       setDetail(r.data);
-    } catch (e) { /* noop */ }
+    } catch (e) {
+      // Opening a call used to fail in total silence — an endless spinner in
+      // the panel with no way to tell it had given up.
+      setDetailError(formatApiErrorDetail(e?.response?.data?.detail));
+    }
   };
 
   return (
@@ -41,8 +45,9 @@ export default function Conversations() {
       </div>
 
       <div className="rounded-2xl border border-black/5 bg-white overflow-hidden">
-        {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
-        {items && items.length === 0 && (
+        {loading && <Loading />}
+        {error && <LoadError error={error} onRetry={reload} className="m-4" />}
+        {!loading && !error && items?.length === 0 && (
           <div className="p-10 text-center text-sm text-zinc-500">No conversations yet.</div>
         )}
         <div className="divide-y divide-black/5">
@@ -87,7 +92,9 @@ export default function Conversations() {
           <SheetHeader>
             <SheetTitle className="font-display">{active?.summary_title}</SheetTitle>
           </SheetHeader>
-          {!detail ? (
+          {detailError ? (
+            <LoadError error={detailError} onRetry={() => open(active)} className="mt-6" />
+          ) : !detail ? (
             <div className="py-16 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>
           ) : (
             <div className="mt-4 space-y-6">
@@ -126,7 +133,7 @@ export default function Conversations() {
 
               {detail.recording_ref && (
               <div className="flex items-center gap-2 rounded-xl border border-black/5 px-4 py-3 text-sm text-zinc-500">
-                <Play className="w-4 h-4" /> Recording reference: <span className="font-mono text-xs break-all">{detail.recording_ref}</span>
+                <AudioLines className="w-4 h-4 shrink-0" /> Recording reference: <span className="font-mono text-xs break-all">{detail.recording_ref}</span>
               </div>
               )}
 

@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Orbit, LogOut, Plus, Loader2, Building2, Bot, Radio, MessagesSquare,
-  Wand2, ShieldAlert, ChevronRight, Link2, Activity, KeyRound, Receipt, BookOpen,
+  Wand2, ShieldAlert, ChevronRight, Link2, KeyRound, Receipt, BookOpen,
   AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Loading, LoadError } from "@/components/AsyncState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -348,10 +349,15 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   const load = useCallback(() => {
     if (!tenantId) return;
     setD(null);
-    api.get(`/admin/tenants/${tenantId}`).then((r) => setD(r.data)).catch(() => {});
+    setLoadError(null);
+    api.get(`/admin/tenants/${tenantId}`)
+      .then((r) => setD(r.data))
+      // This used to swallow the failure and leave the sheet spinning forever.
+      .catch((e) => setLoadError(formatApiErrorDetail(e?.response?.data?.detail)));
   }, [tenantId]);
   useEffect(() => { if (open) load(); }, [open, load]);
 
@@ -405,13 +411,15 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-xl overflow-y-auto" data-testid="tenant-detail-sheet">
-        {!d ? (
+        {loadError ? (
+          <LoadError error={loadError} onRetry={load} className="mt-10" />
+        ) : !d ? (
           <div className="py-20 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>
         ) : (
           <>
             <SheetHeader>
               <SheetTitle className="font-display flex items-center gap-3">
-                <span className="w-9 h-9 rounded-xl grid place-items-center text-white text-sm font-semibold" style={{ backgroundColor: d.branding?.brand_color || "#18181B" }}>{d.name.charAt(0)}</span>
+                <span className="w-9 h-9 rounded-xl grid place-items-center text-white text-sm font-semibold" style={{ backgroundColor: d.branding?.brand_color || "#18181B" }}>{(d.name || "?").charAt(0)}</span>
                 {d.name}
               </SheetTitle>
             </SheetHeader>
@@ -498,7 +506,7 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
                   <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 space-y-1">
                     <div className="text-[11px] font-semibold text-amber-900">Go-Live Blockers:</div>
                     <ul className="list-disc list-inside text-xs text-amber-800 space-y-0.5">
-                      {d.readiness.blockers.map((b) => (
+                      {(d.readiness.blockers || []).map((b) => (
                         <li key={b} className="leading-snug">{b}</li>
                       ))}
                     </ul>
@@ -524,8 +532,8 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
                 <AttachAgentDialog tenantId={tenantId} onDone={refresh} />
               </div>
               <div className="space-y-2">
-                {d.ai_employees.length === 0 && <p className="text-sm text-zinc-400">No AI employees yet.</p>}
-                {d.ai_employees.map((ae) => (
+                {(d.ai_employees || []).length === 0 && <p className="text-sm text-zinc-400">No AI employees yet.</p>}
+                {(d.ai_employees || []).map((ae) => (
                   <div key={ae.id} className="rounded-xl border border-black/5 p-4" data-testid="admin-ae-row">
                     <div className="flex items-center justify-between">
                       <div>
@@ -552,8 +560,8 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
                 <ConnectChannelDialog tenantId={tenantId} aiEmployees={d.ai_employees} onDone={refresh} />
               </div>
               <div className="space-y-2">
-                {d.channels.length === 0 && <p className="text-sm text-zinc-400">No channels connected.</p>}
-                {d.channels.map((c) => (
+                {(d.channels || []).length === 0 && <p className="text-sm text-zinc-400">No channels connected.</p>}
+                {(d.channels || []).map((c) => (
                   <div key={c.id} className="rounded-xl border border-black/5 p-4 flex items-center justify-between" data-testid="admin-channel-row">
                     <div className="text-sm">
                       <span className="font-medium capitalize">{c.type}</span>
@@ -623,7 +631,7 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
             <div className="mt-8">
               <h3 className="font-display font-semibold mb-3">Users</h3>
               <div className="space-y-2">
-                {d.users.map((u) => (
+                {(d.users || []).map((u) => (
                   <div key={u.id} className="rounded-xl border border-black/5 p-3 flex items-center justify-between text-sm">
                     <span>{u.name} <span className="text-zinc-400">· {u.email}</span></span>
                     <span className="text-xs rounded-full bg-zinc-100 px-2 py-0.5 capitalize">{u.role}</span>
@@ -689,7 +697,16 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
 function TenantsTab({ reloadStats }) {
   const [tenants, setTenants] = useState(null);
   const [selected, setSelected] = useState(null);
-  const load = useCallback(() => api.get("/admin/tenants").then((r) => setTenants(r.data)).catch(() => setTenants([])), []);
+  const [error, setError] = useState(null);
+  const load = useCallback(() => {
+    setError(null);
+    return api.get("/admin/tenants")
+      .then((r) => setTenants(r.data))
+      .catch((e) => {
+        setTenants([]);
+        setError(formatApiErrorDetail(e?.response?.data?.detail));
+      });
+  }, []);
   useEffect(() => { load(); }, [load]);
   const changed = () => { load(); reloadStats(); };
 
@@ -699,14 +716,15 @@ function TenantsTab({ reloadStats }) {
         <h2 className="font-display text-lg font-semibold">Tenants</h2>
         <CreateTenantDialog onCreated={changed} />
       </div>
-      {!tenants && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
+      {!tenants && !error && <Loading />}
+      {error && <LoadError error={error} onRetry={load} />}
       <div className="grid md:grid-cols-2 gap-3">
         {tenants?.map((t) => (
           <button key={t.id} onClick={() => setSelected(t.id)} data-testid="admin-tenant-card"
             className="text-left rounded-2xl border border-black/5 bg-white p-5 hover:border-black/15 transition-colors">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <span className="w-10 h-10 rounded-xl grid place-items-center text-white font-semibold" style={{ backgroundColor: t.branding?.brand_color || "#18181B" }}>{t.name.charAt(0)}</span>
+                <span className="w-10 h-10 rounded-xl grid place-items-center text-white font-semibold" style={{ backgroundColor: t.branding?.brand_color || "#18181B" }}>{(t.name || "?").charAt(0)}</span>
                 <div>
                   <div className="font-medium text-sm">{t.name}</div>
                   <div className="mt-1 flex items-center gap-2">
@@ -727,9 +745,9 @@ function TenantsTab({ reloadStats }) {
               <ChevronRight className="w-4 h-4 text-zinc-300" />
             </div>
             <div className="mt-4 flex items-center gap-4 text-xs text-zinc-500">
-              <span className="flex items-center gap-1"><Bot className="w-3.5 h-3.5" /> {t.counts.ai_employees}</span>
-              <span className="flex items-center gap-1"><Radio className="w-3.5 h-3.5" /> {t.counts.channels}</span>
-              <span className="flex items-center gap-1"><MessagesSquare className="w-3.5 h-3.5" /> {t.counts.conversations}</span>
+              <span className="flex items-center gap-1"><Bot className="w-3.5 h-3.5" /> {t.counts?.ai_employees ?? 0}</span>
+              <span className="flex items-center gap-1"><Radio className="w-3.5 h-3.5" /> {t.counts?.channels ?? 0}</span>
+              <span className="flex items-center gap-1"><MessagesSquare className="w-3.5 h-3.5" /> {t.counts?.conversations ?? 0}</span>
             </div>
           </button>
         ))}
@@ -742,7 +760,13 @@ function TenantsTab({ reloadStats }) {
 function QueueTab() {
   const [items, setItems] = useState(null);
   const [notes, setNotes] = useState({});
-  const load = () => api.get("/admin/customization-requests").then((r) => setItems(r.data)).catch(() => setItems([]));
+  const [error, setError] = useState(null);
+  const load = () => {
+    setError(null);
+    return api.get("/admin/customization-requests")
+      .then((r) => setItems(r.data))
+      .catch((e) => { setItems([]); setError(formatApiErrorDetail(e?.response?.data?.detail)); });
+  };
   useEffect(() => { load(); }, []);
   const update = async (id, status, admin_notes) => {
     try { await api.patch(`/admin/customization-requests/${id}`, { status, admin_notes }); toast.success("Request updated"); load(); }
@@ -751,8 +775,9 @@ function QueueTab() {
   return (
     <div className="space-y-4" data-testid="admin-queue-tab">
       <h2 className="font-display text-lg font-semibold">Customization queue</h2>
-      {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
-      {items && items.length === 0 && <p className="text-sm text-zinc-500">No requests.</p>}
+      {!items && !error && <Loading />}
+      {error && <LoadError error={error} onRetry={load} />}
+      {!error && items && items.length === 0 && <p className="text-sm text-zinc-500">No requests.</p>}
       {items?.map((r) => (
         <div key={r.id} className="rounded-2xl border border-black/5 bg-white p-5" data-testid="admin-request-card">
           <div className="flex items-start justify-between gap-4">
@@ -764,7 +789,7 @@ function QueueTab() {
             <StatusBadge kind="request" value={r.status} />
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Select value={r.status} onValueChange={(v) => update(r.id, v, r.admin_notes)}>
+            <Select value={r.status} onValueChange={(v) => update(r.id, v, notes[r.id] ?? r.admin_notes)}>
               <SelectTrigger className="h-9 w-44" data-testid="request-status-select"><SelectValue /></SelectTrigger>
               <SelectContent>{REQUEST_STATES.map((s) => <SelectItem key={s} value={s} className="capitalize">{s.replace("_", " ")}</SelectItem>)}</SelectContent>
             </Select>
@@ -782,7 +807,13 @@ function DeletionQueueTab() {
   const [items, setItems] = useState(null);
   const [busyId, setBusyId] = useState(null);
   const [purging, setPurging] = useState(false);
-  const load = () => api.get("/admin/deletion-requests").then((r) => setItems(r.data)).catch(() => setItems([]));
+  const [error, setError] = useState(null);
+  const load = () => {
+    setError(null);
+    return api.get("/admin/deletion-requests")
+      .then((r) => setItems(r.data))
+      .catch((e) => { setItems([]); setError(formatApiErrorDetail(e?.response?.data?.detail)); });
+  };
   useEffect(() => { load(); }, []);
   const resolve = async (id, action) => {
     setBusyId(id);
@@ -820,7 +851,8 @@ function DeletionQueueTab() {
         request above only starts that window.
       </p>
       {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
-      {items && items.length === 0 && <p className="text-sm text-zinc-500">No pending deletion requests.</p>}
+      {error && <LoadError error={error} onRetry={load} />}
+      {!error && items && items.length === 0 && <p className="text-sm text-zinc-500">No pending deletion requests.</p>}
       {items?.map((r) => (
         <div key={r.id} className="rounded-2xl border border-red-200 bg-red-50/40 p-5" data-testid="admin-deletion-request-card">
           <div className="flex items-start justify-between gap-4">
@@ -848,13 +880,21 @@ function DeletionQueueTab() {
 
 function QuarantineTab() {
   const [items, setItems] = useState(null);
-  useEffect(() => { api.get("/admin/quarantine").then((r) => setItems(r.data)).catch(() => setItems([])); }, []);
+  const [error, setError] = useState(null);
+  const load = useCallback(() => {
+    setError(null);
+    return api.get("/admin/quarantine")
+      .then((r) => setItems(r.data))
+      .catch((e) => { setItems([]); setError(formatApiErrorDetail(e?.response?.data?.detail)); });
+  }, []);
+  useEffect(() => { load(); }, [load]);
   return (
     <div className="space-y-4" data-testid="admin-quarantine-tab">
       <h2 className="font-display text-lg font-semibold">Webhook quarantine</h2>
       <p className="text-sm text-zinc-500">Post-call events whose <span className="font-mono">agent_id</span> maps to no AI employee are rejected and held here.</p>
       {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
-      {items && items.length === 0 && <p className="text-sm text-zinc-500">Nothing quarantined — all webhooks resolved to a tenant.</p>}
+      {error && <LoadError error={error} onRetry={load} />}
+      {!error && items && items.length === 0 && <p className="text-sm text-zinc-500">Nothing quarantined — all webhooks resolved to a tenant.</p>}
       {items?.map((q) => (
         <div key={q.id} className="rounded-xl border border-red-100 bg-red-50/50 p-4 text-sm" data-testid="quarantine-row">
           <div className="font-mono text-red-700">{q.agent_id}</div>
@@ -883,11 +923,14 @@ const Pill = ({ v, label }) => (
 
 function HealthTab() {
   const [health, setHealth] = useState(null);
-  useEffect(() => {
-    api.get("/admin/system-health")
+  const [error, setError] = useState(null);
+  const load = useCallback(() => {
+    setError(null);
+    return api.get("/admin/system-health")
       .then((r) => setHealth(r.data))
-      .catch(() => setHealth({ items: [], capacity: null }));
+      .catch((e) => setError(formatApiErrorDetail(e?.response?.data?.detail)));
   }, []);
+  useEffect(() => { load(); }, [load]);
 
   const items = health?.items;
   const cap = health?.capacity;
@@ -900,7 +943,8 @@ function HealthTab() {
       </div>
 
       {/* Service health grid */}
-      {!health && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
+      {!health && !error && <Loading />}
+      {error && <LoadError error={error} onRetry={load} />}
       <div className="rounded-2xl border border-black/5 bg-white divide-y divide-black/5">
         {items?.map((it) => (
           <div key={it.key} className="px-5 py-4 flex items-center justify-between gap-4" data-testid={`health-${it.key}`}>
@@ -949,13 +993,21 @@ function HealthTab() {
 
 function AuditTab() {
   const [items, setItems] = useState(null);
-  useEffect(() => { api.get("/admin/audit-log").then((r) => setItems(r.data)).catch(() => setItems([])); }, []);
+  const [error, setError] = useState(null);
+  const load = useCallback(() => {
+    setError(null);
+    return api.get("/admin/audit-log")
+      .then((r) => setItems(r.data))
+      .catch((e) => { setItems([]); setError(formatApiErrorDetail(e?.response?.data?.detail)); });
+  }, []);
+  useEffect(() => { load(); }, [load]);
   return (
     <div className="space-y-4" data-testid="admin-audit-tab">
       <h2 className="font-display text-lg font-semibold">Audit log</h2>
       <p className="text-sm text-zinc-500">Admin actions: tenant, agent, channel, billing and customization changes.</p>
       {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
-      {items && items.length === 0 && <p className="text-sm text-zinc-500">No audit entries yet.</p>}
+      {error && <LoadError error={error} onRetry={load} />}
+      {!error && items && items.length === 0 && <p className="text-sm text-zinc-500">No audit entries yet.</p>}
       <div className="rounded-2xl border border-black/5 bg-white divide-y divide-black/5">
         {items?.map((a) => (
           <div key={a.id} className="px-5 py-3 text-sm" data-testid="audit-row">
@@ -973,12 +1025,20 @@ function AuditTab() {
 
 function OperationsTab() {
   const [rows, setRows] = useState(null);
-  useEffect(() => { api.get("/admin/operations").then((r) => setRows(r.data)).catch(() => setRows([])); }, []);
+  const [error, setError] = useState(null);
+  const load = useCallback(() => {
+    setError(null);
+    return api.get("/admin/operations")
+      .then((r) => setRows(r.data))
+      .catch((e) => { setRows([]); setError(formatApiErrorDetail(e?.response?.data?.detail)); });
+  }, []);
+  useEffect(() => { load(); }, [load]);
   return (
     <div className="space-y-4" data-testid="admin-operations-tab">
       <h2 className="font-display text-lg font-semibold">Operations</h2>
-      {!rows && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
-      {rows && (
+      {!rows && !error && <Loading />}
+      {error && <LoadError error={error} onRetry={load} />}
+      {!error && rows && (
         <div className="rounded-2xl border border-black/5 bg-white overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="text-left text-xs text-zinc-400 border-b border-black/5">
@@ -1042,7 +1102,20 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
   const num = (k) => (
     <div>
       <Label className="text-[11px] text-zinc-500">{k.replace(/_/g, " ")}</Label>
-      <Input type="number" value={pricing?.[k] ?? ""} onChange={(e) => setPricing({ ...pricing, [k]: parseFloat(e.target.value) })} className="mt-1 h-8" data-testid={`price-${k}`} />
+      {/* Clearing the box used to produce NaN, which JSON-serialises to null,
+          which the backend drops — so "Saved" appeared and the old price stayed.
+          An empty box now means "no value", and a number means the number. */}
+      <Input
+        type="number"
+        value={pricing?.[k] ?? ""}
+        onChange={(e) => {
+          const raw = e.target.value;
+          const parsed = raw === "" ? "" : parseFloat(raw);
+          setPricing({ ...pricing, [k]: Number.isNaN(parsed) ? "" : parsed });
+        }}
+        className="mt-1 h-8"
+        data-testid={`price-${k}`}
+      />
     </div>
   );
 
@@ -1057,11 +1130,11 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
             <div className="flex items-center gap-1.5">
               {readiness.operational_state && <Pill v={readiness.operational_state} />}
               <Pill v={readiness.is_live ? "live" : (readiness.ready_for_live ? "ok" : "action_required")}
-                label={readiness.is_live ? "Live" : (readiness.ready_for_live ? "Ready for live" : `${readiness.blockers.length} pending`)} />
+                label={readiness.is_live ? "Live" : (readiness.ready_for_live ? "Ready for live" : `${(readiness.blockers || []).length} pending`)} />
             </div>
           </div>
           <div className="space-y-1.5">
-            {readiness.items.map((it) => (
+            {(readiness.items || []).map((it) => (
               <div key={it.key} className="flex items-center justify-between gap-3 text-sm" data-testid={`readiness-${it.key}`}>
                 <span className="text-zinc-600 min-w-0 truncate">
                   {it.label}
@@ -1094,15 +1167,15 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
           <div className="flex items-center gap-2 text-sm font-medium"><KeyRound className="w-4 h-4" /> Provider connections</div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-zinc-600">ElevenLabs webhooks</span>
-            <Pill v={prov.elevenlabs.webhooks_configured ? "verified" : "credentials_required"} />
+            <Pill v={prov.elevenlabs?.webhooks_configured ? "verified" : "credentials_required"} />
           </div>
-          {prov.elevenlabs.agents.map((a) => (
+          {(prov.elevenlabs?.agents || []).map((a) => (
             <div key={a.ai_employee_id} className="flex items-center justify-between text-sm" data-testid="prov-voice">
               <span className="text-zinc-600">Voice · {a.name}</span>
               <div className="flex items-center gap-2"><Pill v={a.status} /><Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={() => verifyVoice(a.ai_employee_id)}>Verify</Button></div>
             </div>
           ))}
-          {prov.exotel.numbers.map((n) => (
+          {(prov.exotel?.numbers || []).map((n) => (
             <div key={n.channel_id} className="flex items-center justify-between text-sm" data-testid="prov-tel">
               <span className="text-zinc-600">Telephony · {n.number}</span>
               <div className="flex items-center gap-2"><Pill v={n.status} /><Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={() => verifyTel(n.channel_id)}>Verify</Button></div>
@@ -1116,7 +1189,7 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
           ))}
           <div className="flex items-center justify-between text-sm">
             <span className="text-zinc-600">Payments · Razorpay</span>
-            <Pill v={prov.razorpay.credentials_configured ? "configured" : "credentials_required"} />
+            <Pill v={prov.razorpay?.credentials_configured ? "configured" : "credentials_required"} />
           </div>
         </div>
       )}
@@ -1139,8 +1212,8 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
           <Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={genInvoice} data-testid="gen-invoice"><Plus className="w-3.5 h-3.5 mr-1" /> Generate</Button>
         </div>
         <div className="space-y-1.5">
-          {invoices.length === 0 && <p className="text-xs text-zinc-400">No invoices.</p>}
-          {invoices.map((inv) => (
+          {(invoices || []).length === 0 && <p className="text-xs text-zinc-400">No invoices.</p>}
+          {(invoices || []).map((inv) => (
             <div key={inv.id} className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2 text-sm" data-testid="admin-invoice-row">
               <span>{inv.period} · ₹{inv.total}</span>
               <div className="flex items-center gap-2">

@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Loader2, IndianRupee, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { useApiResource } from "@/hooks/useApiResource";
+import { Loading, LoadError } from "@/components/AsyncState";
 
 const INV_STATUS = {
   draft: ["Draft", "bg-zinc-100 text-zinc-600"],
@@ -17,11 +19,8 @@ const INV_STATUS = {
 const money = (n, c = "INR") => `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
 
 export default function Billing() {
-  const [data, setData] = useState(null);
+  const { data, error, loading, reload: load } = useApiResource("/tenant/billing");
   const [paying, setPaying] = useState(null);
-
-  const load = () => api.get("/tenant/billing").then((r) => setData(r.data)).catch(() => setData({ invoices: [] }));
-  useEffect(() => { load(); }, []);
 
   const pay = async (inv) => {
     setPaying(inv.id);
@@ -34,8 +33,11 @@ export default function Billing() {
     finally { setPaying(null); }
   };
 
-  if (!data) return <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>;
+  if (loading) return <Loading />;
+  if (error) return <LoadError error={error} onRetry={load} />;
+  if (!data) return null;
   const u = data.current_usage || {};
+  const invoices = Array.isArray(data.invoices) ? data.invoices : [];
 
   return (
     <div className="space-y-8" data-testid="tenant-billing">
@@ -70,9 +72,9 @@ export default function Billing() {
 
       <div className="rounded-2xl border border-black/5 bg-white">
         <div className="px-6 py-4 border-b border-black/5"><h2 className="font-display text-lg font-semibold">Invoices</h2></div>
-        {data.invoices.length === 0 && <div className="p-10 text-center text-sm text-zinc-500">No invoices yet.</div>}
+        {invoices.length === 0 && <div className="p-10 text-center text-sm text-zinc-500">No invoices yet.</div>}
         <div className="divide-y divide-black/5">
-          {data.invoices.map((inv) => {
+          {invoices.map((inv) => {
             const [label, cls] = INV_STATUS[inv.status] || [inv.status, "bg-zinc-100 text-zinc-600"];
             const payable = inv.status === "due" || inv.status === "payment_config_required" || inv.status === "failed";
             return (

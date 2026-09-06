@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   Database, Phone, MessageCircle, Bot, Play, Loader2, Info, ShieldCheck, Zap,
 } from "lucide-react";
@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useApiResource } from "@/hooks/useApiResource";
+import { Loading, LoadError } from "@/components/AsyncState";
 
 const CAT_ICON = { business: Database, ai_employee: Bot };
 const chanIcon = (type) => (type === "whatsapp" ? MessageCircle : Phone);
@@ -33,15 +35,15 @@ function ResultView({ res }) {
 }
 
 export default function Integrations() {
-  const [systems, setSystems] = useState(null);
-  const [tools, setTools] = useState(null);
+  const pickSystems = useCallback((d) => d?.systems || [], []);
+  const {
+    data: systems, error: systemsError, loading: systemsLoading, reload: reloadSystems,
+  } = useApiResource("/tenant/integrations", { select: pickSystems });
+  const {
+    data: tools, error: toolsError, loading: toolsLoading, reload: reloadTools,
+  } = useApiResource("/tenant/tools");
   const [results, setResults] = useState({});
   const [running, setRunning] = useState(null);
-
-  useEffect(() => {
-    api.get("/tenant/integrations").then((r) => setSystems(r.data.systems)).catch(() => setSystems([]));
-    api.get("/tenant/tools").then((r) => setTools(r.data)).catch(() => setTools([]));
-  }, []);
 
   const hasMock = (systems || []).some((s) => s.is_mock);
 
@@ -75,7 +77,8 @@ export default function Integrations() {
       )}
 
       {/* Connected systems */}
-      {!systems && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
+      {systemsLoading && <Loading />}
+      {systemsError && <LoadError error={systemsError} onRetry={reloadSystems} />}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {systems?.map((s) => {
           const Icon = s.category === "channel" ? chanIcon(s.type) : (CAT_ICON[s.category] || Database);
@@ -107,8 +110,9 @@ export default function Integrations() {
           <span className="font-medium text-zinc-700"> Action</span> tools (bookings, changes) always require explicit confirmation.
         </p>
 
-        {!tools && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
-        {tools && tools.length === 0 && (
+        {toolsLoading && <Loading />}
+        {toolsError && <LoadError error={toolsError} onRetry={reloadTools} />}
+        {!toolsLoading && !toolsError && tools?.length === 0 && (
           <div className="rounded-2xl border border-black/5 bg-white p-10 text-center text-sm text-zinc-500">
             No business tools configured yet. ORBIT will connect your systems during onboarding.
           </div>

@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PhoneCall, MessagesSquare, Clock, Bot, Wand2, Loader2, Radio, Check, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { useApiResource } from "@/hooks/useApiResource";
+import { Loading, LoadError } from "@/components/AsyncState";
 
 const StatCard = ({ icon: Icon, label, value, testid }) => (
   <div className="rounded-2xl border border-black/5 bg-white p-5" data-testid={testid}>
@@ -15,24 +17,15 @@ const StatCard = ({ icon: Icon, label, value, testid }) => (
 
 export default function Overview() {
   const navigate = useNavigate();
-  const [data, setData] = useState(null);
-  const [ready, setReady] = useState(null);
+  const { data, error, loading, reload: load } = useApiResource("/tenant/overview");
+  const { data: ready } = useApiResource("/tenant/readiness");
   const [simulating, setSimulating] = useState(false);
-  const canSimulate = ready?.environment !== "production";
 
-  const load = async () => {
-    try {
-      const res = await api.get("/tenant/overview");
-      setData(res.data);
-    } catch (e) {
-      toast.error(formatApiErrorDetail(e.response?.data?.detail));
-    }
-  };
-
-  useEffect(() => {
-    load();
-    api.get("/tenant/readiness").then((r) => setReady(r.data)).catch(() => {});
-  }, []);
+  // Only offer the simulate button once we actually know the environment.
+  // Before, a failed readiness call left `ready` null and `ready?.environment
+  // !== "production"` still evaluated true — so the button appeared on live
+  // accounts and failed when pressed.
+  const canSimulate = !!ready && ready.environment !== "production";
 
   const simulate = async () => {
     setSimulating(true);
@@ -73,6 +66,8 @@ export default function Overview() {
           </Button>
         )}
       </div>
+
+      {error && <LoadError error={error} onRetry={load} />}
 
       {ready && (
         <div className="rounded-2xl border border-black/5 bg-white p-6 space-y-6" data-testid="readiness-bar">
@@ -185,13 +180,13 @@ export default function Overview() {
           <h2 className="font-display text-lg font-semibold">Recent conversations</h2>
         </div>
         <div className="divide-y divide-black/5">
-          {!data && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
-          {data && data.recent_conversations.length === 0 && (
+          {loading && <Loading />}
+          {!loading && !error && data && (data.recent_conversations || []).length === 0 && (
             <div className="p-10 text-center text-sm text-zinc-500">
               {canSimulate ? "No conversations yet — try simulating a call." : "No conversations yet."}
             </div>
           )}
-          {data?.recent_conversations.map((c) => (
+          {(data?.recent_conversations || []).map((c) => (
             <div key={c.id} className="px-6 py-4 flex items-center justify-between" data-testid="recent-conversation-row">
               <div className="flex items-center gap-3 min-w-0">
                 <span className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 grid place-items-center"><PhoneCall className="w-4 h-4" /></span>

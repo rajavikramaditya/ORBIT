@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { OrbitLogo } from "@/components/OrbitLogo";
 import { Loader2, ArrowLeft, CheckCircle2, Eye, EyeOff } from "lucide-react";

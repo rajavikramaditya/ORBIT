@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useApiResource } from "@/hooks/useApiResource";
+import { Loading, LoadError } from "@/components/AsyncState";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -31,15 +33,12 @@ const BLANK_FORM = { category: "knowledge_base", title: "", details: "", priorit
 
 export default function Customization() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [items, setItems] = useState(null);
+  const { data: items, error, loading, reload: load } = useApiResource("/tenant/customization-requests");
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sent, setSent] = useState(false);
   const [quickAsk, setQuickAsk] = useState(null); // null = full form; string = the step label it arrived from
   const [form, setForm] = useState(BLANK_FORM);
-
-  const load = () => api.get("/tenant/customization-requests").then((r) => setItems(r.data)).catch(() => setItems([]));
-  useEffect(() => { load(); }, []);
 
   // Arriving from the Overview onboarding wizard's "Ask ORBIT about this" opens
   // the same request dialog, but a first-time owner shouldn't have to make sense
@@ -158,8 +157,9 @@ export default function Customization() {
         </Dialog>
       </div>
 
-      {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
-      {items && items.length === 0 && (
+      {loading && <Loading />}
+      {error && <LoadError error={error} onRetry={load} />}
+      {!loading && !error && items?.length === 0 && (
         <div className="rounded-2xl border border-black/5 bg-white p-12 text-center">
           <span className="w-12 h-12 rounded-2xl bg-zinc-100 grid place-items-center mx-auto text-zinc-500"><Wand2 className="w-5 h-5" /></span>
           <p className="mt-4 text-sm text-zinc-500">No requests yet. Submit one to have ORBIT tune your AI employee.</p>

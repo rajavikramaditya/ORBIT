@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
 } from "@/components/ui/dialog";
+import { useApiResource } from "@/hooks/useApiResource";
+import { Loading, LoadError } from "@/components/AsyncState";
 
 function DangerZone() {
   const { user } = useAuth();
@@ -131,31 +133,29 @@ const BRAND_SWATCHES = ["#18181B", "#1E3A5F", "#7A5C2E", "#3F3F46", "#155E4B", "
 
 export default function Settings() {
   const { user, setUser } = useAuth();
-  const [t, setT] = useState(null);
+  const { data: t, setData: setT, error, loading, reload } = useApiResource("/tenant/profile");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    api.get("/tenant/profile").then((r) => setT(r.data)).catch(() => {});
-  }, []);
-
   const setName = (v) => setT((p) => ({ ...p, name: v }));
-  const setProfile = (k, v) => setT((p) => ({ ...p, profile: { ...p.profile, [k]: v } }));
-  const setBrand = (v) => setT((p) => ({ ...p, branding: { ...p.branding, brand_color: v } }));
+  const setProfile = (k, v) => setT((p) => ({ ...p, profile: { ...(p.profile || {}), [k]: v } }));
+  const setBrand = (v) => setT((p) => ({ ...p, branding: { ...(p.branding || {}), brand_color: v } }));
   const setBusinessType = (v) => setT((p) => ({ ...p, business_type: v }));
 
   const save = async () => {
     setSaving(true);
     try {
+      const profile = t.profile || {};
+      const branding = t.branding || {};
       const payload = {
         name: t.name,
         business_type: t.business_type || "hotel",
-        website: t.profile.website,
-        address: t.profile.address,
-        contact_email: t.profile.contact_email,
-        contact_phone: t.profile.contact_phone,
-        description: t.profile.description,
-        logo_url: t.profile.logo_url || t.branding.logo_url || "",
-        brand_color: t.branding.brand_color,
+        website: profile.website,
+        address: profile.address,
+        contact_email: profile.contact_email,
+        contact_phone: profile.contact_phone,
+        description: profile.description,
+        logo_url: profile.logo_url || branding.logo_url || "",
+        brand_color: branding.brand_color,
       };
       const r = await api.patch("/tenant/profile", payload);
       setT(r.data);
@@ -168,7 +168,14 @@ export default function Settings() {
     }
   };
 
-  if (!t) return <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>;
+  if (loading) return <Loading />;
+  if (error) return <LoadError error={error} onRetry={reload} />;
+  if (!t) return null;
+
+  // The API can legitimately return a tenant with no profile/branding block yet
+  // (a freshly created account) — reading through them directly crashed the page.
+  const profile = t.profile || {};
+  const branding = t.branding || {};
 
   return (
     <div className="space-y-8 max-w-3xl" data-testid="tenant-settings">
@@ -203,29 +210,29 @@ export default function Settings() {
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <Label className="text-sm">Website</Label>
-            <Input value={t.profile.website || ""} onChange={(e) => setProfile("website", e.target.value)} placeholder="https://…" className="mt-1.5" data-testid="settings-website" />
+            <Input value={profile.website || ""} onChange={(e) => setProfile("website", e.target.value)} placeholder="https://…" className="mt-1.5" data-testid="settings-website" />
           </div>
           <div>
             <Label className="text-sm">Contact phone</Label>
-            <Input value={t.profile.contact_phone || ""} onChange={(e) => setProfile("contact_phone", e.target.value)} placeholder="+91 …" className="mt-1.5" data-testid="settings-phone" />
+            <Input value={profile.contact_phone || ""} onChange={(e) => setProfile("contact_phone", e.target.value)} placeholder="+91 …" className="mt-1.5" data-testid="settings-phone" />
           </div>
         </div>
         <div>
           <Label className="text-sm">Contact email</Label>
-          <Input value={t.profile.contact_email || ""} onChange={(e) => setProfile("contact_email", e.target.value)} placeholder="contact@business.in" className="mt-1.5" data-testid="settings-email" />
+          <Input value={profile.contact_email || ""} onChange={(e) => setProfile("contact_email", e.target.value)} placeholder="contact@business.in" className="mt-1.5" data-testid="settings-email" />
         </div>
 
         <div>
           <Label className="text-sm">Address</Label>
-          <Input value={t.profile.address || ""} onChange={(e) => setProfile("address", e.target.value)} placeholder="Street, City, PIN" className="mt-1.5" data-testid="settings-address" />
+          <Input value={profile.address || ""} onChange={(e) => setProfile("address", e.target.value)} placeholder="Street, City, PIN" className="mt-1.5" data-testid="settings-address" />
         </div>
         <div>
           <Label className="text-sm">Description</Label>
-          <Textarea value={t.profile.description || ""} onChange={(e) => setProfile("description", e.target.value)} placeholder="A short description of your property" rows={3} className="mt-1.5" data-testid="settings-description" />
+          <Textarea value={profile.description || ""} onChange={(e) => setProfile("description", e.target.value)} placeholder="A short description of your property" rows={3} className="mt-1.5" data-testid="settings-description" />
         </div>
         <div>
           <Label className="text-sm">Logo URL</Label>
-          <Input value={t.profile.logo_url || ""} onChange={(e) => setProfile("logo_url", e.target.value)} placeholder="https://…/logo.png" className="mt-1.5" data-testid="settings-logo" />
+          <Input value={profile.logo_url || ""} onChange={(e) => setProfile("logo_url", e.target.value)} placeholder="https://…/logo.png" className="mt-1.5" data-testid="settings-logo" />
         </div>
       </div>
 
@@ -234,10 +241,10 @@ export default function Settings() {
         <div className="flex items-center gap-3 flex-wrap">
           {BRAND_SWATCHES.map((c) => (
             <button key={c} onClick={() => setBrand(c)} data-testid={`swatch-${c}`}
-              className={`w-9 h-9 rounded-xl transition-transform hover:scale-105 ${t.branding.brand_color === c ? "ring-2 ring-offset-2 ring-zinc-900" : ""}`}
+              className={`w-9 h-9 rounded-xl transition-transform hover:scale-105 ${branding.brand_color === c ? "ring-2 ring-offset-2 ring-zinc-900" : ""}`}
               style={{ backgroundColor: c }} />
           ))}
-          <Input value={t.branding.brand_color || ""} onChange={(e) => setBrand(e.target.value)} className="w-32 h-9" data-testid="settings-brand_color" />
+          <Input value={branding.brand_color || ""} onChange={(e) => setBrand(e.target.value)} className="w-32 h-9" data-testid="settings-brand_color" />
         </div>
       </div>
 

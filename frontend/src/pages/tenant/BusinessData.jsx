@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { LoadError } from "@/components/AsyncState";
 
 const ROOM_TYPE_SUGGESTIONS = ["Deluxe Room", "Super Deluxe Room", "Suite", "Premium Suite", "Standard Room", "Executive Room"];
 
@@ -103,15 +104,20 @@ export default function BusinessData() {
   const [businessType, setBusinessType] = useState("hotel");
   const isHotel = businessType === "hotel";
 
+  const [loadError, setLoadError] = useState(null);
+
   const loadData = () => {
-    api.get("/tenant/live-data").then((r) => setData(r.data)).catch(() =>
-      setData({
-        room_rates: [], check_in_time: "", check_out_time: "",
-        buffet_breakfast: "", buffet_lunch: "", buffet_dinner: "",
-        cancellation_policy: "", refund_policy: "", active_offer: "", seasonal_note: "",
-        services: [], business_hours: "",
-      })
-    );
+    setLoadError(null);
+    api.get("/tenant/live-data")
+      .then((r) => setData(r.data))
+      // Previously this fell back to a blank form on failure, so a failed load
+      // looked exactly like an empty one — and pressing Save then wrote those
+      // blanks over whatever was really stored.
+      .catch((e) => {
+        if (e?.response?.status !== 401) {
+          setLoadError(formatApiErrorDetail(e?.response?.data?.detail));
+        }
+      });
     api.get("/tenant/profile").then((r) => setBusinessType(r.data?.business_type || "hotel")).catch(() => {});
   };
 
@@ -126,37 +132,42 @@ export default function BusinessData() {
     }));
 
   const updateRoom = (idx, val) =>
-    setData((p) => ({ ...p, room_rates: p.room_rates.map((r, i) => (i === idx ? val : r)) }));
+    setData((p) => ({ ...p, room_rates: (p.room_rates || []).map((r, i) => (i === idx ? val : r)) }));
 
   const removeRoom = (idx) =>
-    setData((p) => ({ ...p, room_rates: p.room_rates.filter((_, i) => i !== idx) }));
+    setData((p) => ({ ...p, room_rates: (p.room_rates || []).filter((_, i) => i !== idx) }));
 
   const addService = () =>
     setData((p) => ({ ...p, services: [...(p.services || []), { name: "", price_inr: 0 }] }));
 
   const updateService = (idx, val) =>
-    setData((p) => ({ ...p, services: p.services.map((s, i) => (i === idx ? val : s)) }));
+    setData((p) => ({ ...p, services: (p.services || []).map((s, i) => (i === idx ? val : s)) }));
 
   const removeService = (idx) =>
-    setData((p) => ({ ...p, services: p.services.filter((_, i) => i !== idx) }));
+    setData((p) => ({ ...p, services: (p.services || []).filter((_, i) => i !== idx) }));
+
+  // Fields this screen owns. The list is explicit so clearing one actually
+  // saves: the old payload only included TRUTHY values, and the backend drops
+  // nulls — so emptying a policy sent nothing, and the next render pulled the
+  // old text straight back. Deleting a room rate had the same problem.
+  const LIVE_FIELDS = [
+    "room_rates", "check_in_time", "check_out_time",
+    "buffet_breakfast", "buffet_lunch", "buffet_dinner",
+    "cancellation_policy", "refund_policy", "active_offer", "seasonal_note",
+    "catalogue_url", "services", "business_hours",
+  ];
 
   const save = async () => {
     setSaving(true);
     try {
       const payload = {};
-      if (data.room_rates?.length) payload.room_rates = data.room_rates;
-      if (data.check_in_time) payload.check_in_time = data.check_in_time;
-      if (data.check_out_time) payload.check_out_time = data.check_out_time;
-      if (data.buffet_breakfast) payload.buffet_breakfast = data.buffet_breakfast;
-      if (data.buffet_lunch) payload.buffet_lunch = data.buffet_lunch;
-      if (data.buffet_dinner) payload.buffet_dinner = data.buffet_dinner;
-      if (data.cancellation_policy) payload.cancellation_policy = data.cancellation_policy;
-      if (data.refund_policy) payload.refund_policy = data.refund_policy;
-      if (data.active_offer) payload.active_offer = data.active_offer;
-      if (data.seasonal_note) payload.seasonal_note = data.seasonal_note;
-      if (data.catalogue_url) payload.catalogue_url = data.catalogue_url;
-      if (data.services?.length) payload.services = data.services;
-      if (data.business_hours) payload.business_hours = data.business_hours;
+      for (const k of LIVE_FIELDS) {
+        const v = data[k];
+        // undefined/null means "this screen has nothing to say about it" —
+        // an empty string or empty list is a real, intentional value.
+        if (v === undefined || v === null) continue;
+        payload[k] = v;
+      }
       const r = await api.patch("/tenant/live-data", payload);
       setData(r.data);
       toast.success("Live data updated — your AI will use these on the next call");
@@ -167,6 +178,7 @@ export default function BusinessData() {
     }
   };
 
+  if (loadError) return <LoadError error={loadError} onRetry={loadData} />;
   if (!data)
     return (
       <div className="p-10 grid place-items-center">
@@ -175,7 +187,7 @@ export default function BusinessData() {
     );
 
   return (
-    <div className="p-6 lg:p-10 max-w-3xl mx-auto space-y-8">
+    <div className="max-w-3xl space-y-8">
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
@@ -210,7 +222,7 @@ export default function BusinessData() {
           </div>
         ) : (
           <div className="space-y-2">
-            {data.room_rates.map((rate, idx) => (
+            {(data.room_rates || []).map((rate, idx) => (
               <RoomRateRow key={idx} rate={rate} onChange={(v) => updateRoom(idx, v)} onRemove={() => removeRoom(idx)} />
             ))}
           </div>
@@ -282,7 +294,7 @@ export default function BusinessData() {
           </div>
         ) : (
           <div className="space-y-2">
-            {data.services.map((service, idx) => (
+            {(data.services || []).map((service, idx) => (
               <ServiceRow key={idx} service={service} onChange={(v) => updateService(idx, v)} onRemove={() => removeService(idx)} />
             ))}
           </div>

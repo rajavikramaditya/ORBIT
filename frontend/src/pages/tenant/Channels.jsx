@@ -1,18 +1,15 @@
-import { useEffect, useState } from "react";
-import { Phone, MessageCircle, AlertTriangle, Loader2, Globe } from "lucide-react";
-import { api } from "@/lib/api";
+import { Phone, MessageCircle, AlertTriangle, Globe } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useApiResource } from "@/hooks/useApiResource";
+import { Loading, LoadError } from "@/components/AsyncState";
 
 export default function Channels() {
-  const [items, setItems] = useState(null);
+  const { data: items, error, loading, reload } = useApiResource("/tenant/channels");
 
-  useEffect(() => {
-    api.get("/tenant/channels").then((r) => setItems(r.data)).catch(() => setItems([]));
-  }, []);
-
-  const phone = items?.filter((c) => c.type === "phone") || [];
-  const whatsapp = items?.filter((c) => c.type === "whatsapp") || [];
-  const form = items?.filter((c) => c.type === "form") || [];
+  const list = Array.isArray(items) ? items : [];
+  const phone = list.filter((c) => c.type === "phone");
+  const whatsapp = list.filter((c) => c.type === "whatsapp");
+  const form = list.filter((c) => c.type === "form");
 
   const ChannelCard = ({ c, icon: Icon, color }) => (
     <div className="rounded-2xl border border-black/5 bg-white p-6" data-testid={`channel-${c.type}`}>
@@ -52,9 +49,10 @@ export default function Channels() {
         <p className="mt-1.5 text-zinc-500 text-sm">How customers reach your AI employee. Connections are managed by ORBIT.</p>
       </div>
 
-      {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
+      {loading && <Loading />}
+      {error && <LoadError error={error} onRetry={reload} />}
 
-      {items && (
+      {!loading && !error && items && (
         <div className="grid md:grid-cols-2 gap-4">
           {phone.length === 0 && whatsapp.length === 0 && form.length === 0 && (
             <div className="md:col-span-2 rounded-2xl border border-black/5 bg-white p-10 text-center text-sm text-zinc-500">

@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, formatApiErrorDetail } from "@/lib/api";
+import { useApiResource } from "@/hooks/useApiResource";
+import { Loading, LoadError } from "@/components/AsyncState";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -38,7 +40,7 @@ function Cell({ label, value }) {
 }
 
 export default function Leads() {
-  const [items, setItems] = useState(null);
+  const { data: items, setData: setItems, error, loading, reload: load } = useApiResource("/tenant/leads");
   const [active, setActive] = useState(null);
   const [detail, setDetail] = useState(null);
   const [notes, setNotes] = useState("");
@@ -46,11 +48,6 @@ export default function Leads() {
   const [lostReason, setLostReason] = useState("");
   const [err, setErr] = useState("");
 
-  const load = () => {
-    api.get("/tenant/leads").then((r) => setItems(r.data)).catch(() => setItems([]));
-  };
-
-  useEffect(() => { load(); }, []);
 
   const open = async (row) => {
     setActive(row);
@@ -62,7 +59,9 @@ export default function Leads() {
       setNotes(r.data.notes || "");
       setFollowAt(r.data.follow_up_at ? String(r.data.follow_up_at).slice(0, 16) : "");
       setLostReason(r.data.lost_reason || "");
-    } catch (e) { /* noop */ }
+    } catch (e) {
+      setErr(formatApiErrorDetail(e?.response?.data?.detail));
+    }
   };
 
   const apply = async (payload) => {
@@ -85,11 +84,12 @@ export default function Leads() {
       </div>
 
       <div className="rounded-2xl border border-black/5 bg-white overflow-hidden">
-        {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
-        {items && items.length === 0 && (
+        {loading && <Loading />}
+        {error && <LoadError error={error} onRetry={load} className="m-4" />}
+        {!loading && !error && items?.length === 0 && (
           <div className="p-10 text-center text-sm text-zinc-500">No enquiries yet.</div>
         )}
-        {items && items.length > 0 && (
+        {items?.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -146,7 +146,9 @@ export default function Leads() {
           <SheetHeader>
             <SheetTitle className="font-display">{detail?.customer_name || active?.customer_name || "Enquiry"}</SheetTitle>
           </SheetHeader>
-          {!detail ? (
+          {!detail && err ? (
+            <LoadError error={err} onRetry={() => open(active)} className="mt-6" />
+          ) : !detail ? (
             <div className="py-16 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>
           ) : (
             <div className="mt-4 space-y-6">
@@ -212,6 +214,13 @@ export default function Leads() {
                   <button type="button" data-testid="lead-mark-won" onClick={() => apply({ lead_status: "won" })} className="text-xs rounded-full px-3 py-1 border border-black/10 text-zinc-600 hover:bg-zinc-50">Mark won</button>
                   <button type="button" data-testid="lead-mark-lost" onClick={() => apply({ lead_status: "lost", lost_reason: lostReason || undefined })} className="text-xs rounded-full px-3 py-1 border border-black/10 text-zinc-600 hover:bg-zinc-50">Mark lost</button>
                 </div>
+                <Input
+                  placeholder="Why was it lost? (optional — fill before marking lost)"
+                  value={lostReason}
+                  onChange={(e) => setLostReason(e.target.value)}
+                  className="h-9 text-sm mt-2"
+                  data-testid="lead-lost-reason"
+                />
                 {err && <p className="text-xs text-red-600 mt-2">{typeof err === "string" ? err : "Update rejected"}</p>}
               </div>
 
@@ -236,8 +245,6 @@ export default function Leads() {
                 <button type="button" onClick={() => apply({ notes })} className="mt-2 text-xs rounded-full px-3 py-1 border border-black/10 text-zinc-600 hover:bg-zinc-50">Save notes</button>
               </div>
 
-              <Input placeholder="Lost reason (optional)" value={lostReason} onChange={(e) => setLostReason(e.target.value)} className="h-9 text-sm" />
-
               {detail.conversation && (
                 <div className="rounded-xl border border-black/5 px-4 py-3 text-sm">
                   <div className="text-xs text-zinc-400">Conversation</div>
@@ -253,7 +260,7 @@ export default function Leads() {
               {(detail.callback_requests || []).length > 0 && (
                 <div>
                   <div className="text-sm font-semibold mb-2">Owner callbacks</div>
-                  {detail.callback_requests.map((cb) => (
+                  {(detail.callback_requests || []).map((cb) => (
                     <div key={cb.id} className="text-sm text-zinc-600 rounded-xl bg-zinc-50 p-3 mb-2">
                       <div className="capitalize">{cb.status}</div>
                       {cb.reason && <div className="text-xs text-zinc-500 mt-1">{cb.reason}</div>}

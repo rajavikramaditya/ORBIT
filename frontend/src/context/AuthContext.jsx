@@ -1,5 +1,11 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { api, formatApiErrorDetail, setStoredToken, clearStoredToken } from "@/lib/api";
+import {
+  api,
+  formatApiErrorDetail,
+  setStoredToken,
+  clearStoredToken,
+  setUnauthorizedHandler,
+} from "@/lib/api";
 
 const AuthContext = createContext(null);
 
@@ -16,6 +22,14 @@ export const AuthProvider = ({ children }) => {
     } catch (e) {
       setUser(false);
     }
+  }, []);
+
+  // Any request that comes back 401 (see lib/api.js) ends the session here.
+  // Dropping `user` to false is enough — ProtectedRoute redirects to /login on
+  // its own, so we get a clean logout without a full page reload.
+  useEffect(() => {
+    setUnauthorizedHandler(() => setUser(false));
+    return () => setUnauthorizedHandler(null);
   }, []);
 
   useEffect(() => {

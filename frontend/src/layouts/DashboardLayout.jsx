@@ -7,6 +7,7 @@ import {
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { StatusBadge } from "@/components/StatusBadge";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
@@ -24,6 +25,8 @@ const NAV = [
   { to: "/dashboard/settings", icon: SettingsIcon, label: "Settings", testid: "nav-settings" },
 ];
 
+const ONBOARDING_SENT_KEY = "orbit_onboarding_redirected";
+
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -35,11 +38,35 @@ export default function DashboardLayout() {
   // here once their business profile is filled in, at which point this check
   // naturally passes and the sidebar renders as normal. Platform admins never
   // reach this layout, so no check needed for that role here.
+  // The redirect fires at most ONCE per browser session (see ONBOARDING_SENT_KEY
+  // above). Without that guard, a tenant whose profile the backend still reads as
+  // incomplete bounced forever: /dashboard sent them to /onboarding, "Go to
+  // dashboard" sent them back, and the screen flickered between the two.
   const [gateChecked, setGateChecked] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   useEffect(() => {
+    let alreadySent = false;
+    try {
+      alreadySent = sessionStorage.getItem(ONBOARDING_SENT_KEY) === "1";
+    } catch {
+      /* private mode — just don't redirect twice-proof, never block the user */
+    }
+    if (alreadySent) {
+      setGateChecked(true);
+      return;
+    }
     api.get("/tenant/readiness")
-      .then((r) => setNeedsOnboarding(r.data?.onboarding_stage === "business_details"))
+      .then((r) => {
+        const needs = r.data?.onboarding_stage === "business_details";
+        if (needs) {
+          try {
+            sessionStorage.setItem(ONBOARDING_SENT_KEY, "1");
+          } catch {
+            /* ignore */
+          }
+        }
+        setNeedsOnboarding(needs);
+      })
       // Fail OPEN on a transient error (network blip, brief auth hiccup) — never
       // trap a real user behind a broken gate just because one fetch failed.
       .catch(() => setNeedsOnboarding(false))
@@ -132,7 +159,9 @@ export default function DashboardLayout() {
         </header>
 
         <main className="p-6 lg:p-8 max-w-6xl">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>
