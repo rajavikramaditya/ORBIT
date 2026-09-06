@@ -4,6 +4,7 @@ import { Loader2, ArrowDownLeft, ArrowUpRight, Info, AudioLines } from "lucide-r
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { useApiResource } from "@/hooks/useApiResource";
 import { Loading, LoadError } from "@/components/AsyncState";
+import { PageHeader, InfoNote } from "@/components/AppUI";
 
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -31,31 +32,25 @@ export default function Conversations() {
 
   return (
     <div className="space-y-8" data-testid="tenant-conversations">
-      <div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">Conversations</h1>
-        <p className="mt-1.5 text-zinc-500 text-sm">Every call captured, transcribed and summarised.</p>
-      </div>
+      <PageHeader eyebrow={'Every call'} title={'Conversations'} subtitle={'Every call captured, transcribed and summarised.'} />
 
-      <div className="flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/60 px-5 py-4">
-        <Info className="w-4.5 h-4.5 text-blue-600 mt-0.5 shrink-0" />
-        <p className="text-sm text-blue-900/80 leading-relaxed">
+      <InfoNote icon={Info} tone="gold">
           Callers interact with an AI assistant, not a human. Conversations may be recorded and transcribed for your workspace.
           See the public <Link to="/ai-disclosure" className="font-medium underline underline-offset-2">AI & recording disclosure</Link>.
-        </p>
-      </div>
+        </InfoNote>
 
-      <div className="rounded-2xl border border-black/5 bg-white overflow-hidden">
+      <div className="rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(11,11,15,0.04),0_8px_28px_-18px_rgba(11,11,15,0.18)] overflow-hidden">
         {loading && <Loading />}
         {error && <LoadError error={error} onRetry={reload} className="m-4" />}
         {!loading && !error && items?.length === 0 && (
-          <div className="p-10 text-center text-sm text-zinc-500">No conversations yet.</div>
+          <div className="p-10 text-center text-sm text-orbit-text/55">No conversations yet.</div>
         )}
         <div className="divide-y divide-black/5">
           {items?.map((c) => (
             <button key={c.id} onClick={() => open(c)} data-testid="conversation-row"
-              className="w-full text-left px-6 py-4 flex items-center justify-between hover:bg-zinc-50 transition-colors">
+              className="w-full text-left px-6 py-4 flex items-center justify-between hover:bg-orbit-sand transition-colors">
               <div className="flex items-center gap-3 min-w-0">
-                <span className="w-9 h-9 rounded-xl bg-zinc-100 grid place-items-center text-zinc-600">
+                <span className="w-9 h-9 rounded-xl bg-orbit-text/[0.06] grid place-items-center text-orbit-text/65">
                   {c.direction === "outbound" ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownLeft className="w-4 h-4" />}
                 </span>
                 <div className="min-w-0">
@@ -65,16 +60,16 @@ export default function Conversations() {
                       <span className="text-[10px] bg-amber-100 text-amber-800 font-medium px-2 py-0.5 rounded-full shrink-0">Follow-up</span>
                     )}
                     {c.outcome && c.outcome !== "resolved" && c.outcome !== "follow_up_required" && (
-                      <span className="text-[10px] bg-zinc-100 text-zinc-600 font-medium px-2 py-0.5 rounded-full capitalize shrink-0">{c.outcome.replace(/_/g, " ")}</span>
+                      <span className="text-[10px] bg-orbit-text/[0.06] text-orbit-text/65 font-medium px-2 py-0.5 rounded-full capitalize shrink-0">{c.outcome.replace(/_/g, " ")}</span>
                     )}
                   </div>
-                  <div className="text-xs text-zinc-400 truncate">
+                  <div className="text-xs text-orbit-text/40 truncate">
                     {c.caller_name ? `${c.caller_name} · ` : ""}{c.external_number || "—"} · {new Date(c.created_at).toLocaleString("en-IN")}
                   </div>
                 </div>
               </div>
               <div className="text-right shrink-0">
-                <div className="text-xs text-zinc-500">{Math.floor((c.duration_secs || 0) / 60)}m {(c.duration_secs || 0) % 60}s</div>
+                <div className="text-xs text-orbit-text/55">{Math.floor((c.duration_secs || 0) / 60)}m {(c.duration_secs || 0) % 60}s</div>
                 {c.call_successful !== undefined && (
                   <div className={`text-[10px] font-medium capitalize ${c.call_successful === true || c.call_successful === "success" ? "text-emerald-600" : "text-amber-600"}`}>
                     {c.call_successful === true || c.call_successful === "success" ? "Resolved" : "Unresolved"}
@@ -95,44 +90,44 @@ export default function Conversations() {
           {detailError ? (
             <LoadError error={detailError} onRetry={() => open(active)} className="mt-6" />
           ) : !detail ? (
-            <div className="py-16 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>
+            <div className="py-16 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-orbit-text/25" /></div>
           ) : (
             <div className="mt-4 space-y-6">
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-xl bg-zinc-50 p-3"><div className="text-xs text-zinc-400">Caller</div><div className="font-medium truncate">{detail.caller_name ? `${detail.caller_name}` : detail.external_number || "—"}</div></div>
-                <div className="rounded-xl bg-zinc-50 p-3"><div className="text-xs text-zinc-400">Duration</div><div className="font-medium">{Math.floor((detail.duration_secs || 0) / 60)}m {(detail.duration_secs || 0) % 60}s</div></div>
-                <div className="rounded-xl bg-zinc-50 p-3"><div className="text-xs text-zinc-400">Number</div><div className="font-medium">{detail.external_number || "—"}</div></div>
-                <div className="rounded-xl bg-zinc-50 p-3"><div className="text-xs text-zinc-400">Status</div><div className="font-medium capitalize">{detail.status}</div></div>
+                <div className="rounded-xl bg-orbit-sand p-3"><div className="text-xs text-orbit-text/40">Caller</div><div className="font-medium truncate">{detail.caller_name ? `${detail.caller_name}` : detail.external_number || "—"}</div></div>
+                <div className="rounded-xl bg-orbit-sand p-3"><div className="text-xs text-orbit-text/40">Duration</div><div className="font-medium">{Math.floor((detail.duration_secs || 0) / 60)}m {(detail.duration_secs || 0) % 60}s</div></div>
+                <div className="rounded-xl bg-orbit-sand p-3"><div className="text-xs text-orbit-text/40">Number</div><div className="font-medium">{detail.external_number || "—"}</div></div>
+                <div className="rounded-xl bg-orbit-sand p-3"><div className="text-xs text-orbit-text/40">Status</div><div className="font-medium capitalize">{detail.status}</div></div>
               </div>
 
 
               {detail.summary && (
                 <div>
                   <div className="text-sm font-semibold mb-2">Summary</div>
-                  <p className="text-sm text-zinc-600 leading-relaxed">{detail.summary}</p>
+                  <p className="text-sm text-orbit-text/65 leading-relaxed">{detail.summary}</p>
                 </div>
               )}
 
               {detail.data_mode && (
-                <div className={`rounded-xl border p-3 ${detail.data_mode === "mock" ? "border-amber-200 bg-amber-50" : detail.data_mode === "live" ? "border-emerald-200 bg-emerald-50" : "border-zinc-200 bg-zinc-50"}`} data-testid="conversation-data-source">
+                <div className={`rounded-xl border p-3 ${detail.data_mode === "mock" ? "border-amber-200 bg-amber-50" : detail.data_mode === "live" ? "border-emerald-200 bg-emerald-50" : "border-black/[0.08] bg-orbit-sand"}`} data-testid="conversation-data-source">
                   <div className="flex items-center gap-2 text-xs font-semibold">
-                    <span className={detail.data_mode === "mock" ? "text-amber-700" : detail.data_mode === "live" ? "text-emerald-700" : "text-zinc-600"}>
+                    <span className={detail.data_mode === "mock" ? "text-amber-700" : detail.data_mode === "live" ? "text-emerald-700" : "text-orbit-text/65"}>
                       Data source: {detail.data_mode === "mock" ? "MOCK / demo" : detail.data_mode === "live" ? "Live business data" : "Informational only"}
                     </span>
                   </div>
-                  <p className="text-xs text-zinc-500 mt-1">{detail.live_data_note}</p>
+                  <p className="text-xs text-orbit-text/55 mt-1">{detail.live_data_note}</p>
                   {(detail.tool_invocations || []).map((ti, i) => (
                     <div key={i} className="mt-2 rounded-lg bg-white/70 border border-black/5 p-2 text-xs">
-                      <span className="font-mono text-zinc-600">{ti.tool}</span>
-                      <span className="text-zinc-400"> · {ti.status}{ti.mock ? " · MOCK" : ""}</span>
-                      {ti.data && <pre className="mt-1 text-[11px] text-zinc-600 whitespace-pre-wrap break-words">{JSON.stringify(ti.data)}</pre>}
+                      <span className="font-mono text-orbit-text/65">{ti.tool}</span>
+                      <span className="text-orbit-text/40"> · {ti.status}{ti.mock ? " · MOCK" : ""}</span>
+                      {ti.data && <pre className="mt-1 text-[11px] text-orbit-text/65 whitespace-pre-wrap break-words">{JSON.stringify(ti.data)}</pre>}
                     </div>
                   ))}
                 </div>
               )}
 
               {detail.recording_ref && (
-              <div className="flex items-center gap-2 rounded-xl border border-black/5 px-4 py-3 text-sm text-zinc-500">
+              <div className="flex items-center gap-2 rounded-xl border border-black/5 px-4 py-3 text-sm text-orbit-text/55">
                 <AudioLines className="w-4 h-4 shrink-0" /> Recording reference: <span className="font-mono text-xs break-all">{detail.recording_ref}</span>
               </div>
               )}
@@ -142,8 +137,8 @@ export default function Conversations() {
                 <div className="space-y-3">
                   {(detail.transcript || []).map((t, i) => (
                     <div key={i} className={`flex ${t.role === "agent" ? "justify-start" : "justify-end"}`}>
-                      <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                        t.role === "agent" ? "bg-zinc-100 text-zinc-800" : "bg-zinc-900 text-white"
+                      <div className={`max-w-[80%] rounded-[22px] px-3.5 py-2.5 text-sm leading-relaxed ${
+                        t.role === "agent" ? "bg-orbit-text/[0.06] text-orbit-text/85" : "bg-orbit-text text-white"
                       }`}>
                         <div className="text-[10px] uppercase tracking-wide opacity-50 mb-0.5">{t.role === "agent" ? "AI" : "Customer"}</div>
                         {t.message}

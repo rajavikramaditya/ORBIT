@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { useApiResource } from "@/hooks/useApiResource";
 import { Loading, LoadError } from "@/components/AsyncState";
+import { PageHeader } from "@/components/AppUI";
 
 function DangerZone() {
   const { user } = useAuth();
@@ -61,7 +62,7 @@ function DangerZone() {
   if (!loaded) return null;
 
   return (
-    <div className="rounded-2xl border border-red-200 bg-red-50/50 p-6 space-y-4" data-testid="danger-zone">
+    <div className="rounded-[22px] border border-red-200 bg-red-50/50 p-6 space-y-4" data-testid="danger-zone">
       <div className="flex items-start gap-3">
         <AlertTriangle className="w-4.5 h-4.5 text-red-500 mt-0.5 shrink-0" />
         <div>
@@ -75,7 +76,7 @@ function DangerZone() {
 
       {request ? (
         <div className="rounded-xl bg-white border border-red-200 p-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-zinc-700">
+          <p className="text-sm text-orbit-text/75">
             Deletion requested on {new Date(request.created_at).toLocaleDateString("en-IN")} — ORBIT will confirm shortly.
           </p>
           <Button variant="outline" size="sm" onClick={cancel} disabled={saving} data-testid="cancel-deletion-request" className="rounded-full">
@@ -92,7 +93,7 @@ function DangerZone() {
           <DialogContent data-testid="delete-account-dialog">
             <DialogHeader><DialogTitle className="font-display">Delete your account?</DialogTitle></DialogHeader>
             <div className="space-y-4 py-2">
-              <p className="text-sm text-zinc-600 leading-relaxed">
+              <p className="text-sm text-orbit-text/65 leading-relaxed">
                 This sends a deletion request to ORBIT. Nothing is deleted immediately — our team confirms
                 it and your data is permanently removed shortly after.
               </p>
@@ -168,8 +169,8 @@ export default function Settings() {
     }
   };
 
-  if (loading) return <Loading />;
-  if (error) return <LoadError error={error} onRetry={reload} />;
+  if (loading && !t) return <Loading />;
+  if (error && !t) return <LoadError error={error} onRetry={reload} />;
   if (!t) return null;
 
   // The API can legitimately return a tenant with no profile/branding block yet
@@ -179,12 +180,9 @@ export default function Settings() {
 
   return (
     <div className="space-y-8 max-w-3xl" data-testid="tenant-settings">
-      <div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">Settings</h1>
-        <p className="mt-1.5 text-zinc-500 text-sm">Manage your business profile and branding.</p>
-      </div>
+      <PageHeader eyebrow={'Your business'} title={'Settings'} subtitle={'Manage your business profile and branding.'} />
 
-      <div className="rounded-2xl border border-black/5 bg-white p-6 space-y-5">
+      <div className="rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(11,11,15,0.04),0_8px_28px_-18px_rgba(11,11,15,0.18)] p-6 space-y-5">
         <h2 className="font-display text-lg font-semibold">Business profile</h2>
         {!(t.profile?.contact_email && t.profile?.contact_phone && t.profile?.address) && (
           <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
@@ -205,7 +203,7 @@ export default function Settings() {
               ))}
             </SelectContent>
           </Select>
-          <p className="mt-1.5 text-xs text-zinc-400">Changes which fields show on your Business Data page.</p>
+          <p className="mt-1.5 text-xs text-orbit-text/40">Changes which fields show on your Business Data page.</p>
         </div>
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
@@ -236,28 +234,28 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-black/5 bg-white p-6 space-y-4">
+      <div className="rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(11,11,15,0.04),0_8px_28px_-18px_rgba(11,11,15,0.18)] p-6 space-y-4">
         <h2 className="font-display text-lg font-semibold">Brand colour</h2>
         <div className="flex items-center gap-3 flex-wrap">
           {BRAND_SWATCHES.map((c) => (
             <button key={c} onClick={() => setBrand(c)} data-testid={`swatch-${c}`}
-              className={`w-9 h-9 rounded-xl transition-transform hover:scale-105 ${branding.brand_color === c ? "ring-2 ring-offset-2 ring-zinc-900" : ""}`}
+              className={`w-9 h-9 rounded-xl transition-transform hover:scale-105 ${branding.brand_color === c ? "ring-2 ring-offset-2 ring-orbit-text" : ""}`}
               style={{ backgroundColor: c }} />
           ))}
           <Input value={branding.brand_color || ""} onChange={(e) => setBrand(e.target.value)} className="w-32 h-9" data-testid="settings-brand_color" />
         </div>
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5 flex items-start gap-3">
-        <Lock className="w-4.5 h-4.5 text-zinc-400 mt-0.5 shrink-0" />
-        <p className="text-sm text-zinc-500 leading-relaxed">
+      <div className="rounded-[22px] border border-black/[0.08] bg-orbit-sand p-5 flex items-start gap-3">
+        <Lock className="w-4.5 h-4.5 text-orbit-text/40 mt-0.5 shrink-0" />
+        <p className="text-sm text-orbit-text/55 leading-relaxed">
           AI prompts, knowledge base, tools and voice behaviour are ORBIT-managed and can't be edited here — submit a
           Customization request instead.
         </p>
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={save} disabled={saving} data-testid="settings-save" className="rounded-full h-11 px-6 bg-zinc-900 hover:bg-zinc-800">
+        <Button onClick={save} disabled={saving} data-testid="settings-save" className="rounded-full h-11 px-6 bg-orbit-text hover:bg-orbit-text/90">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save changes"}
         </Button>
       </div>

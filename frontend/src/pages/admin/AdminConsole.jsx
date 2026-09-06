@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Orbit, LogOut, Plus, Loader2, Building2, Bot, Radio, MessagesSquare,
+  LogOut, Plus, Loader2, Building2, Bot, Radio, MessagesSquare,
   Wand2, ShieldAlert, ChevronRight, Link2, KeyRound, Receipt, BookOpen,
   AlertTriangle,
 } from "lucide-react";
@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/StatusBadge";
+import { OrbitLogo } from "@/components/OrbitLogo";
+import { PageHeader } from "@/components/AppUI";
 import { Loading, LoadError } from "@/components/AsyncState";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
@@ -35,13 +37,15 @@ const ACTION_LABEL = {
 };
 const REQUEST_STATES = ["submitted", "in_review", "in_progress", "completed", "rejected"];
 
+// Kept local (the admin row is 7-wide and denser than the tenant one) but now
+// drawn with the same border, radius and numeral treatment as StatTile.
 function StatPill({ icon: Icon, label, value, testid }) {
   return (
-    <div className="rounded-2xl border border-black/5 bg-white p-4 flex items-center gap-3" data-testid={testid}>
-      <span className="w-10 h-10 rounded-xl bg-zinc-100 grid place-items-center text-zinc-700"><Icon className="w-4.5 h-4.5" strokeWidth={1.7} /></span>
+    <div className="rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(11,11,15,0.04),0_8px_28px_-18px_rgba(11,11,15,0.18)] p-4 flex items-center gap-3" data-testid={testid}>
+      <span className="w-10 h-10 rounded-xl bg-orbit-text/[0.06] grid place-items-center text-orbit-text/75"><Icon className="w-4.5 h-4.5" strokeWidth={1.7} /></span>
       <div>
         <div className="font-display text-2xl font-semibold leading-none">{value}</div>
-        <div className="mt-1 text-xs text-zinc-500">{label}</div>
+        <div className="mt-1 text-xs text-orbit-text/55">{label}</div>
       </div>
     </div>
   );
@@ -66,7 +70,7 @@ function CreateTenantDialog({ onCreated }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button data-testid="create-tenant-btn" className="rounded-full h-10 px-5 bg-zinc-900 hover:bg-zinc-800"><Plus className="w-4 h-4 mr-2" /> Create tenant</Button>
+        <Button data-testid="create-tenant-btn" className="rounded-full h-10 px-5 bg-orbit-text hover:bg-orbit-text/90"><Plus className="w-4 h-4 mr-2" /> Create tenant</Button>
       </DialogTrigger>
       <DialogContent data-testid="create-tenant-dialog">
         <DialogHeader><DialogTitle className="font-display">Onboard a new business</DialogTitle></DialogHeader>
@@ -99,7 +103,7 @@ function CreateTenantDialog({ onCreated }) {
             <Input value={f.owner_password} onChange={(e) => setF({ ...f, owner_password: e.target.value })} placeholder="min 6 characters" className="mt-1.5" data-testid="ct-owner-password" /></div>
         </div>
         <DialogFooter>
-          <Button onClick={submit} disabled={saving} data-testid="ct-submit" className="rounded-full bg-zinc-900 hover:bg-zinc-800">
+          <Button onClick={submit} disabled={saving} data-testid="ct-submit" className="rounded-full bg-orbit-text hover:bg-orbit-text/90">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create tenant"}
           </Button>
         </DialogFooter>
@@ -143,7 +147,7 @@ function AttachAgentDialog({ tenantId, onDone }) {
                 <SelectItem value="elevenlabs">ElevenLabs</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-zinc-400 mt-1">More providers appear here once connected — no code change needed to pick them.</p>
+            <p className="text-xs text-orbit-text/40 mt-1">More providers appear here once connected — no code change needed to pick them.</p>
           </div>
           <div><Label className="text-sm">provider_agent_id</Label>
             <Input value={f.provider_agent_id} onChange={(e) => setF({ ...f, provider_agent_id: e.target.value })} placeholder="agent_xxx" className="mt-1.5 font-mono text-sm" data-testid="aa-agent-id" /></div>
@@ -151,7 +155,7 @@ function AttachAgentDialog({ tenantId, onDone }) {
             <Input value={f.voice_name} onChange={(e) => setF({ ...f, voice_name: e.target.value })} className="mt-1.5" data-testid="aa-voice" /></div>
         </div>
         <DialogFooter>
-          <Button onClick={submit} disabled={saving} data-testid="aa-submit" className="rounded-full bg-zinc-900 hover:bg-zinc-800">
+          <Button onClick={submit} disabled={saving} data-testid="aa-submit" className="rounded-full bg-orbit-text hover:bg-orbit-text/90">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Attach"}
           </Button>
         </DialogFooter>
@@ -205,7 +209,7 @@ function ConnectChannelDialog({ tenantId, aiEmployees, onDone }) {
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={submit} disabled={saving} data-testid="cc-submit" className="rounded-full bg-zinc-900 hover:bg-zinc-800">
+          <Button onClick={submit} disabled={saving} data-testid="cc-submit" className="rounded-full bg-orbit-text hover:bg-orbit-text/90">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Connect"}
           </Button>
         </DialogFooter>
@@ -277,14 +281,14 @@ function AddIntegrationDialog({ tenantId, environment, onDone }) {
               </SelectContent>
             </Select>
           </div>
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-orbit-text/40">
             {f.connector_key === "custom"
               ? "Custom integrations start as Action Required and go Connected only once the real system is wired by ORBIT."
               : "Live mode requires a real connector. Until one is wired, live tools safely report \"not connected\" instead of returning data."}
           </p>
         </div>
         <DialogFooter>
-          <Button onClick={submit} disabled={saving} data-testid="ai-submit" className="rounded-full bg-zinc-900 hover:bg-zinc-800">
+          <Button onClick={submit} disabled={saving} data-testid="ai-submit" className="rounded-full bg-orbit-text hover:bg-orbit-text/90">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add system"}
           </Button>
         </DialogFooter>
@@ -332,10 +336,10 @@ function AddToolDialog({ integrationId, onDone }) {
           </div>
           <div><Label className="text-sm">Name</Label>
             <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="Check room availability" className="mt-1.5" data-testid="at-name" /></div>
-          <p className="text-xs text-zinc-400">Action tools always require explicit confirmation before they run.</p>
+          <p className="text-xs text-orbit-text/40">Action tools always require explicit confirmation before they run.</p>
         </div>
         <DialogFooter>
-          <Button onClick={submit} disabled={saving} data-testid="at-submit" className="rounded-full bg-zinc-900 hover:bg-zinc-800">
+          <Button onClick={submit} disabled={saving} data-testid="at-submit" className="rounded-full bg-orbit-text hover:bg-orbit-text/90">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add tool"}
           </Button>
         </DialogFooter>
@@ -414,7 +418,7 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
         {loadError ? (
           <LoadError error={loadError} onRetry={load} className="mt-10" />
         ) : !d ? (
-          <div className="py-20 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>
+          <div className="py-20 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-orbit-text/25" /></div>
         ) : (
           <>
             <SheetHeader>
@@ -438,14 +442,14 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
 
             {/* Onboarding & Go-Live Readiness Overview */}
             {d.readiness && (
-              <div className="mt-6 rounded-2xl border border-black/5 bg-zinc-50/80 p-4 space-y-3" data-testid="admin-readiness-panel">
+              <div className="mt-6 rounded-[22px] border border-black/5 bg-orbit-sand/80 p-4 space-y-3" data-testid="admin-readiness-panel">
                 <div className="flex items-center justify-between">
-                  <div className="text-xs font-semibold text-zinc-800 uppercase tracking-wider">
-                    Onboarding Stage: <span className="text-zinc-900 font-bold capitalize">{d.readiness.onboarding_stage?.replace(/_/g, " ")}</span>
+                  <div className="text-xs font-semibold text-orbit-text/85 uppercase tracking-wider">
+                    Onboarding Stage: <span className="text-orbit-text font-bold capitalize">{d.readiness.onboarding_stage?.replace(/_/g, " ")}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     {d.readiness.operational_state && (
-                      <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-zinc-100 text-zinc-700 capitalize" data-testid="operational-state">
+                      <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-orbit-text/[0.06] text-orbit-text/75 capitalize" data-testid="operational-state">
                         {(d.readiness.operational_state || "").replace(/_/g, " ")}
                       </span>
                     )}
@@ -460,7 +464,7 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
                 </div>
 
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-xs text-zinc-500">Channels in this customer&apos;s plan</div>
+                  <div className="text-xs text-orbit-text/55">Channels in this customer&apos;s plan</div>
                   <Select value={d.readiness.channel_plan || "phone_and_whatsapp"} onValueChange={async (channel_plan) => {
                     try {
                       await api.patch(`/admin/tenants/${tenantId}/channel-plan`, { channel_plan });
@@ -478,7 +482,7 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
                 </div>
 
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-xs text-zinc-500">Business type</div>
+                  <div className="text-xs text-orbit-text/55">Business type</div>
                   <Select value={d.business_type || "hotel"} onValueChange={async (business_type) => {
                     try {
                       await api.patch(`/admin/tenants/${tenantId}/business-type`, { business_type });
@@ -498,8 +502,8 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
                   </Select>
                 </div>
 
-                <div className="text-xs text-zinc-500">
-                  Data Source: <span className="font-medium text-zinc-800">{d.readiness.data_source_label}</span>
+                <div className="text-xs text-orbit-text/55">
+                  Data Source: <span className="font-medium text-orbit-text/85">{d.readiness.data_source_label}</span>
                 </div>
 
                 {d.readiness.blockers?.length > 0 ? (
@@ -532,13 +536,13 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
                 <AttachAgentDialog tenantId={tenantId} onDone={refresh} />
               </div>
               <div className="space-y-2">
-                {(d.ai_employees || []).length === 0 && <p className="text-sm text-zinc-400">No AI employees yet.</p>}
+                {(d.ai_employees || []).length === 0 && <p className="text-sm text-orbit-text/40">No AI employees yet.</p>}
                 {(d.ai_employees || []).map((ae) => (
                   <div key={ae.id} className="rounded-xl border border-black/5 p-4" data-testid="admin-ae-row">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-sm font-medium">{ae.name} <span className="text-zinc-400 font-normal">· {ae.role_title}</span></div>
-                        <div className="text-xs text-zinc-400 font-mono mt-0.5">{ae.provider_agent_id}</div>
+                        <div className="text-sm font-medium">{ae.name} <span className="text-orbit-text/40 font-normal">· {ae.role_title}</span></div>
+                        <div className="text-xs text-orbit-text/40 font-mono mt-0.5">{ae.provider_agent_id}</div>
                       </div>
                       <StatusBadge kind="lifecycle" value={ae.lifecycle_state} />
                     </div>
@@ -560,12 +564,12 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
                 <ConnectChannelDialog tenantId={tenantId} aiEmployees={d.ai_employees} onDone={refresh} />
               </div>
               <div className="space-y-2">
-                {(d.channels || []).length === 0 && <p className="text-sm text-zinc-400">No channels connected.</p>}
+                {(d.channels || []).length === 0 && <p className="text-sm text-orbit-text/40">No channels connected.</p>}
                 {(d.channels || []).map((c) => (
                   <div key={c.id} className="rounded-xl border border-black/5 p-4 flex items-center justify-between" data-testid="admin-channel-row">
                     <div className="text-sm">
                       <span className="font-medium capitalize">{c.type}</span>
-                      <span className="text-zinc-400"> · {c.connected_identifier}</span>
+                      <span className="text-orbit-text/40"> · {c.connected_identifier}</span>
                     </div>
                     <StatusBadge kind="channel" value={c.status} />
                   </div>
@@ -580,13 +584,13 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
                 <AddIntegrationDialog tenantId={tenantId} environment={d.environment} onDone={refresh} />
               </div>
               <div className="space-y-3">
-                {(d.integrations || []).length === 0 && <p className="text-sm text-zinc-400">No business systems connected.</p>}
+                {(d.integrations || []).length === 0 && <p className="text-sm text-orbit-text/40">No business systems connected.</p>}
                 {(d.integrations || []).map((integ) => (
                   <div key={integ.id} className="rounded-xl border border-black/5 p-4" data-testid="admin-integration-row">
                     <div className="flex items-center justify-between">
                       <div className="text-sm">
                         <span className="font-medium">{integ.name}</span>
-                        <span className="text-zinc-400"> · {integ.type}</span>
+                        <span className="text-orbit-text/40"> · {integ.type}</span>
                         {integ.mode === "mock" && <span className="ml-2 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-700 px-2 py-0.5">MOCK</span>}
                       </div>
                       <StatusBadge kind="channel" value={integ.status} />
@@ -611,7 +615,7 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
                     </div>
                     <div className="mt-3 space-y-1.5">
                       {(d.tools || []).filter((t) => t.integration_id === integ.id).map((t) => (
-                        <div key={t.id} className="flex items-center justify-between gap-2 rounded-lg bg-zinc-50 px-3 py-2" data-testid="admin-tool-row">
+                        <div key={t.id} className="flex items-center justify-between gap-2 rounded-lg bg-orbit-sand px-3 py-2" data-testid="admin-tool-row">
                           <div className="flex items-center gap-2 text-sm min-w-0">
                             <span className={`shrink-0 text-[10px] font-semibold rounded-full px-2 py-0.5 ${t.kind === "action" ? "bg-orange-100 text-orange-700" : "bg-blue-100 text-blue-700"}`}>{t.kind === "action" ? "ACTION" : "READ"}</span>
                             <span className="truncate">{t.name}</span>
@@ -633,8 +637,8 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
               <div className="space-y-2">
                 {(d.users || []).map((u) => (
                   <div key={u.id} className="rounded-xl border border-black/5 p-3 flex items-center justify-between text-sm">
-                    <span>{u.name} <span className="text-zinc-400">· {u.email}</span></span>
-                    <span className="text-xs rounded-full bg-zinc-100 px-2 py-0.5 capitalize">{u.role}</span>
+                    <span>{u.name} <span className="text-orbit-text/40">· {u.email}</span></span>
+                    <span className="text-xs rounded-full bg-orbit-text/[0.06] px-2 py-0.5 capitalize">{u.role}</span>
                   </div>
                 ))}
               </div>
@@ -643,13 +647,13 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
             <ProductionPanel tenantId={tenantId} environment={d.environment} aiEmployees={d.ai_employees} onChanged={refresh} />
 
             {/* Danger zone */}
-            <div className="mt-8 rounded-2xl border border-red-200 bg-red-50/50 p-5 space-y-3" data-testid="admin-danger-zone">
+            <div className="mt-8 rounded-[22px] border border-red-200 bg-red-50/50 p-5 space-y-3" data-testid="admin-danger-zone">
               <div className="flex items-center gap-2 text-red-900 font-semibold text-sm">
                 <AlertTriangle className="w-4 h-4" /> Danger zone
               </div>
               {d.deleted_at ? (
                 <>
-                  <p className="text-sm text-zinc-700">
+                  <p className="text-sm text-orbit-text/75">
                     Deleted on {new Date(d.deleted_at).toLocaleDateString("en-IN")} — will be permanently erased on{" "}
                     {new Date(d.purge_at).toLocaleDateString("en-IN")}.
                   </p>
@@ -667,7 +671,7 @@ function TenantDetailSheet({ tenantId, open, onOpenChange, onChanged }) {
                   <DialogContent data-testid="delete-tenant-dialog">
                     <DialogHeader><DialogTitle className="font-display">Delete {d.name}?</DialogTitle></DialogHeader>
                     <div className="space-y-4 py-2">
-                      <p className="text-sm text-zinc-600 leading-relaxed">
+                      <p className="text-sm text-orbit-text/65 leading-relaxed">
                         Blocks new sign-ins right away (an already-open session may continue briefly) and
                         permanently erases all this tenant's data in 30 days, unless restored before then.
                       </p>
@@ -721,7 +725,7 @@ function TenantsTab({ reloadStats }) {
       <div className="grid md:grid-cols-2 gap-3">
         {tenants?.map((t) => (
           <button key={t.id} onClick={() => setSelected(t.id)} data-testid="admin-tenant-card"
-            className="text-left rounded-2xl border border-black/5 bg-white p-5 hover:border-black/15 transition-colors">
+            className="text-left rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(11,11,15,0.04),0_8px_28px_-18px_rgba(11,11,15,0.18)] p-5 hover:border-black/15 transition-colors">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <span className="w-10 h-10 rounded-xl grid place-items-center text-white font-semibold" style={{ backgroundColor: t.branding?.brand_color || "#18181B" }}>{(t.name || "?").charAt(0)}</span>
@@ -729,11 +733,11 @@ function TenantsTab({ reloadStats }) {
                   <div className="font-medium text-sm">{t.name}</div>
                   <div className="mt-1 flex items-center gap-2">
                     <StatusBadge kind="tenant" value={t.status} />
-                    <span className="text-[10px] rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-600 font-medium capitalize">
+                    <span className="text-[10px] rounded-full bg-orbit-text/[0.06] px-2 py-0.5 text-orbit-text/65 font-medium capitalize">
                       {t.stage_label || t.onboarding_stage?.replace(/_/g, " ") || "Setup"}
                     </span>
                   </div>
-                  <div className="mt-1 text-[11px] text-zinc-400 capitalize flex items-center gap-2">
+                  <div className="mt-1 text-[11px] text-orbit-text/40 capitalize flex items-center gap-2">
                     <span>{t.environment || "demo"}</span>
                     <span>·</span>
                     <span className={t.ready_for_live ? "text-emerald-600 font-medium" : "text-amber-600"}>
@@ -742,9 +746,9 @@ function TenantsTab({ reloadStats }) {
                   </div>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-zinc-300" />
+              <ChevronRight className="w-4 h-4 text-orbit-text/25" />
             </div>
-            <div className="mt-4 flex items-center gap-4 text-xs text-zinc-500">
+            <div className="mt-4 flex items-center gap-4 text-xs text-orbit-text/55">
               <span className="flex items-center gap-1"><Bot className="w-3.5 h-3.5" /> {t.counts?.ai_employees ?? 0}</span>
               <span className="flex items-center gap-1"><Radio className="w-3.5 h-3.5" /> {t.counts?.channels ?? 0}</span>
               <span className="flex items-center gap-1"><MessagesSquare className="w-3.5 h-3.5" /> {t.counts?.conversations ?? 0}</span>
@@ -777,14 +781,14 @@ function QueueTab() {
       <h2 className="font-display text-lg font-semibold">Customization queue</h2>
       {!items && !error && <Loading />}
       {error && <LoadError error={error} onRetry={load} />}
-      {!error && items && items.length === 0 && <p className="text-sm text-zinc-500">No requests.</p>}
+      {!error && items && items.length === 0 && <p className="text-sm text-orbit-text/55">No requests.</p>}
       {items?.map((r) => (
-        <div key={r.id} className="rounded-2xl border border-black/5 bg-white p-5" data-testid="admin-request-card">
+        <div key={r.id} className="rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(11,11,15,0.04),0_8px_28px_-18px_rgba(11,11,15,0.18)] p-5" data-testid="admin-request-card">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <div className="text-xs text-zinc-400">{r.tenant_name} · {r.category}</div>
+              <div className="text-xs text-orbit-text/40">{r.tenant_name} · {r.category}</div>
               <div className="mt-1 text-sm font-semibold">{r.title}</div>
-              <p className="mt-1 text-sm text-zinc-500">{r.details}</p>
+              <p className="mt-1 text-sm text-orbit-text/55">{r.details}</p>
             </div>
             <StatusBadge kind="request" value={r.status} />
           </div>
@@ -846,20 +850,20 @@ function DeletionQueueTab() {
           {purging ? <Loader2 className="w-4 h-4 animate-spin" /> : "Run purge now"}
         </Button>
       </div>
-      <p className="text-xs text-zinc-400 -mt-2">
+      <p className="text-xs text-orbit-text/40 -mt-2">
         "Run purge now" permanently erases any tenant already past its 30-day soft-delete window — approving a
         request above only starts that window.
       </p>
-      {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
+      {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-orbit-text/25" /></div>}
       {error && <LoadError error={error} onRetry={load} />}
-      {!error && items && items.length === 0 && <p className="text-sm text-zinc-500">No pending deletion requests.</p>}
+      {!error && items && items.length === 0 && <p className="text-sm text-orbit-text/55">No pending deletion requests.</p>}
       {items?.map((r) => (
-        <div key={r.id} className="rounded-2xl border border-red-200 bg-red-50/40 p-5" data-testid="admin-deletion-request-card">
+        <div key={r.id} className="rounded-[22px] border border-red-200 bg-red-50/40 p-5" data-testid="admin-deletion-request-card">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <div className="text-xs text-zinc-400">{r.tenant_name} · requested by {r.requested_by_email}</div>
-              <p className="mt-1 text-sm text-zinc-700">{r.reason || "No reason given."}</p>
-              <div className="mt-1 text-xs text-zinc-400">{new Date(r.created_at).toLocaleDateString("en-IN")}</div>
+              <div className="text-xs text-orbit-text/40">{r.tenant_name} · requested by {r.requested_by_email}</div>
+              <p className="mt-1 text-sm text-orbit-text/75">{r.reason || "No reason given."}</p>
+              <div className="mt-1 text-xs text-orbit-text/40">{new Date(r.created_at).toLocaleDateString("en-IN")}</div>
             </div>
           </div>
           <div className="mt-4 flex items-center gap-2">
@@ -891,10 +895,10 @@ function QuarantineTab() {
   return (
     <div className="space-y-4" data-testid="admin-quarantine-tab">
       <h2 className="font-display text-lg font-semibold">Webhook quarantine</h2>
-      <p className="text-sm text-zinc-500">Post-call events whose <span className="font-mono">agent_id</span> maps to no AI employee are rejected and held here.</p>
-      {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
+      <p className="text-sm text-orbit-text/55">Post-call events whose <span className="font-mono">agent_id</span> maps to no AI employee are rejected and held here.</p>
+      {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-orbit-text/25" /></div>}
       {error && <LoadError error={error} onRetry={load} />}
-      {!error && items && items.length === 0 && <p className="text-sm text-zinc-500">Nothing quarantined — all webhooks resolved to a tenant.</p>}
+      {!error && items && items.length === 0 && <p className="text-sm text-orbit-text/55">Nothing quarantined — all webhooks resolved to a tenant.</p>}
       {items?.map((q) => (
         <div key={q.id} className="rounded-xl border border-red-100 bg-red-50/50 p-4 text-sm" data-testid="quarantine-row">
           <div className="font-mono text-red-700">{q.agent_id}</div>
@@ -911,12 +915,12 @@ const STATUS_COLORS = {
   configured: "bg-blue-50 text-blue-700", integrating: "bg-blue-50 text-blue-700", issued: "bg-blue-50 text-blue-700",
   testing: "bg-amber-50 text-amber-700", action_required: "bg-amber-50 text-amber-700", warning: "bg-amber-50 text-amber-700", credentials_required: "bg-amber-50 text-amber-700", due: "bg-amber-50 text-amber-700", payment_config_required: "bg-amber-50 text-amber-700",
   pending: "bg-amber-50 text-amber-700", ready_for_test: "bg-blue-50 text-blue-700", blocked: "bg-amber-50 text-amber-700", onboarding: "bg-amber-50 text-amber-700",
-  not_connected: "bg-zinc-100 text-zinc-500", draft: "bg-zinc-100 text-zinc-500", demo: "bg-zinc-100 text-zinc-500",
-  not_configured: "bg-zinc-100 text-zinc-500", not_included: "bg-zinc-100 text-zinc-500",
+  not_connected: "bg-orbit-text/[0.06] text-orbit-text/55", draft: "bg-orbit-text/[0.06] text-orbit-text/55", demo: "bg-orbit-text/[0.06] text-orbit-text/55",
+  not_configured: "bg-orbit-text/[0.06] text-orbit-text/55", not_included: "bg-orbit-text/[0.06] text-orbit-text/55",
   suspended: "bg-red-50 text-red-700", error: "bg-red-50 text-red-700", capped: "bg-red-50 text-red-700", failed: "bg-red-50 text-red-700",
 };
 const Pill = ({ v, label }) => (
-  <span className={`text-[11px] font-medium rounded-full px-2 py-0.5 ${STATUS_COLORS[v] || "bg-zinc-100 text-zinc-500"}`}>
+  <span className={`text-[11px] font-medium rounded-full px-2 py-0.5 ${STATUS_COLORS[v] || "bg-orbit-text/[0.06] text-orbit-text/55"}`}>
     {label || (v === "credentials_required" ? "Credentials required" : (v || "").replace(/_/g, " "))}
   </span>
 );
@@ -939,18 +943,18 @@ function HealthTab() {
     <div className="space-y-6" data-testid="admin-health-tab">
       <div>
         <h2 className="font-display text-lg font-semibold">System health</h2>
-        <p className="text-sm text-zinc-500">Platform status. Unconfigured providers show credentials required — never a fake healthy state.</p>
+        <p className="text-sm text-orbit-text/55">Platform status. Unconfigured providers show credentials required — never a fake healthy state.</p>
       </div>
 
       {/* Service health grid */}
       {!health && !error && <Loading />}
       {error && <LoadError error={error} onRetry={load} />}
-      <div className="rounded-2xl border border-black/5 bg-white divide-y divide-black/5">
+      <div className="rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(11,11,15,0.04),0_8px_28px_-18px_rgba(11,11,15,0.18)] divide-y divide-black/5">
         {items?.map((it) => (
           <div key={it.key} className="px-5 py-4 flex items-center justify-between gap-4" data-testid={`health-${it.key}`}>
             <div>
               <div className="text-sm font-medium">{it.label}</div>
-              {it.detail && <div className="text-xs text-zinc-400 mt-0.5">{it.detail}</div>}
+              {it.detail && <div className="text-xs text-orbit-text/40 mt-0.5">{it.detail}</div>}
             </div>
             <Pill v={it.status} />
           </div>
@@ -959,7 +963,7 @@ function HealthTab() {
 
       {/* Capacity / Concurrency panel */}
       {cap && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 space-y-3" data-testid="health-capacity">
+        <div className="rounded-[22px] border border-amber-200 bg-amber-50 p-5 space-y-3" data-testid="health-capacity">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm font-semibold text-amber-900">Concurrent call capacity</div>
@@ -969,16 +973,16 @@ function HealthTab() {
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-white rounded-xl p-3 text-center border border-amber-100">
-              <div className="text-xl font-semibold text-zinc-900">{cap.active_calls ?? "—"}</div>
-              <div className="text-xs text-zinc-400 mt-0.5">Active calls</div>
+              <div className="text-xl font-semibold text-orbit-text">{cap.active_calls ?? "—"}</div>
+              <div className="text-xs text-orbit-text/40 mt-0.5">Active calls</div>
             </div>
             <div className="bg-white rounded-xl p-3 text-center border border-amber-100">
-              <div className="text-xl font-semibold text-zinc-900">{cap.configured_limit ?? "—"}</div>
-              <div className="text-xs text-zinc-400 mt-0.5">Plan limit</div>
+              <div className="text-xl font-semibold text-orbit-text">{cap.configured_limit ?? "—"}</div>
+              <div className="text-xs text-orbit-text/40 mt-0.5">Plan limit</div>
             </div>
             <div className="bg-white rounded-xl p-3 text-center border border-amber-100">
-              <div className="text-xl font-semibold text-zinc-900">{cap.utilization_pct != null ? `${cap.utilization_pct}%` : "—"}</div>
-              <div className="text-xs text-zinc-400 mt-0.5">Utilization</div>
+              <div className="text-xl font-semibold text-orbit-text">{cap.utilization_pct != null ? `${cap.utilization_pct}%` : "—"}</div>
+              <div className="text-xs text-orbit-text/40 mt-0.5">Utilization</div>
             </div>
           </div>
           <p className="text-xs text-amber-600">
@@ -1004,18 +1008,18 @@ function AuditTab() {
   return (
     <div className="space-y-4" data-testid="admin-audit-tab">
       <h2 className="font-display text-lg font-semibold">Audit log</h2>
-      <p className="text-sm text-zinc-500">Admin actions: tenant, agent, channel, billing and customization changes.</p>
-      {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-zinc-300" /></div>}
+      <p className="text-sm text-orbit-text/55">Admin actions: tenant, agent, channel, billing and customization changes.</p>
+      {!items && <div className="p-10 grid place-items-center"><Loader2 className="w-5 h-5 animate-spin text-orbit-text/25" /></div>}
       {error && <LoadError error={error} onRetry={load} />}
-      {!error && items && items.length === 0 && <p className="text-sm text-zinc-500">No audit entries yet.</p>}
-      <div className="rounded-2xl border border-black/5 bg-white divide-y divide-black/5">
+      {!error && items && items.length === 0 && <p className="text-sm text-orbit-text/55">No audit entries yet.</p>}
+      <div className="rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(11,11,15,0.04),0_8px_28px_-18px_rgba(11,11,15,0.18)] divide-y divide-black/5">
         {items?.map((a) => (
           <div key={a.id} className="px-5 py-3 text-sm" data-testid="audit-row">
             <div className="flex items-center justify-between gap-3">
               <span className="font-medium">{a.action}</span>
-              <span className="text-xs text-zinc-400 shrink-0">{a.created_at ? new Date(a.created_at).toLocaleString("en-IN") : ""}</span>
+              <span className="text-xs text-orbit-text/40 shrink-0">{a.created_at ? new Date(a.created_at).toLocaleString("en-IN") : ""}</span>
             </div>
-            <div className="text-xs text-zinc-500 mt-0.5 truncate">{a.actor_email || "system"}{a.target ? ` · ${a.target}` : ""}</div>
+            <div className="text-xs text-orbit-text/55 mt-0.5 truncate">{a.actor_email || "system"}{a.target ? ` · ${a.target}` : ""}</div>
           </div>
         ))}
       </div>
@@ -1039,9 +1043,9 @@ function OperationsTab() {
       {!rows && !error && <Loading />}
       {error && <LoadError error={error} onRetry={load} />}
       {!error && rows && (
-        <div className="rounded-2xl border border-black/5 bg-white overflow-x-auto">
+        <div className="rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(11,11,15,0.04),0_8px_28px_-18px_rgba(11,11,15,0.18)] overflow-x-auto">
           <table className="w-full text-sm">
-            <thead><tr className="text-left text-xs text-zinc-400 border-b border-black/5">
+            <thead><tr className="text-left text-xs text-orbit-text/40 border-b border-black/5">
               <th className="px-4 py-3">Tenant</th><th className="px-3 py-3">Env</th><th className="px-3 py-3">Plan</th><th className="px-3 py-3">State</th><th className="px-3 py-3">AI</th>
               <th className="px-3 py-3">Phone</th><th className="px-3 py-3">WhatsApp</th><th className="px-3 py-3">Business</th><th className="px-3 py-3">Billing</th>
               <th className="px-3 py-3">Go-live</th>
@@ -1101,7 +1105,7 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
 
   const num = (k) => (
     <div>
-      <Label className="text-[11px] text-zinc-500">{k.replace(/_/g, " ")}</Label>
+      <Label className="text-[11px] text-orbit-text/55">{k.replace(/_/g, " ")}</Label>
       {/* Clearing the box used to produce NaN, which JSON-serialises to null,
           which the backend drops — so "Saved" appeared and the old price stayed.
           An empty box now means "no value", and a number means the number. */}
@@ -1136,10 +1140,10 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
           <div className="space-y-1.5">
             {(readiness.items || []).map((it) => (
               <div key={it.key} className="flex items-center justify-between gap-3 text-sm" data-testid={`readiness-${it.key}`}>
-                <span className="text-zinc-600 min-w-0 truncate">
+                <span className="text-orbit-text/65 min-w-0 truncate">
                   {it.label}
-                  {!it.required && <span className="ml-1.5 text-[10px] text-zinc-400">optional</span>}
-                  {it.detail && <span className="ml-2 text-xs text-zinc-400">{it.detail}</span>}
+                  {!it.required && <span className="ml-1.5 text-[10px] text-orbit-text/40">optional</span>}
+                  {it.detail && <span className="ml-2 text-xs text-orbit-text/40">{it.detail}</span>}
                 </span>
                 <Pill v={it.status} />
               </div>
@@ -1154,41 +1158,41 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
           <div className="flex gap-1.5">
             {["demo", "production"].map((e) => (
               <Button key={e} size="sm" variant={environment === e ? "default" : "outline"}
-                className={`h-7 rounded-full text-xs capitalize ${environment === e ? "bg-zinc-900" : ""}`}
+                className={`h-7 rounded-full text-xs capitalize ${environment === e ? "bg-orbit-text" : ""}`}
                 onClick={() => setEnv(e)} data-testid={`env-${e}`}>{e}</Button>
             ))}
           </div>
         </div>
-        <p className="mt-2 text-xs text-zinc-400">Production tenants never use mock data or simulated calls.</p>
+        <p className="mt-2 text-xs text-orbit-text/40">Production tenants never use mock data or simulated calls.</p>
       </div>
 
       {prov && (
         <div className="rounded-xl border border-black/5 p-4 space-y-3">
           <div className="flex items-center gap-2 text-sm font-medium"><KeyRound className="w-4 h-4" /> Provider connections</div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-zinc-600">ElevenLabs webhooks</span>
+            <span className="text-orbit-text/65">ElevenLabs webhooks</span>
             <Pill v={prov.elevenlabs?.webhooks_configured ? "verified" : "credentials_required"} />
           </div>
           {(prov.elevenlabs?.agents || []).map((a) => (
             <div key={a.ai_employee_id} className="flex items-center justify-between text-sm" data-testid="prov-voice">
-              <span className="text-zinc-600">Voice · {a.name}</span>
+              <span className="text-orbit-text/65">Voice · {a.name}</span>
               <div className="flex items-center gap-2"><Pill v={a.status} /><Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={() => verifyVoice(a.ai_employee_id)}>Verify</Button></div>
             </div>
           ))}
           {(prov.exotel?.numbers || []).map((n) => (
             <div key={n.channel_id} className="flex items-center justify-between text-sm" data-testid="prov-tel">
-              <span className="text-zinc-600">Telephony · {n.number}</span>
+              <span className="text-orbit-text/65">Telephony · {n.number}</span>
               <div className="flex items-center gap-2"><Pill v={n.status} /><Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={() => verifyTel(n.channel_id)}>Verify</Button></div>
             </div>
           ))}
           {(prov.whatsapp?.numbers || []).map((n) => (
             <div key={n.channel_id} className="flex items-center justify-between text-sm" data-testid="prov-wa">
-              <span className="text-zinc-600">WhatsApp · {n.number}</span>
+              <span className="text-orbit-text/65">WhatsApp · {n.number}</span>
               <div className="flex items-center gap-2"><Pill v={n.status} /><Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={() => verifyWa(n.channel_id)}>Verify</Button></div>
             </div>
           ))}
           <div className="flex items-center justify-between text-sm">
-            <span className="text-zinc-600">Payments · Razorpay</span>
+            <span className="text-orbit-text/65">Payments · Razorpay</span>
             <Pill v={prov.razorpay?.credentials_configured ? "configured" : "credentials_required"} />
           </div>
         </div>
@@ -1202,7 +1206,7 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
             {num("service_charge")}{num("gst_pct")}{num("orbit_markup_pct")}
             {num("warning_threshold")}{num("hard_cap")}
           </div>
-          <Button size="sm" className="mt-3 rounded-full h-8 bg-zinc-900 hover:bg-zinc-800" onClick={savePricing} data-testid="save-pricing">Save pricing</Button>
+          <Button size="sm" className="mt-3 rounded-full h-8 bg-orbit-text hover:bg-orbit-text/90" onClick={savePricing} data-testid="save-pricing">Save pricing</Button>
         </div>
       )}
 
@@ -1212,9 +1216,9 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
           <Button size="sm" variant="outline" className="h-7 rounded-full text-xs" onClick={genInvoice} data-testid="gen-invoice"><Plus className="w-3.5 h-3.5 mr-1" /> Generate</Button>
         </div>
         <div className="space-y-1.5">
-          {(invoices || []).length === 0 && <p className="text-xs text-zinc-400">No invoices.</p>}
+          {(invoices || []).length === 0 && <p className="text-xs text-orbit-text/40">No invoices.</p>}
           {(invoices || []).map((inv) => (
-            <div key={inv.id} className="flex items-center justify-between rounded-lg bg-zinc-50 px-3 py-2 text-sm" data-testid="admin-invoice-row">
+            <div key={inv.id} className="flex items-center justify-between rounded-lg bg-orbit-sand px-3 py-2 text-sm" data-testid="admin-invoice-row">
               <span>{inv.period} · ₹{inv.total}</span>
               <div className="flex items-center gap-2">
                 <Pill v={inv.status} />
@@ -1231,12 +1235,12 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
           <div className="space-y-2">
             {["business_info", "services", "policies", "hours", "instructions"].map((f) => (
               <div key={f}>
-                <Label className="text-[11px] text-zinc-500 capitalize">{f.replace(/_/g, " ")}</Label>
+                <Label className="text-[11px] text-orbit-text/55 capitalize">{f.replace(/_/g, " ")}</Label>
                 <Textarea value={kb?.[f] || ""} onChange={(e) => setKb({ ...kb, [f]: e.target.value })} rows={2} className="mt-1 text-sm" data-testid={`kb-${f}`} />
               </div>
             ))}
           </div>
-          <Button size="sm" className="mt-3 rounded-full h-8 bg-zinc-900 hover:bg-zinc-800" onClick={saveKb} data-testid="save-kb">Save knowledge</Button>
+          <Button size="sm" className="mt-3 rounded-full h-8 bg-orbit-text hover:bg-orbit-text/90" onClick={saveKb} data-testid="save-kb">Save knowledge</Button>
         </div>
       )}
     </div>
@@ -1253,24 +1257,25 @@ export default function AdminConsole() {
   const doLogout = async () => { await logout(); navigate("/login", { replace: true }); };
 
   return (
-    <div className="min-h-screen bg-zinc-50" data-testid="admin-console">
-      <header className="h-16 sticky top-0 z-30 glass border-b border-black/5 flex items-center justify-between px-6">
+    <div className="min-h-screen bg-orbit-sand" data-testid="admin-console">
+      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-black/5 bg-white/80 px-6 backdrop-blur-xl lg:px-8">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-zinc-900 text-white grid place-items-center"><Orbit className="w-4.5 h-4.5" strokeWidth={1.6} /></div>
-          <span className="font-display font-semibold">ORBIT</span>
-          <span className="ml-2 text-xs rounded-full bg-zinc-900 text-white px-2.5 py-1">Platform Admin</span>
+          <OrbitLogo className="h-[26px] w-[26px] text-orbit-text" title="ORBIT" />
+          <span className="font-display text-[19px] font-bold tracking-[-0.04em]">ORBIT</span>
+          <span className="ml-2 text-xs rounded-full bg-orbit-text text-white px-2.5 py-1">Platform Admin</span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-sm text-zinc-500 hidden sm:block">{user?.email}</span>
+          <span className="text-sm text-orbit-text/55 hidden sm:block">{user?.email}</span>
           <Button variant="ghost" size="sm" onClick={doLogout} data-testid="admin-logout" className="text-red-600 hover:text-red-600 rounded-full"><LogOut className="w-4 h-4 mr-1.5" /> Sign out</Button>
         </div>
       </header>
 
-      <main className="p-6 lg:p-8 max-w-6xl mx-auto space-y-8">
-        <div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight">Platform control</h1>
-          <p className="mt-1.5 text-zinc-500 text-sm">Manage tenants, AI employees, channels and the managed-service queue.</p>
-        </div>
+      <main className="mx-auto w-full max-w-6xl space-y-8 p-6 lg:p-10">
+        <PageHeader
+          eyebrow="Platform admin"
+          title="Platform control"
+          subtitle="Tenants, AI employees, channels and the managed-service queue."
+        />
 
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           <StatPill icon={Building2} label="Tenants" value={stats?.tenants ?? "—"} testid="admin-stat-tenants" />

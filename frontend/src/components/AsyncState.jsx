@@ -4,7 +4,7 @@ import { Loader2, RefreshCw, AlertCircle } from "lucide-react";
 export function Loading({ className = "" }) {
   return (
     <div className={`p-10 grid place-items-center ${className}`} data-testid="section-loading">
-      <Loader2 className="w-5 h-5 animate-spin text-zinc-300" />
+      <Loader2 className="w-5 h-5 animate-spin text-orbit-text/25" />
     </div>
   );
 }
@@ -19,7 +19,7 @@ export function Loading({ className = "" }) {
 export function LoadError({ error, onRetry, className = "" }) {
   return (
     <div
-      className={`rounded-2xl border border-amber-200 bg-amber-50/60 p-6 text-center ${className}`}
+      className={`rounded-[22px] border border-amber-200 bg-amber-50/60 p-6 text-center ${className}`}
       data-testid="section-error"
     >
       <AlertCircle className="w-5 h-5 mx-auto text-amber-600" strokeWidth={1.8} />

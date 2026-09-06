@@ -1,5 +1,5 @@
 const LIFECYCLE = {
-  draft: { label: "Draft", cls: "bg-zinc-100 text-zinc-600 border-zinc-200" },
+  draft: { label: "Draft", cls: "bg-orbit-text/[0.06] text-orbit-text/65 border-black/[0.08]" },
   testing: { label: "Testing", cls: "bg-amber-50 text-amber-700 border-amber-200" },
   approved: { label: "Approved", cls: "bg-blue-50 text-blue-700 border-blue-200" },
   live: { label: "Live", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
@@ -14,15 +14,15 @@ const CHANNEL = {
   setup_in_progress: { label: "Setup in progress", cls: "bg-amber-50 text-amber-700 border-amber-200" },
   action_required: { label: "Setup in progress", cls: "bg-amber-50 text-amber-700 border-amber-200" },
   credentials_required: { label: "Setup in progress", cls: "bg-amber-50 text-amber-700 border-amber-200" },
-  not_configured: { label: "Not configured", cls: "bg-zinc-100 text-zinc-600 border-zinc-200" },
-  not_included: { label: "Not in plan", cls: "bg-zinc-100 text-zinc-600 border-zinc-200" },
+  not_configured: { label: "Not configured", cls: "bg-orbit-text/[0.06] text-orbit-text/65 border-black/[0.08]" },
+  not_included: { label: "Not in plan", cls: "bg-orbit-text/[0.06] text-orbit-text/65 border-black/[0.08]" },
   failed: { label: "Needs attention", cls: "bg-red-50 text-red-700 border-red-200" },
-  disconnected: { label: "Disconnected", cls: "bg-zinc-100 text-zinc-600 border-zinc-200" },
-  pending: { label: "Pending", cls: "bg-zinc-100 text-zinc-600 border-zinc-200" },
+  disconnected: { label: "Disconnected", cls: "bg-orbit-text/[0.06] text-orbit-text/65 border-black/[0.08]" },
+  pending: { label: "Pending", cls: "bg-orbit-text/[0.06] text-orbit-text/65 border-black/[0.08]" },
   // These four are real values the admin console can set or the backend can
   // return; without them the badge printed the raw snake_case key.
-  not_connected: { label: "Not connected", cls: "bg-zinc-100 text-zinc-600 border-zinc-200" },
-  unavailable: { label: "Unavailable", cls: "bg-zinc-100 text-zinc-600 border-zinc-200" },
+  not_connected: { label: "Not connected", cls: "bg-orbit-text/[0.06] text-orbit-text/65 border-black/[0.08]" },
+  unavailable: { label: "Unavailable", cls: "bg-orbit-text/[0.06] text-orbit-text/65 border-black/[0.08]" },
   error: { label: "Needs attention", cls: "bg-red-50 text-red-700 border-red-200" },
   quarantined: { label: "Quarantined", cls: "bg-red-50 text-red-700 border-red-200" },
   ok: { label: "OK", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
@@ -33,11 +33,11 @@ const TENANT = {
   onboarding: { label: "Onboarding", cls: "bg-amber-50 text-amber-700 border-amber-200" },
   suspended: { label: "Suspended", cls: "bg-red-50 text-red-700 border-red-200" },
   deleted: { label: "Deleted", cls: "bg-red-50 text-red-700 border-red-200" },
-  demo: { label: "Demo", cls: "bg-zinc-100 text-zinc-600 border-zinc-200" },
+  demo: { label: "Demo", cls: "bg-orbit-text/[0.06] text-orbit-text/65 border-black/[0.08]" },
 };
 
 const REQUEST = {
-  submitted: { label: "Submitted", cls: "bg-zinc-100 text-zinc-600 border-zinc-200" },
+  submitted: { label: "Submitted", cls: "bg-orbit-text/[0.06] text-orbit-text/65 border-black/[0.08]" },
   in_review: { label: "In Review", cls: "bg-amber-50 text-amber-700 border-amber-200" },
   in_progress: { label: "In Progress", cls: "bg-blue-50 text-blue-700 border-blue-200" },
   completed: { label: "Completed", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
@@ -58,7 +58,7 @@ const humanise = (v) => {
 export const StatusBadge = ({ kind = "lifecycle", value, testid }) => {
   const meta = (MAPS[kind] || {})[value] || {
     label: humanise(value),
-    cls: "bg-zinc-100 text-zinc-600 border-zinc-200",
+    cls: "bg-orbit-text/[0.06] text-orbit-text/65 border-black/[0.08]",
   };
   return (
     <span

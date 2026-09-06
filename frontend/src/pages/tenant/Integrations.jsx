@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useApiResource } from "@/hooks/useApiResource";
 import { Loading, LoadError } from "@/components/AsyncState";
+import { PageHeader, InfoNote } from "@/components/AppUI";
 
 const CAT_ICON = { business: Database, ai_employee: Bot };
 const chanIcon = (type) => (type === "whatsapp" ? MessageCircle : Phone);
@@ -21,13 +22,13 @@ function ResultView({ res }) {
         <div className={`text-xs font-semibold mb-1.5 ${isMock ? "text-amber-700" : "text-emerald-700"}`}>
           {isMock ? "⚠ MOCK / demo data (not real)" : "Live data"}
         </div>
-        <pre className="text-xs text-zinc-700 whitespace-pre-wrap break-words font-mono">{JSON.stringify(res.data, null, 2)}</pre>
+        <pre className="text-xs text-orbit-text/75 whitespace-pre-wrap break-words font-mono">{JSON.stringify(res.data, null, 2)}</pre>
       </div>
     );
   }
   const map = {
-    unavailable: ["border-zinc-200 bg-zinc-50", "text-zinc-600"],
-    disabled: ["border-zinc-200 bg-zinc-50", "text-zinc-600"],
+    unavailable: ["border-black/[0.08] bg-orbit-sand", "text-orbit-text/65"],
+    disabled: ["border-black/[0.08] bg-orbit-sand", "text-orbit-text/65"],
     confirmation_required: ["border-blue-200 bg-blue-50", "text-blue-700"],
   };
   const [box, txt] = map[res.status] || map.unavailable;
@@ -61,19 +62,13 @@ export default function Integrations() {
 
   return (
     <div className="space-y-8" data-testid="tenant-integrations">
-      <div>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">Business Integrations</h1>
-        <p className="mt-1.5 text-zinc-500 text-sm">The systems your AI employee is connected to. Setup is managed by ORBIT.</p>
-      </div>
+      <PageHeader eyebrow={'Connected systems'} title={'Business Integrations'} subtitle={'The systems your AI employee is connected to. Setup is managed by ORBIT.'} />
 
       {hasMock && (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/70 px-5 py-4" data-testid="mock-notice">
-          <Info className="w-4.5 h-4.5 text-amber-600 mt-0.5 shrink-0" />
-          <p className="text-sm text-amber-900/80 leading-relaxed">
+        <InfoNote icon={Info} tone="warn">
             One or more integrations run on <span className="font-semibold">MOCK demo data</span> because a real business
             system isn't connected yet. Mock results are clearly labelled and must never be treated as real operational data.
-          </p>
-        </div>
+          </InfoNote>
       )}
 
       {/* Connected systems */}
@@ -84,14 +79,14 @@ export default function Integrations() {
           const Icon = s.category === "channel" ? chanIcon(s.type) : (CAT_ICON[s.category] || Database);
           const kind = s.category === "ai_employee" ? "lifecycle" : "channel";
           return (
-            <div key={s.key} className="rounded-2xl border border-black/5 bg-white p-5" data-testid="integration-system-card">
+            <div key={s.key} className="rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(11,11,15,0.04),0_8px_28px_-18px_rgba(11,11,15,0.18)] p-5" data-testid="integration-system-card">
               <div className="flex items-start justify-between">
-                <span className="w-10 h-10 rounded-xl bg-zinc-100 grid place-items-center text-zinc-700"><Icon className="w-5 h-5" strokeWidth={1.7} /></span>
+                <span className="w-10 h-10 rounded-xl bg-orbit-text/[0.06] grid place-items-center text-orbit-text/75"><Icon className="w-5 h-5" strokeWidth={1.7} /></span>
                 <StatusBadge kind={kind} value={s.status} />
               </div>
               <div className="mt-4 text-sm font-semibold">{s.label}</div>
               <div className="mt-1 flex items-center gap-2">
-                <span className="text-xs text-zinc-400 capitalize">{s.category.replace("_", " ")}</span>
+                <span className="text-xs text-orbit-text/40 capitalize">{s.category.replace("_", " ")}</span>
                 {s.is_mock && <span className="text-[10px] font-semibold rounded-full bg-amber-100 text-amber-700 px-2 py-0.5">MOCK</span>}
               </div>
             </div>
@@ -102,25 +97,25 @@ export default function Integrations() {
       {/* Tools */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <Zap className="w-4 h-4 text-zinc-500" />
+          <Zap className="w-4 h-4 text-orbit-text/55" />
           <h2 className="font-display text-lg font-semibold">What your AI employee can do</h2>
         </div>
-        <p className="text-sm text-zinc-500 mb-4">
-          <span className="font-medium text-zinc-700">Read</span> tools fetch live information automatically.
-          <span className="font-medium text-zinc-700"> Action</span> tools (bookings, changes) always require explicit confirmation.
+        <p className="text-sm text-orbit-text/55 mb-4">
+          <span className="font-medium text-orbit-text/75">Read</span> tools fetch live information automatically.
+          <span className="font-medium text-orbit-text/75"> Action</span> tools (bookings, changes) always require explicit confirmation.
         </p>
 
         {toolsLoading && <Loading />}
         {toolsError && <LoadError error={toolsError} onRetry={reloadTools} />}
         {!toolsLoading && !toolsError && tools?.length === 0 && (
-          <div className="rounded-2xl border border-black/5 bg-white p-10 text-center text-sm text-zinc-500">
+          <div className="rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(11,11,15,0.04),0_8px_28px_-18px_rgba(11,11,15,0.18)] p-10 text-center text-sm text-orbit-text/55">
             No business tools configured yet. ORBIT will connect your systems during onboarding.
           </div>
         )}
 
         <div className="space-y-3">
           {tools?.map((t) => (
-            <div key={t.id} className="rounded-2xl border border-black/5 bg-white p-5" data-testid="tool-card">
+            <div key={t.id} className="rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(11,11,15,0.04),0_8px_28px_-18px_rgba(11,11,15,0.18)] p-5" data-testid="tool-card">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -128,10 +123,10 @@ export default function Integrations() {
                       {t.kind === "action" ? "ACTION" : "READ"}
                     </span>
                     <span className="text-sm font-semibold">{t.name}</span>
-                    {!t.enabled && <span className="text-[10px] rounded-full bg-zinc-100 text-zinc-500 px-2 py-0.5">Disabled</span>}
+                    {!t.enabled && <span className="text-[10px] rounded-full bg-orbit-text/[0.06] text-orbit-text/55 px-2 py-0.5">Disabled</span>}
                   </div>
-                  <p className="mt-1 text-sm text-zinc-500">{t.description}</p>
-                  <div className="mt-1.5 text-xs text-zinc-400">
+                  <p className="mt-1 text-sm text-orbit-text/55">{t.description}</p>
+                  <div className="mt-1.5 text-xs text-orbit-text/40">
                     via {t.integration_name || "—"}{t.integration_mode === "mock" ? " · MOCK" : ""}
                   </div>
                   <ResultView res={results[t.id]} />

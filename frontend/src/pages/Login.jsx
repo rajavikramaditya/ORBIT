@@ -6,10 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
+import { AuthAside } from "@/components/AuthAside";
 import { api } from "@/lib/api";
-
-const IMG =
-  "https://images.pexels.com/photos/19344317/pexels-photo-19344317.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=900&w=940";
 
 const GoogleIcon = () => (
   <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.65l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.11a6.6 6.6 0 0 1 0-4.22V7.05H2.18a11 11 0 0 0 0 9.9l3.66-2.84Z"/><path fill="#EA4335" d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.44 14.97.5 12 .5A11 11 0 0 0 2.18 7.05l3.66 2.84C6.71 6.68 9.14 4.75 12 4.75Z"/></svg>
@@ -46,7 +44,7 @@ function ForgotPasswordForm({ onBack }) {
           <CheckCircle2 className="w-5 h-5" />
           <span className="font-medium text-sm">Check your inbox</span>
         </div>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-orbit-text/55">
           If an account exists for <strong>{email}</strong>, a reset link has been sent. Check your server console in dev mode for the reset token.
         </p>
         <Button variant="outline" onClick={onBack} className="gap-2 h-10 rounded-xl w-full">
@@ -67,14 +65,14 @@ function ForgotPasswordForm({ onBack }) {
           onChange={(e) => setEmail(e.target.value)}
           required
           placeholder="you@business.in"
-          className="mt-1.5 h-11 rounded-xl bg-zinc-50 border-black/10"
+          className="mt-1.5 h-11 rounded-xl bg-orbit-sand border-black/10"
         />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <Button type="submit" disabled={loading} className="w-full h-11 rounded-xl bg-zinc-900 hover:bg-zinc-800">
+      <Button type="submit" disabled={loading} className="w-full h-11 rounded-xl bg-orbit-text hover:bg-orbit-text/90">
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send Reset Link"}
       </Button>
-      <button type="button" onClick={onBack} className="w-full text-sm text-zinc-400 hover:text-zinc-600 flex items-center justify-center gap-1.5 mt-1">
+      <button type="button" onClick={onBack} className="w-full text-sm text-orbit-text/40 hover:text-orbit-text/65 flex items-center justify-center gap-1.5 mt-1">
         <ArrowLeft className="w-3.5 h-3.5" /> Back to Sign in
       </button>
     </form>
@@ -113,7 +111,7 @@ function ResetPasswordForm({ token }) {
           <CheckCircle2 className="w-5 h-5" />
           <span className="font-medium">Password updated!</span>
         </div>
-        <p className="text-sm text-zinc-500">Redirecting you to sign in…</p>
+        <p className="text-sm text-orbit-text/55">Redirecting you to sign in…</p>
       </div>
     );
   }
@@ -130,7 +128,7 @@ function ResetPasswordForm({ token }) {
           required
           minLength={6}
           placeholder="Min 6 characters"
-          className="mt-1.5 h-11 rounded-xl bg-zinc-50 border-black/10"
+          className="mt-1.5 h-11 rounded-xl bg-orbit-sand border-black/10"
         />
       </div>
       <div>
@@ -142,11 +140,11 @@ function ResetPasswordForm({ token }) {
           onChange={(e) => setConfirm(e.target.value)}
           required
           placeholder="Repeat password"
-          className="mt-1.5 h-11 rounded-xl bg-zinc-50 border-black/10"
+          className="mt-1.5 h-11 rounded-xl bg-orbit-sand border-black/10"
         />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <Button type="submit" disabled={loading} className="w-full h-11 rounded-xl bg-zinc-900 hover:bg-zinc-800">
+      <Button type="submit" disabled={loading} className="w-full h-11 rounded-xl bg-orbit-text hover:bg-orbit-text/90">
         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Set New Password"}
       </Button>
     </form>
@@ -189,12 +187,12 @@ export default function Login({ resetMode }) {
     <div className="min-h-screen grid lg:grid-cols-2 bg-white">
       <div className="flex flex-col justify-center px-6 sm:px-12 lg:px-20 py-12">
         <Link to="/" className="flex items-center gap-2.5 mb-14" data-testid="login-logo">
-          <OrbitLogo className="w-8 h-8 text-zinc-900" />
+          <OrbitLogo className="w-8 h-8 text-orbit-text" />
           <span className="font-display text-lg font-semibold">ORBIT</span>
         </Link>
         <div className="max-w-sm w-full">
           <h1 className="font-display text-3xl font-semibold tracking-tight">{title}</h1>
-          <p className="mt-2 text-zinc-500 text-sm">{subtitle}</p>
+          <p className="mt-2 text-orbit-text/55 text-sm">{subtitle}</p>
 
           {/* Reset Password Mode */}
           {resetMode && resetToken ? (
@@ -210,14 +208,14 @@ export default function Login({ resetMode }) {
                     variant="outline"
                     onClick={googleLogin}
                     data-testid="login-google-btn"
-                    className="mt-8 w-full h-11 rounded-xl border-black/10 gap-2.5 hover:bg-zinc-50"
+                    className="mt-8 w-full h-11 rounded-xl border-black/10 gap-2.5 hover:bg-orbit-sand"
                   >
                     <GoogleIcon /> Continue with Google
                   </Button>
                   <div className="flex items-center gap-4 my-6">
-                    <div className="h-px bg-zinc-200 flex-1" />
-                    <span className="text-xs text-zinc-400">or</span>
-                    <div className="h-px bg-zinc-200 flex-1" />
+                    <div className="h-px flex-1 bg-black/[0.09]" />
+                    <span className="text-xs text-orbit-text/40">or</span>
+                    <div className="h-px flex-1 bg-black/[0.09]" />
                   </div>
                 </>
               )}
@@ -226,7 +224,7 @@ export default function Login({ resetMode }) {
                 <div>
                   <Label htmlFor="email" className="text-sm">Email</Label>
                   <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                    data-testid="login-email" placeholder="you@business.in" className="mt-1.5 h-11 rounded-xl bg-zinc-50 border-black/10" />
+                    data-testid="login-email" placeholder="you@business.in" className="mt-1.5 h-11 rounded-xl bg-orbit-sand border-black/10" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between">
@@ -234,7 +232,7 @@ export default function Login({ resetMode }) {
                     <button
                       type="button"
                       onClick={() => setShowForgot(true)}
-                      className="text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+                      className="text-xs text-orbit-text/40 hover:text-orbit-text/65 transition-colors"
                       data-testid="forgot-password-link"
                     >
                       Forgot password?
@@ -249,12 +247,12 @@ export default function Login({ resetMode }) {
                       required
                       data-testid="login-password"
                       placeholder="••••••••"
-                      className="h-11 rounded-xl bg-zinc-50 border-black/10 pr-10"
+                      className="h-11 rounded-xl bg-orbit-sand border-black/10 pr-10"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 focus:outline-none"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-orbit-text/40 hover:text-orbit-text/65 focus:outline-none"
                       data-testid="login-password-toggle"
                       aria-label={showPassword ? "Hide password" : "Show password"}
                     >
@@ -264,26 +262,23 @@ export default function Login({ resetMode }) {
                 </div>
                 {error && <p className="text-sm text-red-600" data-testid="login-error">{error}</p>}
                 <Button type="submit" disabled={loading} data-testid="login-submit"
-                  className="w-full h-11 rounded-xl bg-zinc-900 hover:bg-zinc-800">
+                  className="w-full h-11 rounded-xl bg-orbit-text hover:bg-orbit-text/90">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sign in"}
                 </Button>
               </form>
 
-              <p className="mt-6 text-sm text-zinc-500">
-                New to ORBIT? <Link to="/register" className="text-zinc-900 font-medium hover:underline" data-testid="login-to-register">Onboard your business</Link>
+              <p className="mt-6 text-sm text-orbit-text/55">
+                New to ORBIT? <Link to="/register" className="text-orbit-text font-medium hover:underline" data-testid="login-to-register">Onboard your business</Link>
               </p>
             </>
           )}
         </div>
       </div>
-      <div className="hidden lg:block relative">
-        <img src={IMG} alt="Business workspace" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-        <div className="absolute bottom-12 left-12 right-12 text-white">
-          <p className="font-display text-2xl font-medium leading-snug">"ORBIT answers every call, so you never miss a customer."</p>
-          <p className="mt-3 text-white/70 text-sm">AI employees for every business.</p>
-        </div>
-      </div>
+      <AuthAside
+        headline="Your AI employee has been on the phone all night."
+        sub="Every call answered, every enquiry logged, whether or not anyone was at the desk."
+        proof={["Phone + WhatsApp", "Hindi + English", "Managed by ORBIT"]}
+      />
     </div>
   );
 }

@@ -18,7 +18,7 @@ function StepDots({ step }) {
   return (
     <div className="flex items-center gap-1.5" data-testid="onboarding-step-dots">
       {[0, 1].map((i) => (
-        <span key={i} className={`h-1.5 rounded-full transition-all ${i === step ? "w-6 bg-zinc-900" : "w-1.5 bg-zinc-200"}`} />
+        <span key={i} className={`h-1.5 rounded-full transition-all ${i === step ? "w-6 bg-orbit-text" : "w-1.5 bg-orbit-text/15"}`} />
       ))}
     </div>
   );
@@ -65,7 +65,7 @@ export default function OnboardingWelcome() {
   if (!loaded) {
     return (
       <div className="min-h-screen grid place-items-center bg-white" data-testid="onboarding-loading">
-        <Loader2 className="w-6 h-6 animate-spin text-zinc-400" />
+        <Loader2 className="w-6 h-6 animate-spin text-orbit-text/40" />
       </div>
     );
   }
@@ -74,7 +74,7 @@ export default function OnboardingWelcome() {
     <div className="min-h-screen grid place-items-center bg-white px-6" data-testid="onboarding-welcome">
       <div className="max-w-sm w-full py-12">
         <div className="flex items-center gap-2.5 mb-10">
-          <div className="w-9 h-9 rounded-xl bg-zinc-900 text-white grid place-items-center"><Orbit className="w-5 h-5" strokeWidth={1.6} /></div>
+          <div className="w-9 h-9 rounded-xl bg-orbit-text text-white grid place-items-center"><Orbit className="w-5 h-5" strokeWidth={1.6} /></div>
           <span className="font-display text-lg font-semibold">ORBIT</span>
         </div>
 
@@ -84,44 +84,44 @@ export default function OnboardingWelcome() {
           <form onSubmit={continueToConfirmation} className="mt-6 space-y-5" data-testid="onboarding-profile-form">
             <div>
               <h1 className="font-display text-2xl font-semibold tracking-tight">A few details about your business</h1>
-              <p className="mt-2 text-sm text-zinc-500 leading-relaxed">
+              <p className="mt-2 text-sm text-orbit-text/55 leading-relaxed">
                 So our team can reach you and get your AI employee set up correctly.
               </p>
             </div>
             <div>
               <Label className="text-sm">Contact phone</Label>
               <Input value={form.contact_phone} onChange={set("contact_phone")} required data-testid="onboarding-phone"
-                placeholder="+91 …" className="mt-1.5 h-11 rounded-xl bg-zinc-50 border-black/10" />
+                placeholder="+91 …" className="mt-1.5 h-11 rounded-xl bg-orbit-sand border-black/10" />
             </div>
             <div>
               <Label className="text-sm">Contact email</Label>
               <Input type="email" value={form.contact_email} onChange={set("contact_email")} required data-testid="onboarding-email"
-                placeholder="you@business.in" className="mt-1.5 h-11 rounded-xl bg-zinc-50 border-black/10" />
+                placeholder="you@business.in" className="mt-1.5 h-11 rounded-xl bg-orbit-sand border-black/10" />
             </div>
             <div>
               <Label className="text-sm">Business address</Label>
               <Input value={form.address} onChange={set("address")} required data-testid="onboarding-address"
-                placeholder="Street, City, PIN" className="mt-1.5 h-11 rounded-xl bg-zinc-50 border-black/10" />
+                placeholder="Street, City, PIN" className="mt-1.5 h-11 rounded-xl bg-orbit-sand border-black/10" />
             </div>
             <Button type="submit" disabled={saving} data-testid="onboarding-continue"
-              className="w-full h-11 rounded-xl bg-zinc-900 hover:bg-zinc-800">
+              className="w-full h-11 rounded-xl bg-orbit-text hover:bg-orbit-text/90">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Continue <ArrowRight className="w-4 h-4 ml-2" /></>}
             </Button>
           </form>
         ) : (
           <div className="mt-6 space-y-5" data-testid="onboarding-confirmation">
-            <span className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 grid place-items-center">
+            <span className="w-12 h-12 rounded-[22px] bg-emerald-50 text-emerald-600 grid place-items-center">
               <CheckCircle2 className="w-6 h-6" />
             </span>
             <div>
               <h1 className="font-display text-2xl font-semibold tracking-tight">You're all set for now</h1>
-              <p className="mt-2 text-sm text-zinc-500 leading-relaxed">
+              <p className="mt-2 text-sm text-orbit-text/55 leading-relaxed">
                 ORBIT is now setting up your AI employee, phone number and WhatsApp. This usually takes 1–2 business
                 days — we'll let you know the moment it's ready. Meanwhile, feel free to explore your dashboard.
               </p>
             </div>
             <Button onClick={goToDashboard} data-testid="onboarding-go-to-dashboard"
-              className="w-full h-11 rounded-xl bg-zinc-900 hover:bg-zinc-800">
+              className="w-full h-11 rounded-xl bg-orbit-text hover:bg-orbit-text/90">
               Go to your dashboard <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>

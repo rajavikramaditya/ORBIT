@@ -41,12 +41,12 @@ body {
            The app behind login stays on the light shadcn palette above. */
         --orbit-ink: #08080B;
         --orbit-surface: #101015;
-        --orbit-cream: #F4F1EA;
+        --orbit-cream: #FFFFFF;
         --orbit-gold: #E4B871;
         --orbit-goldink: #8A6A2F;
         --orbit-paper: #ffffff;
-        --orbit-sand: #F5F4F0;
-        --orbit-text: #14141A;
+        --orbit-sand: #F6F6F7;
+        --orbit-text: #0B0B0F;
         --orbit-live: #2FA36B;
     }
 }
@@ -101,11 +101,11 @@ body {
         -webkit-backdrop-filter: blur(28px);
         border: 1px solid rgba(255, 255, 255, 0.09);
     }
+    /* Kept only so any stray usage still renders; it no longer fades out.
+       The old version faded a headline to 62% opacity at the baseline, which
+       is why the hero always looked slightly out of focus. */
     .text-gradient-cream {
-        background: linear-gradient(180deg, #ffffff 0%, #f4f1ea 45%, rgba(244, 241, 234, 0.62) 100%);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
+        color: #ffffff;
     }
     /* Marquee track is duplicated in markup, so -50% is one seamless loop. */
     .marquee-track {

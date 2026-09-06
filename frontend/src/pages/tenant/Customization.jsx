@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useApiResource } from "@/hooks/useApiResource";
 import { Loading, LoadError } from "@/components/AsyncState";
+import { PageHeader } from "@/components/AppUI";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -82,30 +83,26 @@ export default function Customization() {
 
   return (
     <div className="space-y-8" data-testid="tenant-customization">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight">Customization</h1>
-          <p className="mt-1.5 text-zinc-500 text-sm">Request managed changes to how your AI employees behave.</p>
-        </div>
+      <PageHeader eyebrow={'Managed changes'} title={'Customization'} subtitle={'Request managed changes to how your AI employees behave.'} actions={
         <Dialog open={open} onOpenChange={(v) => (v ? setOpen(true) : closeDialog())}>
           <DialogTrigger asChild>
-            <Button data-testid="new-request-btn" className="rounded-full h-11 px-5 bg-zinc-900 hover:bg-zinc-800">
+            <Button data-testid="new-request-btn" className="rounded-full h-11 px-5 bg-orbit-text hover:bg-orbit-text/90">
               <Plus className="w-4 h-4 mr-2" /> New request
             </Button>
           </DialogTrigger>
           <DialogContent data-testid="new-request-dialog">
             {sent ? (
               <div className="py-4 text-center space-y-4" data-testid="request-sent-confirmation">
-                <span className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 grid place-items-center mx-auto">
+                <span className="w-12 h-12 rounded-[22px] bg-emerald-50 text-emerald-600 grid place-items-center mx-auto">
                   <CheckCircle2 className="w-6 h-6" />
                 </span>
                 <div>
                   <p className="font-display text-lg font-semibold">Sent</p>
-                  <p className="mt-1.5 text-sm text-zinc-500 leading-relaxed">
+                  <p className="mt-1.5 text-sm text-orbit-text/55 leading-relaxed">
                     ORBIT usually replies within 1 business day.
                   </p>
                 </div>
-                <Button onClick={closeDialog} data-testid="request-sent-done" className="rounded-full bg-zinc-900 hover:bg-zinc-800">
+                <Button onClick={closeDialog} data-testid="request-sent-done" className="rounded-full bg-orbit-text hover:bg-orbit-text/90">
                   Done
                 </Button>
               </div>
@@ -117,7 +114,7 @@ export default function Customization() {
                     data-testid="request-details" placeholder="What would you like to ask or tell us?" rows={5} autoFocus />
                 </div>
                 <DialogFooter>
-                  <Button onClick={submit} disabled={saving} data-testid="request-submit" className="rounded-full bg-zinc-900 hover:bg-zinc-800">
+                  <Button onClick={submit} disabled={saving} data-testid="request-submit" className="rounded-full bg-orbit-text hover:bg-orbit-text/90">
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send"}
                   </Button>
                 </DialogFooter>
@@ -147,7 +144,7 @@ export default function Customization() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={submit} disabled={saving} data-testid="request-submit" className="rounded-full bg-zinc-900 hover:bg-zinc-800">
+                  <Button onClick={submit} disabled={saving} data-testid="request-submit" className="rounded-full bg-orbit-text hover:bg-orbit-text/90">
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Submit request"}
                   </Button>
                 </DialogFooter>
@@ -155,31 +152,31 @@ export default function Customization() {
             )}
           </DialogContent>
         </Dialog>
-      </div>
+      } />
 
       {loading && <Loading />}
       {error && <LoadError error={error} onRetry={load} />}
       {!loading && !error && items?.length === 0 && (
-        <div className="rounded-2xl border border-black/5 bg-white p-12 text-center">
-          <span className="w-12 h-12 rounded-2xl bg-zinc-100 grid place-items-center mx-auto text-zinc-500"><Wand2 className="w-5 h-5" /></span>
-          <p className="mt-4 text-sm text-zinc-500">No requests yet. Submit one to have ORBIT tune your AI employee.</p>
+        <div className="rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(11,11,15,0.04),0_8px_28px_-18px_rgba(11,11,15,0.18)] p-12 text-center">
+          <span className="w-12 h-12 rounded-[22px] bg-orbit-text/[0.06] grid place-items-center mx-auto text-orbit-text/55"><Wand2 className="w-5 h-5" /></span>
+          <p className="mt-4 text-sm text-orbit-text/55">No requests yet. Submit one to have ORBIT tune your AI employee.</p>
         </div>
       )}
 
       <div className="space-y-3">
         {items?.map((r) => (
-          <div key={r.id} className="rounded-2xl border border-black/5 bg-white p-5" data-testid="request-card">
+          <div key={r.id} className="rounded-[22px] border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(11,11,15,0.04),0_8px_28px_-18px_rgba(11,11,15,0.18)] p-5" data-testid="request-card">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs rounded-full bg-zinc-100 text-zinc-600 px-2 py-0.5">{CAT_LABEL[r.category] || r.category}</span>
+                  <span className="text-xs rounded-full bg-orbit-text/[0.06] text-orbit-text/65 px-2 py-0.5">{CAT_LABEL[r.category] || r.category}</span>
                   <StatusBadge kind="request" value={r.status} testid="request-status" />
                 </div>
                 <div className="mt-2 text-sm font-semibold">{r.title}</div>
-                <p className="mt-1 text-sm text-zinc-500 leading-relaxed">{r.details}</p>
-                {r.admin_notes && <p className="mt-2 text-xs text-zinc-500"><span className="font-medium text-zinc-700">ORBIT:</span> {r.admin_notes}</p>}
+                <p className="mt-1 text-sm text-orbit-text/55 leading-relaxed">{r.details}</p>
+                {r.admin_notes && <p className="mt-2 text-xs text-orbit-text/55"><span className="font-medium text-orbit-text/75">ORBIT:</span> {r.admin_notes}</p>}
               </div>
-              <div className="text-xs text-zinc-400 shrink-0">{new Date(r.created_at).toLocaleDateString("en-IN")}</div>
+              <div className="text-xs text-orbit-text/40 shrink-0">{new Date(r.created_at).toLocaleDateString("en-IN")}</div>
             </div>
           </div>
         ))}

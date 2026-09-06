@@ -1,4 +1,5 @@
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Waveform } from "./Waveform";
 import { formatDuration } from "./useDemoSession";
 
@@ -12,7 +13,95 @@ import { formatDuration } from "./useDemoSession";
  *
  * The sample is labelled as a sample. Nothing here is dressed up as live data
  * when it isn't (AGENT.md rule 7).
+ *
+ * The sample PLAYS rather than sitting there. Printed all at once it read as a
+ * screenshot pasted into the page — the single most common note on this hero
+ * was that it looked stuck. Messages now arrive one at a time, with the agent
+ * pausing to think before it answers, and the exchange restarts on a loop, so
+ * the first thing a visitor sees is a conversation happening.
  */
+
+const REDUCED_MOTION =
+  typeof window !== "undefined" &&
+  !!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+
+// Rough speaking rhythm. Deliberately unhurried: a demo that races looks fake,
+// and the visitor is reading, not waiting for a machine.
+const LEAD_IN_MS = 420;
+const TYPING_MS = 1150;      // agent "thinking" before it replies
+const AFTER_USER_MS = 900;
+const AFTER_AGENT_MS = 2500;
+const LOOP_PAUSE_MS = 2200;
+
+/** Reveals `turns` one at a time, then starts over. */
+function useSamplePlayback(turns, enabled) {
+  const [shownCount, setShownCount] = useState(turns.length);
+  const [typing, setTyping] = useState(false);
+  // Restart cleanly whenever the sample itself changes (a different vertical).
+  const signature = turns.map((t) => t.role + t.text.length).join("|");
+
+  useEffect(() => {
+    if (!enabled || REDUCED_MOTION) {
+      setShownCount(turns.length);
+      setTyping(false);
+      return undefined;
+    }
+    const timers = [];
+    const play = () => {
+      setTyping(false);
+      // Clear just before the first new message lands, not at the top of the
+      // cycle — wiping the card and then pausing left an empty box on screen,
+      // which is the one thing this animation exists to avoid.
+      timers.push(setTimeout(() => setShownCount(0), Math.max(0, LEAD_IN_MS - 220)));
+      let at = LEAD_IN_MS;
+      turns.forEach((turn, i) => {
+        if (turn.role === "agent") {
+          timers.push(setTimeout(() => setTyping(true), at));
+          at += TYPING_MS;
+          timers.push(
+            setTimeout(() => {
+              setTyping(false);
+              setShownCount(i + 1);
+            }, at),
+          );
+          at += AFTER_AGENT_MS;
+        } else {
+          timers.push(setTimeout(() => setShownCount(i + 1), at));
+          at += AFTER_USER_MS;
+        }
+      });
+      timers.push(setTimeout(play, at + LOOP_PAUSE_MS));
+    };
+    play();
+    return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, signature]);
+
+  return { shownCount, typing };
+}
+
+/** Three dots, the universal "they're about to say something". */
+function TypingBubble() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ duration: 0.22 }}
+      className="flex w-fit items-center gap-1.5 rounded-2xl rounded-bl-md bg-white px-4 py-3.5"
+      aria-hidden="true"
+    >
+      {[0, 1, 2].map((i) => (
+        <motion.span
+          key={i}
+          className="h-1.5 w-1.5 rounded-full bg-orbit-ink/45"
+          animate={{ opacity: [0.25, 1, 0.25], y: [0, -2, 0] }}
+          transition={{ duration: 1, repeat: Infinity, delay: i * 0.16 }}
+        />
+      ))}
+    </motion.div>
+  );
+}
 
 const SAMPLES = {
   hotel: {
@@ -66,7 +155,12 @@ export function ConversationCard({
   // Live turns once there are any; otherwise the sample keeps the card populated
   // so it never sits empty while the agent is still connecting.
   const showLive = live && turns.length > 0;
-  const shown = showLive ? turns : sample.turns;
+  const source = showLive ? turns : sample.turns;
+
+  // Only the sample animates. A real transcript must appear the instant the
+  // agent says it — never on a decorative delay.
+  const { shownCount, typing } = useSamplePlayback(sample.turns, !live);
+  const shown = showLive ? source : sample.turns.slice(0, shownCount);
 
   return (
     <motion.div
@@ -87,7 +181,7 @@ export function ConversationCard({
             {persona.charAt(0)}
           </div>
           <div>
-            <div className="text-[15px] font-medium text-orbit-cream">{persona}</div>
+            <div className="text-[15px] font-medium text-white">{persona}</div>
             <div className="flex items-center gap-1.5 text-[12px] text-orbit-live">
               {live ? (
                 <>
@@ -98,7 +192,7 @@ export function ConversationCard({
                   {connecting ? "Connecting…" : `On a call · ${formatDuration(seconds)}`}
                 </>
               ) : (
-                <span className="text-orbit-cream/35">Sample conversation</span>
+                <span className="text-white/45">Sample conversation</span>
               )}
             </div>
           </div>
@@ -111,20 +205,29 @@ export function ConversationCard({
         />
       </div>
 
-      {/* Transcript */}
-      <div className="max-h-[220px] space-y-3 overflow-y-auto py-5">
-        {shown.map((turn, i) => (
-          <div
-            key={`${turn.role}-${i}-${turn.text.slice(0, 12)}`}
-            className={
-              turn.role === "user"
-                ? "ml-auto max-w-[75%] rounded-2xl rounded-br-md bg-white/10 px-4 py-2.5 text-[14px] leading-snug text-orbit-cream/75"
-                : "max-w-[88%] rounded-2xl rounded-bl-md bg-orbit-cream px-4 py-3 text-[14px] leading-snug text-orbit-ink"
-            }
-          >
-            {turn.text}
-          </div>
-        ))}
+      {/* Transcript.
+          The fixed min-height stops the card (and the whole hero) from growing
+          and shrinking as messages arrive — a jumping page reads as broken. */}
+      <div className="min-h-[196px] space-y-3 overflow-y-auto py-5 md:max-h-[240px]">
+        <AnimatePresence initial={false}>
+          {shown.map((turn, i) => (
+            <motion.div
+              key={`${turn.role}-${i}-${turn.text.slice(0, 14)}`}
+              layout
+              initial={{ opacity: 0, y: 14, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.34, ease: [0.16, 1, 0.3, 1] }}
+              className={
+                turn.role === "user"
+                  ? "ml-auto w-fit max-w-[75%] rounded-2xl rounded-br-md bg-white/[0.13] px-4 py-2.5 text-[14px] leading-snug text-white/85"
+                  : "w-fit max-w-[88%] rounded-2xl rounded-bl-md bg-white px-4 py-3 text-[14px] leading-snug text-orbit-ink"
+              }
+            >
+              {turn.text}
+            </motion.div>
+          ))}
+          {typing && <TypingBubble key="typing" />}
+        </AnimatePresence>
       </div>
 
       {/* What it just did — the part that separates this from a chatbot */}
@@ -134,10 +237,10 @@ export function ConversationCard({
           : sample.facts
         ).map(([label, value]) => (
           <div key={label} className="rounded-xl bg-white/[0.05] px-3 py-2.5">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-orbit-cream/35">
+            <div className="text-[10px] uppercase tracking-[0.14em] text-white/45">
               {label}
             </div>
-            <div className="mt-0.5 text-[13px] text-orbit-cream">{value}</div>
+            <div className="mt-0.5 text-[13px] text-white">{value}</div>
           </div>
         ))}
       </div>

@@ -12,7 +12,7 @@ const ROOM_TYPE_SUGGESTIONS = ["Deluxe Room", "Super Deluxe Room", "Suite", "Pre
 
 function ServiceRow({ service, onChange, onRemove }) {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-xl border border-zinc-200 bg-white group">
+    <div className="flex items-center gap-3 p-3 rounded-xl border border-black/[0.08] bg-white group">
       <div className="flex-1 min-w-0">
         <Input
           placeholder="Service name (e.g. Haircut)"
@@ -22,7 +22,7 @@ function ServiceRow({ service, onChange, onRemove }) {
         />
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
-        <span className="text-zinc-400 text-sm">₹</span>
+        <span className="text-orbit-text/40 text-sm">₹</span>
         <Input
           type="number"
           placeholder="Price"
@@ -33,7 +33,7 @@ function ServiceRow({ service, onChange, onRemove }) {
       </div>
       <button
         onClick={onRemove}
-        className="text-zinc-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+        className="text-orbit-text/25 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
         title="Remove"
       >
         <Trash2 className="w-4 h-4" />
@@ -44,7 +44,7 @@ function ServiceRow({ service, onChange, onRemove }) {
 
 function RoomRateRow({ rate, onChange, onRemove }) {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-xl border border-zinc-200 bg-white group">
+    <div className="flex items-center gap-3 p-3 rounded-xl border border-black/[0.08] bg-white group">
       <div className="flex-1 min-w-0">
         <Input
           placeholder="Room type (e.g. Deluxe Room)"
@@ -54,7 +54,7 @@ function RoomRateRow({ rate, onChange, onRemove }) {
         />
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
-        <span className="text-zinc-400 text-sm">₹</span>
+        <span className="text-orbit-text/40 text-sm">₹</span>
         <Input
           type="number"
           placeholder="Rate"
@@ -62,10 +62,10 @@ function RoomRateRow({ rate, onChange, onRemove }) {
           onChange={(e) => onChange({ ...rate, rate_inr: parseFloat(e.target.value) || 0 })}
           className="h-8 w-28 text-sm"
         />
-        <span className="text-zinc-400 text-xs">/night</span>
+        <span className="text-orbit-text/40 text-xs">/night</span>
       </div>
       <div className="flex items-center gap-1.5 shrink-0">
-        <label className="flex items-center gap-1.5 cursor-pointer text-xs text-zinc-600">
+        <label className="flex items-center gap-1.5 cursor-pointer text-xs text-orbit-text/65">
           <input
             type="checkbox"
             checked={rate.available !== false}
@@ -87,7 +87,7 @@ function RoomRateRow({ rate, onChange, onRemove }) {
       </div>
       <button
         onClick={onRemove}
-        className="text-zinc-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+        className="text-orbit-text/25 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
         title="Remove"
       >
         <Trash2 className="w-4 h-4" />
@@ -182,7 +182,7 @@ export default function BusinessData() {
   if (!data)
     return (
       <div className="p-10 grid place-items-center">
-        <Loader2 className="w-5 h-5 animate-spin text-zinc-300" />
+        <Loader2 className="w-5 h-5 animate-spin text-orbit-text/25" />
       </div>
     );
 
@@ -192,9 +192,9 @@ export default function BusinessData() {
       <div>
         <div className="flex items-center gap-2 mb-1">
           <Zap className="w-5 h-5 text-amber-500" />
-          <h1 className="text-xl font-semibold text-zinc-900">Business Data (Manual Entry)</h1>
+          <h1 className="text-xl font-semibold text-orbit-text">Business Data (Manual Entry)</h1>
         </div>
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-orbit-text/55">
           Manage your property's rates, operating hours, and standard policies. These values are read directly by your AI employee during calls.
         </p>
         <div className="mt-3 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
@@ -211,13 +211,13 @@ export default function BusinessData() {
       {/* Room Rates */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-semibold text-zinc-800">Room Rates & Availability</Label>
+          <Label className="text-sm font-semibold text-orbit-text/85">Room Rates & Availability</Label>
           <Button variant="outline" size="sm" onClick={addRoom} className="gap-1.5 h-8 text-xs">
             <Plus className="w-3.5 h-3.5" /> Add Room Type
           </Button>
         </div>
         {(!data.room_rates || data.room_rates.length === 0) ? (
-          <div className="border border-dashed border-zinc-300 rounded-xl p-6 text-center text-sm text-zinc-400">
+          <div className="border border-dashed border-black/[0.12] rounded-xl p-6 text-center text-sm text-orbit-text/40">
             No room types added yet. Click "Add Room Type" to configure live rates.
           </div>
         ) : (
@@ -228,16 +228,16 @@ export default function BusinessData() {
           </div>
         )}
         {data.room_rates?.length > 0 && (
-          <p className="text-xs text-zinc-400">Tip: Uncheck "Available" to tell your AI the room is sold out without removing it.</p>
+          <p className="text-xs text-orbit-text/40">Tip: Uncheck "Available" to tell your AI the room is sold out without removing it.</p>
         )}
       </section>
 
       {/* Timings */}
       <section className="space-y-4">
-        <Label className="text-sm font-semibold text-zinc-800">Check-in / Check-out Timings</Label>
+        <Label className="text-sm font-semibold text-orbit-text/85">Check-in / Check-out Timings</Label>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-500">Check-in Time</Label>
+            <Label className="text-xs text-orbit-text/55">Check-in Time</Label>
             <Input
               placeholder="e.g. 12:00 PM"
               value={data.check_in_time || ""}
@@ -245,7 +245,7 @@ export default function BusinessData() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs text-zinc-500">Check-out Time</Label>
+            <Label className="text-xs text-orbit-text/55">Check-out Time</Label>
             <Input
               placeholder="e.g. 11:00 AM"
               value={data.check_out_time || ""}
@@ -257,7 +257,7 @@ export default function BusinessData() {
 
       {/* Buffet/Meal Timings */}
       <section className="space-y-4">
-        <Label className="text-sm font-semibold text-zinc-800">Buffet / Meal Timings</Label>
+        <Label className="text-sm font-semibold text-orbit-text/85">Buffet / Meal Timings</Label>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { key: "buffet_breakfast", label: "Breakfast", placeholder: "7:00 AM – 10:30 AM" },
@@ -265,7 +265,7 @@ export default function BusinessData() {
             { key: "buffet_dinner", label: "Dinner", placeholder: "7:00 PM – 10:30 PM" },
           ].map(({ key, label, placeholder }) => (
             <div key={key} className="space-y-1.5">
-              <Label className="text-xs text-zinc-500">{label}</Label>
+              <Label className="text-xs text-orbit-text/55">{label}</Label>
               <Input
                 placeholder={placeholder}
                 value={data[key] || ""}
@@ -283,13 +283,13 @@ export default function BusinessData() {
       {/* Services & Pricing (generic, non-hotel business types) */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-semibold text-zinc-800">Services & Pricing</Label>
+          <Label className="text-sm font-semibold text-orbit-text/85">Services & Pricing</Label>
           <Button variant="outline" size="sm" onClick={addService} className="gap-1.5 h-8 text-xs">
             <Plus className="w-3.5 h-3.5" /> Add Service
           </Button>
         </div>
         {(!data.services || data.services.length === 0) ? (
-          <div className="border border-dashed border-zinc-300 rounded-xl p-6 text-center text-sm text-zinc-400">
+          <div className="border border-dashed border-black/[0.12] rounded-xl p-6 text-center text-sm text-orbit-text/40">
             No services added yet. Click "Add Service" to list what you offer and their price.
           </div>
         ) : (
@@ -303,7 +303,7 @@ export default function BusinessData() {
 
       {/* Business Hours */}
       <section className="space-y-4">
-        <Label className="text-sm font-semibold text-zinc-800">Business Hours</Label>
+        <Label className="text-sm font-semibold text-orbit-text/85">Business Hours</Label>
         <div className="space-y-1.5">
           <Input
             placeholder="e.g. Mon–Sat, 10:00 AM – 8:00 PM. Closed Sundays."
@@ -317,9 +317,9 @@ export default function BusinessData() {
 
       {/* Policies */}
       <section className="space-y-4">
-        <Label className="text-sm font-semibold text-zinc-800">Policies</Label>
+        <Label className="text-sm font-semibold text-orbit-text/85">Policies</Label>
         <div className="space-y-1.5">
-          <Label className="text-xs text-zinc-500">Cancellation Policy</Label>
+          <Label className="text-xs text-orbit-text/55">Cancellation Policy</Label>
           <Textarea
             placeholder="e.g. Free cancellation up to 24 hours before check-in. After that, 1 night charge applies."
             value={data.cancellation_policy || ""}
@@ -328,7 +328,7 @@ export default function BusinessData() {
           />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs text-zinc-500">Refund Policy</Label>
+          <Label className="text-xs text-orbit-text/55">Refund Policy</Label>
           <Textarea
             placeholder="e.g. Refunds processed within 5–7 business days to original payment method."
             value={data.refund_policy || ""}
@@ -340,9 +340,9 @@ export default function BusinessData() {
 
       {/* Offers */}
       <section className="space-y-4">
-        <Label className="text-sm font-semibold text-zinc-800">Active Offers & Special Notes</Label>
+        <Label className="text-sm font-semibold text-orbit-text/85">Active Offers & Special Notes</Label>
         <div className="space-y-1.5">
-          <Label className="text-xs text-zinc-500">Active Offer / Promotion</Label>
+          <Label className="text-xs text-orbit-text/55">Active Offer / Promotion</Label>
           <Input
             placeholder="e.g. 20% off on Deluxe rooms this weekend. Use code WEEKEND20."
             value={data.active_offer || ""}
@@ -350,7 +350,7 @@ export default function BusinessData() {
           />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs text-zinc-500">Seasonal Note</Label>
+          <Label className="text-xs text-orbit-text/55">Seasonal Note</Label>
           <Input
             placeholder="e.g. Diwali special package — complimentary breakfast included."
             value={data.seasonal_note || ""}
@@ -358,25 +358,25 @@ export default function BusinessData() {
           />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs text-zinc-500">Catalogue or brochure URL</Label>
+          <Label className="text-xs text-orbit-text/55">Catalogue or brochure URL</Label>
           <Input
             placeholder="https://…"
             value={data.catalogue_url || ""}
             onChange={(e) => setField("catalogue_url", e.target.value)}
           />
-          <p className="text-[11px] text-zinc-400">Stored for your AI to share. WhatsApp sending stays with the conversation engine.</p>
+          <p className="text-[11px] text-orbit-text/40">Stored for your AI to share. WhatsApp sending stays with the conversation engine.</p>
         </div>
       </section>
 
       {/* Last Updated */}
       {data.updated_at && (
-        <p className="text-xs text-zinc-400">
+        <p className="text-xs text-orbit-text/40">
           Last updated: {new Date(data.updated_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
         </p>
       )}
 
       {/* Save */}
-      <div className="pt-2 border-t border-zinc-100">
+      <div className="pt-2 border-t border-black/[0.05]">
         <Button onClick={save} disabled={saving} className="gap-2">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           {saving ? "Saving…" : "Save Live Data"}

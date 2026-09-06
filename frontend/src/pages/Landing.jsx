@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/Reveal";
+import { VerticalShowcase } from "@/components/landing/VerticalShowcase";
 import { HeroStage } from "@/components/landing/HeroStage";
 import { VideoLayer } from "@/components/landing/VideoLayer";
 import { LANDING_MEDIA } from "@/components/landing/media";
@@ -43,20 +44,6 @@ const STEPS = [
    "Included. Forever."],
 ];
 
-const TEAM = [
-  { initial: "R", name: "Riya", role: "AI Reservation Assistant", vertical: "Hotels",
-    quote: "A Deluxe King is free on Saturday at ₹14,500 plus GST. Shall I hold it?",
-    caps: ["Check live availability", "Take a booking", "Answer amenities", "Send confirmation"] },
-  { initial: "A", name: "Aarav", role: "AI Booking & Order Assistant", vertical: "Restaurants",
-    quote: "Table for four at 8pm is open. Any preference — indoor or terrace?",
-    caps: ["Table reservations", "Take orders", "Today's specials", "Timings & directions"] },
-  { initial: "A", name: "Ananya", role: "AI Appointment Assistant", vertical: "Clinics",
-    quote: "Dr. Sharma has 4:30pm free on Thursday. Shall I book that for you?",
-    caps: ["Book appointments", "Send reminders", "Doctor availability", "Patient queries"] },
-  { initial: "K", name: "Kabir", role: "AI Property Advisor", vertical: "Real estate",
-    quote: "That 3BHK is ₹1.4 Cr. Would you like a site visit this weekend?",
-    caps: ["Capture leads", "Property details", "Schedule site visits", "Qualify buyers"] },
-];
 
 // An illustrative day, labelled as such — built from the kinds of calls ORBIT
 // handles, not from a customer's real logs (AGENT.md rule 7).
@@ -135,9 +122,6 @@ const H2 = ({ children, onDark = false, className = "" }) => (
 );
 
 export default function Landing() {
-  // The nav sits transparent on the dark hero, then turns to paper once the
-  // light body is behind it — otherwise cream-on-white text disappears.
-  const [pastHero, setPastHero] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -160,58 +144,38 @@ export default function Landing() {
   }, []);
 
   useEffect(() => {
-    const onScroll = () => setPastHero(window.scrollY > window.innerHeight - 140);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
   }, [menuOpen]);
 
-  const navSolid = pastHero || menuOpen;
-
   return (
     <ConversationProvider>
       <div className="min-h-screen overflow-x-hidden bg-orbit-paper text-orbit-text antialiased">
-        {/* NAV */}
+        {/* NAV
+            Solid white from the first pixel. It used to start transparent over
+            the dark hero, which put a cream logo on a moving video — the name
+            was the least readable thing on the page. Vapi's bar is solid for
+            exactly this reason: the brand should never have to compete with
+            whatever is playing behind it. */}
         <header className="fixed inset-x-0 top-0 z-50">
-          <div
-            className={`transition-colors duration-300 ${
-              navSolid
-                ? "border-b border-black/[0.07] bg-white/85 backdrop-blur-2xl"
-                : "border-b border-transparent"
-            }`}
-          >
+          <div className="border-b border-black/[0.07] bg-white/90 backdrop-blur-2xl">
             <nav className="mx-auto flex h-[68px] max-w-7xl items-center justify-between px-6 lg:px-10">
               <Link
                 to="/"
-                className={`flex items-center gap-2.5 transition-colors ${
-                  navSolid ? "text-orbit-text" : "text-orbit-cream"
-                }`}
+                className="flex items-center gap-2.5 text-orbit-text"
                 data-testid="nav-logo"
               >
-                <OrbitLogo className="h-[26px] w-[26px]" title="ORBIT" />
-                <span className="font-display text-lg font-semibold tracking-[-0.02em]">ORBIT</span>
+                <OrbitLogo className="h-[34px] w-[34px]" title="ORBIT" />
+                <span className="font-display text-[26px] font-bold leading-none tracking-[-0.045em]">
+                  ORBIT
+                </span>
               </Link>
 
-              <div
-                className={`hidden items-center gap-9 text-[15px] transition-colors md:flex ${
-                  navSolid ? "text-orbit-text/60" : "text-orbit-cream/55"
-                }`}
-              >
+              <div className="hidden items-center gap-9 text-[15px] text-orbit-text/65 md:flex">
                 {NAV_LINKS.map(([label, href]) => (
-                  <a
-                    key={href}
-                    href={href}
-                    className={`transition-colors ${
-                      navSolid ? "hover:text-orbit-text" : "hover:text-orbit-cream"
-                    }`}
-                  >
+                  <a key={href} href={href} className="transition-colors hover:text-orbit-text">
                     {label}
                   </a>
                 ))}
@@ -221,23 +185,13 @@ export default function Landing() {
                 <Link to="/login" data-testid="nav-signin" className="hidden sm:block">
                   <Button
                     variant="ghost"
-                    className={`h-9 rounded-full px-4 text-sm ${
-                      navSolid
-                        ? "text-orbit-text/70 hover:bg-black/5 hover:text-orbit-text"
-                        : "text-orbit-cream/70 hover:bg-white/10 hover:text-orbit-cream"
-                    }`}
+                    className="h-9 rounded-full px-4 text-sm text-orbit-text/70 hover:bg-black/5 hover:text-orbit-text"
                   >
                     Sign in
                   </Button>
                 </Link>
                 <Link to="/register" data-testid="nav-getstarted">
-                  <Button
-                    className={`h-9 rounded-full px-5 text-sm font-medium ${
-                      navSolid
-                        ? "bg-orbit-text text-white hover:bg-orbit-text/85"
-                        : "bg-orbit-cream text-orbit-ink hover:bg-white"
-                    }`}
-                  >
+                  <Button className="h-9 rounded-full bg-orbit-text px-5 text-sm font-medium text-white hover:bg-orbit-text/85">
                     Get started
                   </Button>
                 </Link>
@@ -246,11 +200,7 @@ export default function Landing() {
                   onClick={() => setMenuOpen((v) => !v)}
                   aria-label={menuOpen ? "Close menu" : "Open menu"}
                   aria-expanded={menuOpen}
-                  className={`grid h-9 w-9 place-items-center rounded-full transition-colors md:hidden ${
-                    navSolid
-                      ? "text-orbit-text/70 hover:bg-black/5"
-                      : "text-orbit-cream/70 hover:bg-white/10"
-                  }`}
+                  className="grid h-9 w-9 place-items-center rounded-full text-orbit-text/70 transition-colors hover:bg-black/5 md:hidden"
                 >
                   {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                 </button>
@@ -282,7 +232,9 @@ export default function Landing() {
         </header>
 
         {/* ── DARK BAND 1 ── */}
-        <HeroStage />
+        <div className="pt-[68px]">
+          <HeroStage />
+        </div>
 
         <section className="border-b border-black/[0.06] bg-orbit-sand py-5">
           <p className="mx-auto max-w-7xl px-6 text-center text-[12px] uppercase tracking-[0.18em] text-orbit-text/40 lg:px-10">
@@ -291,7 +243,7 @@ export default function Landing() {
         </section>
 
         {/* HOW — the differentiator */}
-        <section id="how" className="bg-orbit-paper py-24 lg:py-28">
+        <section id="how" className="bg-orbit-paper py-20 lg:py-24">
           <div className="mx-auto grid max-w-7xl gap-16 px-6 lg:grid-cols-12 lg:px-10">
             <div className="lg:col-span-5">
               <div className="lg:sticky lg:top-28">
@@ -322,7 +274,7 @@ export default function Landing() {
             <div className="lg:col-span-7">
               <div className="border-l border-black/[0.08] pl-9">
                 {STEPS.map(([num, title, desc, note], i) => (
-                  <Reveal delay={i * 0.06} key={num}>
+                  <Reveal delay={i * 0.04} key={num}>
                     <div className="relative pb-10 last:pb-0">
                       <div className="absolute -left-[49px] grid h-9 w-9 place-items-center rounded-full bg-orbit-text text-[12px] font-semibold text-white">
                         {num}
@@ -345,7 +297,7 @@ export default function Landing() {
         </section>
 
         {/* TEAM */}
-        <section id="team" className="border-y border-black/[0.06] bg-orbit-sand py-24 lg:py-28">
+        <section id="team" className="border-y border-black/[0.06] bg-orbit-sand py-20 lg:py-24">
           <div className="mx-auto max-w-7xl px-6 lg:px-10">
             <Reveal>
               <div className="max-w-3xl">
@@ -359,56 +311,14 @@ export default function Landing() {
               </div>
             </Reveal>
 
-            <div className="mt-14 grid gap-4 lg:grid-cols-2">
-              {TEAM.map((m, i) => (
-                <Reveal delay={i * 0.06} key={m.name}>
-                  <div className="h-full rounded-[26px] border border-black/[0.07] bg-white p-8 shadow-[0_4px_24px_rgba(20,20,26,0.05)]">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="grid h-14 w-14 place-items-center rounded-full bg-orbit-text font-display text-xl font-semibold text-white">
-                          {m.initial}
-                        </div>
-                        <div>
-                          <div className="font-display text-[22px] font-semibold tracking-tight">
-                            {m.name}
-                          </div>
-                          <div className="text-[14px] text-orbit-goldink">{m.role}</div>
-                        </div>
-                      </div>
-                      <span className="shrink-0 rounded-full border border-black/[0.09] px-3 py-1 text-[11px] uppercase tracking-[0.13em] text-orbit-text/45">
-                        {m.vertical}
-                      </span>
-                    </div>
-
-                    <div className="mt-6 rounded-2xl bg-orbit-sand px-5 py-4 text-[15px] leading-snug text-orbit-text/80">
-                      &ldquo;{m.quote}&rdquo;
-                    </div>
-
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      {m.caps.map((c) => (
-                        <span
-                          key={c}
-                          className="rounded-lg bg-orbit-text/[0.05] px-3 py-1.5 text-[13px] text-orbit-text/65"
-                        >
-                          {c}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="mt-5 flex items-center gap-5 border-t border-black/[0.07] pt-4 text-[13px] text-orbit-text/45">
-                      <span>Phone</span>
-                      <span>WhatsApp</span>
-                      <span>Hindi + English</span>
-                    </div>
-                  </div>
-                </Reveal>
-              ))}
+            <div className="mt-12">
+              <VerticalShowcase />
             </div>
           </div>
         </section>
 
         {/* ── DARK BAND 2: one ordinary day ── */}
-        <section className="relative overflow-hidden bg-orbit-ink py-24 lg:py-28">
+        <section className="relative overflow-hidden bg-orbit-ink py-20 lg:py-24">
           <div aria-hidden="true" className="absolute inset-0">
             <div className="animate-orbit-drift-slow absolute -right-[12%] top-[10%] h-[700px] w-[700px] rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.16),transparent_62%)] blur-3xl" />
             <div className="grain absolute inset-0" />
@@ -430,7 +340,7 @@ export default function Landing() {
 
             <div className="mt-14 space-y-3">
               {DAY.map(([time, headline, moment, outcome, good], i) => (
-                <Reveal delay={i * 0.05} key={time}>
+                <Reveal delay={i * 0.035} key={time}>
                   <div className="grid items-center gap-5 rounded-2xl border border-white/[0.09] bg-white/[0.04] px-6 py-5 md:grid-cols-12">
                     <div className="md:col-span-2">
                       <div className="font-display text-[26px] font-semibold text-orbit-cream">
@@ -463,7 +373,7 @@ export default function Landing() {
         </section>
 
         {/* KNOWS — the tool call */}
-        <section className="bg-orbit-paper py-24 lg:py-28">
+        <section className="bg-orbit-paper py-20 lg:py-24">
           <div className="mx-auto grid max-w-7xl gap-14 px-6 lg:grid-cols-12 lg:gap-20 lg:px-10">
             <div className="lg:col-span-5">
               <Reveal>
@@ -528,7 +438,7 @@ export default function Landing() {
         </section>
 
         {/* DASHBOARD */}
-        <section className="border-y border-black/[0.06] bg-orbit-sand py-24 lg:py-28">
+        <section className="border-y border-black/[0.06] bg-orbit-sand py-20 lg:py-24">
           <div className="mx-auto max-w-7xl px-6 lg:px-10">
             <Reveal>
               <div className="max-w-3xl">
@@ -624,7 +534,7 @@ export default function Landing() {
         </section>
 
         {/* CHANNELS */}
-        <section id="channels" className="bg-orbit-paper py-24 lg:py-28">
+        <section id="channels" className="bg-orbit-paper py-20 lg:py-24">
           <div className="mx-auto max-w-7xl px-6 lg:px-10">
             <Reveal>
               <div className="max-w-3xl">
@@ -696,7 +606,7 @@ export default function Landing() {
         </section>
 
         {/* INCLUDED */}
-        <section className="border-y border-black/[0.06] bg-orbit-sand py-24 lg:py-28">
+        <section className="border-y border-black/[0.06] bg-orbit-sand py-20 lg:py-24">
           <div className="mx-auto grid max-w-7xl gap-14 px-6 lg:grid-cols-12 lg:px-10">
             <div className="lg:col-span-5">
               <Reveal>
@@ -711,7 +621,7 @@ export default function Landing() {
 
             <div className="grid gap-3 sm:grid-cols-2 lg:col-span-7">
               {INCLUDED.map(([title, desc], i) => (
-                <Reveal delay={i * 0.05} key={title}>
+                <Reveal delay={i * 0.035} key={title}>
                   <div className="h-full rounded-2xl border border-black/[0.07] bg-white p-6">
                     <div className="flex items-start gap-3">
                       <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-orbit-live text-white">
@@ -732,7 +642,7 @@ export default function Landing() {
         </section>
 
         {/* SECURITY */}
-        <section id="security" className="bg-orbit-paper py-24 lg:py-28">
+        <section id="security" className="bg-orbit-paper py-20 lg:py-24">
           <div className="mx-auto max-w-7xl px-6 lg:px-10">
             <Reveal>
               <div className="max-w-3xl">
@@ -759,7 +669,7 @@ export default function Landing() {
         </section>
 
         {/* FAQ */}
-        <section className="border-t border-black/[0.06] bg-orbit-paper py-24 lg:py-28">
+        <section className="border-t border-black/[0.06] bg-orbit-paper py-20 lg:py-24">
           <div className="mx-auto grid max-w-7xl gap-14 px-6 lg:grid-cols-12 lg:px-10">
             <div className="lg:col-span-4">
               <Reveal>
@@ -783,7 +693,7 @@ export default function Landing() {
         </section>
 
         {/* ── DARK BAND 3: CTA ── */}
-        <section className="relative overflow-hidden bg-orbit-ink py-28 lg:py-32">
+        <section className="relative overflow-hidden bg-orbit-ink py-24 lg:py-28">
           <div aria-hidden="true" className="absolute inset-0">
             <VideoLayer
               media={LANDING_MEDIA.cta}

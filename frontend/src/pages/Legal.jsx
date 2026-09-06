@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { OrbitLogo } from "@/components/OrbitLogo";
+import { Orbit } from "lucide-react";
 
 const PAGES = {
   terms: {
@@ -46,33 +46,33 @@ const PAGES = {
 export default function Legal({ page }) {
   const doc = PAGES[page] || PAGES.terms;
   return (
-    <div className="min-h-screen bg-white text-zinc-900" data-testid={doc.testid}>
+    <div className="min-h-screen bg-white text-orbit-text" data-testid={doc.testid}>
       <header className="border-b border-black/5">
         <nav className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2.5">
-            <OrbitLogo className="w-7 h-7 text-zinc-900" />
+            <div className="w-8 h-8 rounded-xl bg-orbit-text text-white grid place-items-center"><Orbit className="w-4.5 h-4.5" strokeWidth={1.6} /></div>
             <span className="font-display font-semibold">ORBIT</span>
           </Link>
-          <Link to="/login" className="text-sm text-zinc-500 hover:text-zinc-900">Sign in</Link>
+          <Link to="/login" className="text-sm text-orbit-text/55 hover:text-orbit-text">Sign in</Link>
         </nav>
       </header>
       <main className="max-w-3xl mx-auto px-6 py-14">
         <h1 className="font-display text-4xl font-semibold tracking-tight">{doc.title}</h1>
-        <p className="mt-3 text-sm text-zinc-500">Effective for the ORBIT managed AI-employee service.</p>
+        <p className="mt-3 text-sm text-orbit-text/55">Effective for the ORBIT managed AI-employee service.</p>
         <div className="mt-10 space-y-8">
           {doc.sections.map(([h, p]) => (
             <section key={h}>
               <h2 className="font-display text-lg font-semibold">{h}</h2>
-              <p className="mt-2 text-sm text-zinc-600 leading-relaxed">{p}</p>
+              <p className="mt-2 text-sm text-orbit-text/65 leading-relaxed">{p}</p>
             </section>
           ))}
         </div>
-        <p className="mt-12 text-xs text-zinc-400">
-          <Link to="/terms" className="hover:text-zinc-700">Terms</Link>
+        <p className="mt-12 text-xs text-orbit-text/40">
+          <Link to="/terms" className="hover:text-orbit-text/75">Terms</Link>
           {" · "}
-          <Link to="/privacy" className="hover:text-zinc-700">Privacy</Link>
+          <Link to="/privacy" className="hover:text-orbit-text/75">Privacy</Link>
           {" · "}
-          <Link to="/ai-disclosure" className="hover:text-zinc-700">AI disclosure</Link>
+          <Link to="/ai-disclosure" className="hover:text-orbit-text/75">AI disclosure</Link>
         </p>
       </main>
     </div>
