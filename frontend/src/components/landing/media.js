@@ -38,7 +38,13 @@ export const LANDING_MEDIA = {
     // The poster paints instantly while the video downloads, so the hero is
     // never a blank rectangle on a slow connection.
     poster: "/hero-poster.jpg",
-    opacity: 0.42,
+    // Full opacity — the video IS the hero. Legibility for the headline comes
+    // from HeroBackdrop's directional scrim + a text-shadow on the copy, not
+    // from dimming the footage itself. This used to sit at 0.42, which combined
+    // with the scrim to make the video look like a grey fog rather than a
+    // clean, glass-like background (the exact complaint: "visibility bahut kam
+    // hai, clean HD dikhna chahiye, glass jaisa, Vapi jaisa").
+    opacity: 1,
   },
 
   /**

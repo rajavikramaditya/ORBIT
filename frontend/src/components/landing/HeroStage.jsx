@@ -58,13 +58,13 @@ export function HeroStage() {
                 transition={{ duration: 0.5, ease: EASE }}
               >
                 <h1
-                  className="font-display font-semibold leading-[0.94] tracking-[-0.035em] text-white"
+                  className="font-display font-semibold leading-[0.94] tracking-[-0.035em] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.55)]"
                   style={{ fontSize: "clamp(2.5rem,4.6vw,4rem)" }}
                 >
                   You&rsquo;re talking to{" "}
                   <span className="text-orbit-gold">{scenario.persona}</span>.
                 </h1>
-                <p className="mt-6 max-w-md text-[17px] leading-relaxed text-white/70">
+                <p className="mt-6 max-w-md text-[17px] leading-relaxed text-white/70 [text-shadow:0_1px_16px_rgba(0,0,0,0.5)]">
                   {scenario.tagline} Ask anything a real customer would ask — she answers the way
                   she would on your phone line.
                 </p>
@@ -83,7 +83,7 @@ export function HeroStage() {
                 </div>
 
                 <h1
-                  className="font-display font-semibold leading-[0.92] tracking-[-0.04em] text-white"
+                  className="font-display font-semibold leading-[0.92] tracking-[-0.04em] text-white [text-shadow:0_2px_28px_rgba(0,0,0,0.55)]"
                   style={{ fontSize: "clamp(2.8rem,5.2vw,4.7rem)" }}
                 >
                   Every call
@@ -93,7 +93,7 @@ export function HeroStage() {
                   Every time.
                 </h1>
 
-                <p className="mt-7 max-w-md text-[17px] leading-relaxed text-white/70">
+                <p className="mt-7 max-w-md text-[17px] leading-relaxed text-white/70 [text-shadow:0_1px_16px_rgba(0,0,0,0.5)]">
                   Tell us how your business runs. Our team builds you an AI employee that knows it
                   by heart — then answers every phone call and WhatsApp, day and night.
                 </p>
@@ -149,23 +149,25 @@ export function HeroStage() {
 function HeroBackdrop({ inCall }) {
   return (
     <div aria-hidden="true" className="absolute inset-0 bg-orbit-ink">
-      {/* The video plays at FULL opacity.
+      {/* The video plays at FULL opacity — see media.js. It used to be rendered
+       * at 0.42 opacity AND covered by a heavy scrim, double-dimming the same
+       * footage. That combination is what made it look like a grey fog instead
+       * of clean HD footage.
        *
-       * It used to sit at 0.42 under four blurred colour blooms, a grain
-       * texture and a radial vignette — five translucent layers stacked on one
-       * piece of footage. The result was neither a video nor a clean dark hero,
-       * just a grey fog, and the headline on top inherited it.
-       *
-       * One video, one directional scrim. Text side dark enough to read on,
-       * picture side left alone. */}
+       * One video, one MUCH lighter directional scrim. Legibility for the copy
+       * now leans on a text-shadow (see HeroStage's headline/paragraph) instead
+       * of on darkening the picture — so the footage itself stays clean and
+       * glass-like everywhere, including behind the conversation card on the
+       * right, which used to sit under the darkest part of the old gradient. */}
       <VideoLayer media={HERO_MEDIA} className="absolute inset-0 h-full w-full object-cover" />
 
-      {/* Legibility scrim: heavy under the copy on the left, clearing to almost
-          nothing on the right so the footage actually shows. */}
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,11,0.94)_0%,rgba(8,8,11,0.88)_32%,rgba(8,8,11,0.55)_62%,rgba(8,8,11,0.28)_100%)]" />
-      {/* Seats the section against the nav above and the band below. */}
-      <div className="absolute inset-x-0 top-0 h-32 bg-[linear-gradient(180deg,rgba(8,8,11,0.85),transparent)]" />
-      <div className="absolute inset-x-0 bottom-0 h-40 bg-[linear-gradient(0deg,rgba(8,8,11,0.9),transparent)]" />
+      {/* Legibility scrim: just enough under the copy on the far left, clearing
+          to almost nothing by the time it reaches the conversation card. */}
+      <div className="absolute inset-0 bg-[linear-gradient(100deg,rgba(8,8,11,0.72)_0%,rgba(8,8,11,0.46)_24%,rgba(8,8,11,0.18)_42%,rgba(8,8,11,0.05)_58%,rgba(8,8,11,0)_100%)]" />
+      {/* Seats the section against the nav above and the band below — lightened
+          so they no longer wash out the footage top and bottom. */}
+      <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(8,8,11,0.42),transparent)]" />
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-[linear-gradient(0deg,rgba(8,8,11,0.48),transparent)]" />
 
       {/* One warm bloom, low and behind the card — brand warmth, not fog. */}
       <div className="animate-orbit-drift-slow absolute -right-[8%] top-[6%] h-[640px] w-[640px] rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.20),transparent_66%)] blur-3xl" />

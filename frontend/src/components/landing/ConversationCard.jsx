@@ -165,8 +165,13 @@ export function ConversationCard({
   return (
     <motion.div
       layout
-      className="relative rounded-[28px] border border-white/12 bg-white/[0.055] p-5 backdrop-blur-2xl"
-      style={{ boxShadow: "0 40px 120px rgba(0,0,0,0.6)" }}
+      // Real glass, not fog: `backdrop-blur-2xl` (40px) turned the video behind
+      // this card into a grey smear — the single biggest reason it looked
+      // "stuck like a photo" and dead instead of like footage playing behind a
+      // pane of glass, per Vapi's hero. A much lighter blur plus saturation
+      // keeps the card readable while the footage stays recognisably HD behind it.
+      className="relative rounded-[28px] border border-white/[0.14] bg-white/[0.04] p-5 backdrop-blur-md [backdrop-filter:blur(14px)_saturate(150%)] [-webkit-backdrop-filter:blur(14px)_saturate(150%)]"
+      style={{ boxShadow: "0 30px 90px rgba(0,0,0,0.45)" }}
     >
       {/* A slow warm breath behind the card — the difference between "a screenshot
           of a product" and "a product that is running". */}
