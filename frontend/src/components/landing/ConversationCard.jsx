@@ -165,12 +165,19 @@ export function ConversationCard({
   return (
     <motion.div
       layout
-      className="relative rounded-[28px] border border-white/20 bg-black/25 p-5 backdrop-blur-md shadow-[0_25px_60px_rgba(0,0,0,0.35)]"
+      className="relative rounded-[28px] border border-white/12 bg-white/[0.055] p-5 backdrop-blur-2xl"
+      style={{ boxShadow: "0 40px 120px rgba(0,0,0,0.6)" }}
     >
+      {/* A slow warm breath behind the card — the difference between "a screenshot
+          of a product" and "a product that is running". */}
+      <div
+        aria-hidden="true"
+        className="animate-orbit-breathe pointer-events-none absolute -inset-8 -z-10 rounded-[40px] bg-[radial-gradient(circle,rgba(228,184,113,0.28),transparent_68%)] blur-2xl"
+      />
       {/* Header — who is speaking, and the live signal */}
       <div className="flex items-center justify-between border-b border-white/10 pb-4">
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-full bg-orbit-gold font-display font-semibold text-orbit-ink shadow-sm">
+          <div className="grid h-10 w-10 place-items-center rounded-full bg-orbit-gold font-display font-semibold text-orbit-ink">
             {persona.charAt(0)}
           </div>
           <div>
@@ -185,7 +192,7 @@ export function ConversationCard({
                   {connecting ? "Connecting…" : `On a call · ${formatDuration(seconds)}`}
                 </>
               ) : (
-                <span className="text-white/60">Sample conversation</span>
+                <span className="text-white/45">Sample conversation</span>
               )}
             </div>
           </div>
@@ -212,8 +219,8 @@ export function ConversationCard({
               transition={{ duration: 0.34, ease: [0.16, 1, 0.3, 1] }}
               className={
                 turn.role === "user"
-                  ? "ml-auto w-fit max-w-[75%] rounded-2xl rounded-br-md border border-white/15 bg-white/15 px-4 py-2.5 text-[14px] leading-snug text-white shadow-sm backdrop-blur-sm"
-                  : "w-fit max-w-[88%] rounded-2xl rounded-bl-md border border-white/20 bg-white/90 px-4 py-3 text-[14px] leading-snug text-orbit-ink shadow-md backdrop-blur-md"
+                  ? "ml-auto w-fit max-w-[75%] rounded-2xl rounded-br-md bg-white/[0.13] px-4 py-2.5 text-[14px] leading-snug text-white/85"
+                  : "w-fit max-w-[88%] rounded-2xl rounded-bl-md bg-white px-4 py-3 text-[14px] leading-snug text-orbit-ink"
               }
             >
               {turn.text}
@@ -229,11 +236,11 @@ export function ConversationCard({
           ? [["Reading", "Your business data"], ["Action", "On confirmation"], ["Channel", "Browser"]]
           : sample.facts
         ).map(([label, value]) => (
-          <div key={label} className="rounded-xl border border-white/10 bg-white/[0.08] px-3 py-2.5 backdrop-blur-sm">
-            <div className="text-[10px] uppercase tracking-[0.14em] text-white/60">
+          <div key={label} className="rounded-xl bg-white/[0.05] px-3 py-2.5">
+            <div className="text-[10px] uppercase tracking-[0.14em] text-white/45">
               {label}
             </div>
-            <div className="mt-0.5 text-[13px] font-medium text-white">{value}</div>
+            <div className="mt-0.5 text-[13px] text-white">{value}</div>
           </div>
         ))}
       </div>

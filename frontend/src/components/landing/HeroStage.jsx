@@ -58,13 +58,13 @@ export function HeroStage() {
                 transition={{ duration: 0.5, ease: EASE }}
               >
                 <h1
-                  className="font-display font-semibold leading-[0.94] tracking-[-0.035em] text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]"
+                  className="font-display font-semibold leading-[0.94] tracking-[-0.035em] text-white"
                   style={{ fontSize: "clamp(2.5rem,4.6vw,4rem)" }}
                 >
                   You&rsquo;re talking to{" "}
                   <span className="text-orbit-gold">{scenario.persona}</span>.
                 </h1>
-                <p className="mt-6 max-w-md text-[17px] leading-relaxed text-white/85 drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]">
+                <p className="mt-6 max-w-md text-[17px] leading-relaxed text-white/70">
                   {scenario.tagline} Ask anything a real customer would ask — she answers the way
                   she would on your phone line.
                 </p>
@@ -77,13 +77,13 @@ export function HeroStage() {
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.5, ease: EASE }}
               >
-                <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-3.5 py-1.5 text-[13px] text-white/90 backdrop-blur-xl shadow-sm">
+                <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-[13px] text-white/75 backdrop-blur-xl">
                   <span className="h-1.5 w-1.5 rounded-full bg-orbit-live" />
                   Built and run for you — not a DIY builder
                 </div>
 
                 <h1
-                  className="font-display font-semibold leading-[0.92] tracking-[-0.04em] text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.85)]"
+                  className="font-display font-semibold leading-[0.92] tracking-[-0.04em] text-white"
                   style={{ fontSize: "clamp(2.8rem,5.2vw,4.7rem)" }}
                 >
                   Every call
@@ -93,7 +93,7 @@ export function HeroStage() {
                   Every time.
                 </h1>
 
-                <p className="mt-7 max-w-md text-[17px] leading-relaxed text-white/85 drop-shadow-[0_1px_8px_rgba(0,0,0,0.75)]">
+                <p className="mt-7 max-w-md text-[17px] leading-relaxed text-white/70">
                   Tell us how your business runs. Our team builds you an AI employee that knows it
                   by heart — then answers every phone call and WhatsApp, day and night.
                 </p>
@@ -149,20 +149,30 @@ export function HeroStage() {
 function HeroBackdrop({ inCall }) {
   return (
     <div aria-hidden="true" className="absolute inset-0 bg-orbit-ink">
-      {/* Full-opacity background video */}
+      {/* The video plays at FULL opacity.
+       *
+       * It used to sit at 0.42 under four blurred colour blooms, a grain
+       * texture and a radial vignette — five translucent layers stacked on one
+       * piece of footage. The result was neither a video nor a clean dark hero,
+       * just a grey fog, and the headline on top inherited it.
+       *
+       * One video, one directional scrim. Text side dark enough to read on,
+       * picture side left alone. */}
       <VideoLayer media={HERO_MEDIA} className="absolute inset-0 h-full w-full object-cover" />
 
-      {/* Crystal-clear glass scrim: subtle darkening on the left for text contrast,
-          fully clear on the right so the video and the card stay vividly visible. */}
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,11,0.68)_0%,rgba(8,8,11,0.38)_40%,rgba(8,8,11,0.08)_70%,transparent_100%)]" />
+      {/* Legibility scrim: heavy under the copy on the left, clearing to almost
+          nothing on the right so the footage actually shows. */}
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,11,0.94)_0%,rgba(8,8,11,0.88)_32%,rgba(8,8,11,0.55)_62%,rgba(8,8,11,0.28)_100%)]" />
+      {/* Seats the section against the nav above and the band below. */}
+      <div className="absolute inset-x-0 top-0 h-32 bg-[linear-gradient(180deg,rgba(8,8,11,0.85),transparent)]" />
+      <div className="absolute inset-x-0 bottom-0 h-40 bg-[linear-gradient(0deg,rgba(8,8,11,0.9),transparent)]" />
 
-      {/* Soft edge fades to blend with header and next section */}
-      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-orbit-ink/75 via-orbit-ink/20 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-orbit-ink/80 via-orbit-ink/25 to-transparent" />
+      {/* One warm bloom, low and behind the card — brand warmth, not fog. */}
+      <div className="animate-orbit-drift-slow absolute -right-[8%] top-[6%] h-[640px] w-[640px] rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.20),transparent_66%)] blur-3xl" />
 
-      {/* During a live call the background gently dims so the transcript leads. */}
+      {/* During a live call the picture recedes so the transcript leads. */}
       <motion.div
-        animate={{ opacity: inCall ? 0.45 : 0 }}
+        animate={{ opacity: inCall ? 0.55 : 0 }}
         transition={{ duration: 1.2 }}
         className="absolute inset-0 bg-orbit-ink"
       />

@@ -38,7 +38,7 @@ export const LANDING_MEDIA = {
     // The poster paints instantly while the video downloads, so the hero is
     // never a blank rectangle on a slow connection.
     poster: "/hero-poster.jpg",
-    opacity: 1,
+    opacity: 0.42,
   },
 
   /**
