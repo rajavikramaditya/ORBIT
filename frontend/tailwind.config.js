@@ -34,15 +34,23 @@ module.exports = {
         // The page runs light with dark bands, so there are two text colours and
         // two golds: `gold` is a decorative fill that only works on dark, and
         // `goldink` is the readable-on-white version for label text.
+        // Literal hex on purpose: Tailwind v3 silently drops the /opacity
+        // modifier when a colour is a var(). text-orbit-cream/55 must work.
         orbit: {
           ink: '#08080B',
           surface: '#101015',
-          cream: '#F4F1EA',
+          // Was #F4F1EA. That warm cream sat over the hero video and every
+          // light section and read as a haze across the whole site — the
+          // "dhundhla" everyone could see but nobody could name. On dark
+          // surfaces the readable colour is simply white.
+          cream: '#FFFFFF',
           gold: '#E4B871',
           goldink: '#8A6A2F',
           paper: '#FFFFFF',
-          sand: '#F5F4F0',
-          text: '#14141A',
+          // Was #F5F4F0 (beige). Now a neutral grey so light bands separate
+          // from white without tinting the page.
+          sand: '#F6F6F7',
+          text: '#0B0B0F',
           live: '#2FA36B',
         },
       },
