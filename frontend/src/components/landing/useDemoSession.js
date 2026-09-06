@@ -180,9 +180,25 @@ export function useDemoSession() {
   }, [conversation]);
 
   // Stop a call if the visitor navigates away mid-conversation.
+  //
+  // This cleanup has to be defensive about what endSession() gives back. With no
+  // live call — the ordinary case, a visitor who never pressed the demo button —
+  // the SDK returns undefined rather than a promise. The previous version chained
+  // .catch onto that return value, and `?.` does NOT protect the second half of
+  // `endSession?.().catch?.()`: once the call happens, `.catch` is read on
+  // undefined and throws. Thrown from an unmount cleanup, React tore down the
+  // whole tree — so EVERY link off the landing page ("Sign in", "Get started")
+  // ended in a blank screen. One line, and it read as "the entire app is broken".
   useEffect(
     () => () => {
-      conversation.endSession?.().catch?.(() => {});
+      try {
+        const closing = conversation.endSession?.();
+        if (closing && typeof closing.catch === "function") {
+          closing.catch(() => {});
+        }
+      } catch {
+        /* nothing was open — nothing to close */
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
