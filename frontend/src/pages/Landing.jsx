@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import Lenis from "lenis";
 import {
-  ArrowRight, Check, Lock, ShieldCheck, CheckCheck, Menu, X,
+  ArrowRight, Check, Lock, ShieldCheck, CheckCheck, Menu, X, ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/Reveal";
@@ -28,19 +28,19 @@ import { ConversationProvider } from "@/components/landing/useDemoSession";
 
 const STEPS = [
   ["01", "We learn your business",
-   "A call with you, then we read everything — your rooms and rates, menu, services, timings, policies, the questions guests actually ask.",
+   "One call. We study your rooms, menu, services and policies.",
    "You send us what you have. We do the rest."],
   ["02", "We build your employee",
-   "Our team writes the personality, the knowledge and the rules. Not a template — built around how your business actually talks.",
+   "Personality, knowledge and rules — built for how you talk.",
    "Typically live in under a week."],
   ["03", "We connect your number",
-   "Your Indian phone number and WhatsApp are wired up by us. No API keys, no webhooks, nothing technical on your side.",
+   "Your number and WhatsApp, wired up by us. Nothing technical for you.",
    "Phone + WhatsApp, one employee."],
   ["04", "We test it with you",
-   "You listen to real test calls and tell us what to change. It only goes live when you say it sounds right.",
+   "You hear real test calls first. It goes live once you approve.",
    "Draft → Testing → Approved → Live."],
   ["05", "We keep improving it",
-   "Every month we review real conversations, fix what missed, and teach it what's new — a seasonal menu, a new tariff, a new service.",
+   "Every month we review calls and teach it what's new.",
    "Included. Forever."],
 ];
 
@@ -48,16 +48,11 @@ const STEPS = [
 // An illustrative day, labelled as such — built from the kinds of calls ORBIT
 // handles, not from a customer's real logs (AGENT.md rule 7).
 const DAY = [
-  ["02:14", "Nobody is at the desk", "“Hi, I'm landing at 6am — is early check-in possible?”",
-   "Answered. Early check-in noted on the booking.", true],
-  ["09:40", "Three calls at once", "Front desk is busy with a checkout queue.",
-   "All three answered. Two bookings, one enquiry logged as a lead.", false],
-  ["14:05", "A question your staff can't answer", "“Do you have a Jain menu for tomorrow's party of 20?”",
-   "Answered from your live menu. Owner pinged for the group booking.", true],
-  ["21:30", "WhatsApp, not a call", "“Booking confirm hua kya?”",
-   "Confirmation resent on WhatsApp in seconds.", true],
-  ["23:50", "After everyone has gone home", "A guest calls to cancel for tomorrow.",
-   "Cancellation captured. Room freed. You see it in the morning.", false],
+  ["02:14", "Nobody's at the desk", "Early check-in request — handled instantly.", true],
+  ["09:40", "Three calls at once", "All three answered — 2 booked, 1 lead.", false],
+  ["14:05", "A question staff can't answer", "Jain menu query — answered from your live menu.", true],
+  ["21:30", "WhatsApp, not a call", "Booking confirmed — resent in seconds.", true],
+  ["23:50", "After everyone's gone home", "Cancellation captured. Room freed by morning.", false],
 ];
 
 const INCLUDED = [
@@ -123,6 +118,11 @@ const H2 = ({ children, onDark = false, className = "" }) => (
 
 export default function Landing() {
   const [menuOpen, setMenuOpen] = useState(false);
+  // Collapsed by default: six full answers stacked open at once was the
+  // single heaviest block of text on the page — nobody running a business
+  // reads six paragraphs to find the one question they had. A tap now
+  // reveals just the answer they asked for.
+  const [openFaq, setOpenFaq] = useState(null);
 
   useEffect(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return undefined;
@@ -339,25 +339,22 @@ export default function Landing() {
             </Reveal>
 
             <div className="mt-14 space-y-3">
-              {DAY.map(([time, headline, moment, outcome, good], i) => (
+              {DAY.map(([time, headline, outcome, good], i) => (
                 <Reveal delay={i * 0.035} key={time}>
-                  <div className="grid items-center gap-5 rounded-2xl border border-white/[0.09] bg-white/[0.04] px-6 py-5 md:grid-cols-12">
-                    <div className="md:col-span-2">
+                  <div className="grid items-center gap-4 rounded-2xl border border-white/[0.09] bg-white/[0.04] px-6 py-5 sm:grid-cols-12">
+                    <div className="sm:col-span-4">
                       <div className="font-display text-[26px] font-semibold text-orbit-cream">
                         {time}
                       </div>
                       <div className="text-[13px] text-orbit-cream/40">{headline}</div>
                     </div>
-                    <div className="text-[15px] leading-snug text-orbit-cream/75 md:col-span-5">
-                      {moment}
-                    </div>
-                    <div className="flex items-start gap-2.5 md:col-span-5">
+                    <div className="flex items-start gap-2.5 sm:col-span-8">
                       <span
                         className={`mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full ${
                           good ? "bg-orbit-live" : "bg-orbit-gold"
                         }`}
                       />
-                      <span className="text-[15px] leading-snug text-orbit-cream/55">
+                      <span className="text-[15px] leading-snug text-orbit-cream/70">
                         {outcome}
                       </span>
                     </div>
@@ -384,9 +381,8 @@ export default function Landing() {
                   It knows.
                 </H2>
                 <p className="mt-6 text-[17px] leading-relaxed text-orbit-text/60">
-                  ORBIT connects to the systems you already run, so answers come from real data —
-                  today&rsquo;s availability, this week&rsquo;s menu, tomorrow&rsquo;s slots. Nothing
-                  connected yet? It says so, instead of inventing an answer.
+                  ORBIT connects to your systems, so answers come from real data — not guesses.
+                  Nothing connected yet? It says so.
                 </p>
                 <div className="mt-8 space-y-3">
                   {[
@@ -678,16 +674,46 @@ export default function Landing() {
               </Reveal>
             </div>
             <div className="divide-y divide-black/[0.08] border-y border-black/[0.08] lg:col-span-8">
-              {FAQ.map(([q, a], i) => (
-                <Reveal delay={i * 0.04} key={q}>
-                  <div className="py-6">
-                    <div className="font-display text-[19px] font-semibold tracking-tight">{q}</div>
-                    <p className="mt-2.5 max-w-2xl text-[16px] leading-relaxed text-orbit-text/60">
-                      {a}
-                    </p>
-                  </div>
-                </Reveal>
-              ))}
+              {FAQ.map(([q, a], i) => {
+                const open = openFaq === i;
+                return (
+                  <Reveal delay={i * 0.04} key={q}>
+                    <div className="py-5">
+                      <button
+                        type="button"
+                        onClick={() => setOpenFaq(open ? null : i)}
+                        aria-expanded={open}
+                        data-testid={`faq-question-${i}`}
+                        className="flex w-full items-center justify-between gap-6 text-left"
+                      >
+                        <span className="font-display text-[18px] font-semibold tracking-tight">
+                          {q}
+                        </span>
+                        <ChevronDown
+                          className={`h-4.5 w-4.5 shrink-0 text-orbit-text/40 transition-transform duration-300 ${
+                            open ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {open && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                            className="overflow-hidden"
+                          >
+                            <p className="max-w-2xl pb-1 pt-3 text-[15px] leading-relaxed text-orbit-text/60">
+                              {a}
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </Reveal>
+                );
+              })}
             </div>
           </div>
         </section>
