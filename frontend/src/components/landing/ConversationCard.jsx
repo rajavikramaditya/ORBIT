@@ -88,7 +88,7 @@ function TypingBubble() {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ duration: 0.22 }}
-      className="flex w-fit items-center gap-1.5 rounded-2xl rounded-bl-md bg-white px-4 py-3.5"
+      className="orbit-glow-border flex w-fit items-center gap-1.5 rounded-2xl rounded-bl-md bg-white px-4 py-3.5"
       aria-hidden="true"
     >
       {[0, 1, 2].map((i) => (
@@ -165,12 +165,12 @@ export function ConversationCard({
   return (
     <motion.div
       layout
-      // Real glass, not fog: `backdrop-blur-2xl` (40px) turned the video behind
-      // this card into a grey smear — the single biggest reason it looked
-      // "stuck like a photo" and dead instead of like footage playing behind a
-      // pane of glass, per Vapi's hero. A much lighter blur plus saturation
-      // keeps the card readable while the footage stays recognisably HD behind it.
-      className="relative rounded-[28px] border border-white/[0.14] bg-white/[0.04] p-5 backdrop-blur-md [backdrop-filter:blur(14px)_saturate(150%)] [-webkit-backdrop-filter:blur(14px)_saturate(150%)]"
+      // No blur at all now — even the light 14px blur softened the footage
+      // behind the card into a smear. The panel is just a hint of tint over
+      // the video, with a thin rotating gold ring (.orbit-glow-border) doing
+      // the work a frosted background used to: it reads as glass without
+      // ever touching what's visible through it.
+      className="orbit-glow-border relative rounded-[28px] bg-white/[0.025] p-5"
       style={{ boxShadow: "0 30px 90px rgba(0,0,0,0.45)" }}
     >
       {/* A slow warm breath behind the card — the difference between "a screenshot
@@ -224,8 +224,8 @@ export function ConversationCard({
               transition={{ duration: 0.34, ease: [0.16, 1, 0.3, 1] }}
               className={
                 turn.role === "user"
-                  ? "ml-auto w-fit max-w-[75%] rounded-2xl rounded-br-md bg-white/[0.13] px-4 py-2.5 text-[14px] leading-snug text-white/85"
-                  : "w-fit max-w-[88%] rounded-2xl rounded-bl-md bg-white px-4 py-3 text-[14px] leading-snug text-orbit-ink"
+                  ? "orbit-glow-border ml-auto w-fit max-w-[75%] rounded-2xl rounded-br-md bg-white/[0.13] px-4 py-2.5 text-[14px] leading-snug text-white/85"
+                  : "orbit-glow-border w-fit max-w-[88%] rounded-2xl rounded-bl-md bg-white px-4 py-3 text-[14px] leading-snug text-orbit-ink"
               }
             >
               {turn.text}

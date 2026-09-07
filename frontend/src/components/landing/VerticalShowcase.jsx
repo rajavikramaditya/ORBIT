@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Phone, MessageCircle, Languages, Check, BedDouble, UtensilsCrossed, Stethoscope, Building2,
 } from "lucide-react";
+import { TiltCard } from "./TiltCard";
 
 /**
  * "An employee built for your line of work", as something to watch.
@@ -176,9 +177,10 @@ export function VerticalShowcase() {
         })}
       </div>
 
-      <div className="mt-8 grid gap-5 lg:grid-cols-12">
+      <div className="mt-8 grid gap-5 lg:grid-cols-12 lg:items-stretch">
         {/* The call */}
-        <div className="relative overflow-hidden rounded-[26px] bg-orbit-ink p-6 sm:p-8 lg:col-span-7">
+        <TiltCard maxTilt={4} className="rounded-[26px] lg:col-span-7">
+        <div className="relative flex h-full flex-col overflow-hidden rounded-[26px] bg-orbit-ink p-6 sm:p-8">
           {/* A backdrop that changes with the tab — a huge, barely-there line
               icon for the business type plus a colour-tinted glow, crossfading
               on switch. Real photography would have fought the transcript
@@ -217,7 +219,7 @@ export function VerticalShowcase() {
             </span>
           </div>
 
-          <div className="relative min-h-[268px] space-y-3 py-6">
+          <div className="relative flex-1 space-y-3 py-6">
             <AnimatePresence initial={false} mode="popLayout">
               {active.turns.slice(0, shownCount).map((turn, i) => (
                 <motion.div
@@ -252,9 +254,11 @@ export function VerticalShowcase() {
             ))}
           </div>
         </div>
+        </TiltCard>
 
         {/* What made that answer possible */}
-        <div className="rounded-[26px] border border-black/[0.07] bg-white p-6 sm:p-8 lg:col-span-5">
+        <TiltCard maxTilt={4} className="rounded-[26px] lg:col-span-5">
+        <div className="flex h-full flex-col rounded-[26px] border border-black/[0.07] bg-white p-6 sm:p-8">
           <div className="text-[11px] uppercase tracking-[0.16em] text-orbit-goldink">
             What {active.name} can do
           </div>
@@ -292,11 +296,12 @@ export function VerticalShowcase() {
             </span>
           </div>
 
-          <p className="mt-6 text-[14px] leading-relaxed text-orbit-text/55">
+          <p className="mt-auto pt-6 text-[14px] leading-relaxed text-orbit-text/55">
             Not on this list? Tell us how your business answers its phone and we build the employee
             for it — the work is the same either way.
           </p>
         </div>
+        </TiltCard>
       </div>
     </div>
   );

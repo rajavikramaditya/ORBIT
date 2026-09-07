@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/Reveal";
 import { VerticalShowcase } from "@/components/landing/VerticalShowcase";
+import { TiltCard } from "@/components/landing/TiltCard";
 import { HeroStage } from "@/components/landing/HeroStage";
 import { VideoLayer } from "@/components/landing/VideoLayer";
 import { LANDING_MEDIA } from "@/components/landing/media";
@@ -38,14 +39,20 @@ const STEPS = [
 ];
 
 
-// An illustrative day, labelled as such — built from the kinds of calls ORBIT
-// handles, not from a customer's real logs (AGENT.md rule 7).
-const DAY = [
-  [PhoneIncoming, "02:14", "Nobody's at the desk", "Handled instantly", true],
-  [PhoneCall, "09:40", "Three calls at once", "2 booked, 1 lead", false],
-  [HelpCircle, "14:05", "Staff can't answer", "Answered from live menu", true],
-  [MessageCircle, "21:30", "Not a call — WhatsApp", "Confirmed in seconds", true],
-  [CalendarX, "23:50", "Everyone's gone home", "Room freed by morning", false],
+// Illustrative situations, labelled as such — built from the kinds of calls
+// ORBIT handles, not from a customer's real logs (AGENT.md rule 7).
+//
+// This used to be a "day in the life" timeline (02:14, 09:40 …) that asked a
+// visitor to reconstruct a story from five disconnected timestamps — even a
+// close read left the point unclear. A straight before/after per situation
+// needs no reconstruction: one side is the cost, the other is the fix, side
+// by side, in one glance.
+const WITHOUT_WITH = [
+  [PhoneIncoming, "A guest calls at 2am", "Rings out. No answer.", "Answered — room held instantly."],
+  [PhoneCall, "Three calls ring at once", "Two go to voicemail.", "All three answered — 2 booked."],
+  [HelpCircle, "A menu or policy question", "Staff says “let me check.”", "Answered from your live data."],
+  [MessageCircle, "A booking comes on WhatsApp", "Sits unread for hours.", "Confirmed back in seconds."],
+  [CalendarX, "A late-night cancellation", "Room sits empty next day.", "Freed and re-listed by morning."],
 ];
 
 const SECURITY = [
@@ -276,46 +283,72 @@ export default function Landing() {
             </div>
 
             <div className="lg:col-span-7">
-              <div className="grid gap-3 sm:grid-cols-2">
-                {STEPS.map(([Icon, num, title, blurb], i) => (
-                  <Reveal delay={i * 0.04} key={num}>
-                    <div className="relative h-full rounded-2xl border border-black/[0.07] bg-white p-6">
-                      <span className="absolute right-5 top-5 font-display text-[13px] font-semibold text-orbit-text/25">
-                        {num}
-                      </span>
-                      <span className="grid h-11 w-11 place-items-center rounded-2xl bg-orbit-text text-white">
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <div className="mt-4 font-display text-[17px] font-semibold tracking-tight">
-                        {title}
-                      </div>
-                      <p className="mt-1.5 text-[14px] leading-relaxed text-orbit-text/55">
-                        {blurb}
-                      </p>
-                    </div>
-                  </Reveal>
-                ))}
+              {/* A loose, floating cascade rather than a flat grid — each card
+                  sits slightly off the last and tilts toward the cursor, so
+                  the process reads as something with real depth to it, not a
+                  checklist. The gold rail behind them is the thread that
+                  says "one continuous process" even while the cards drift. */}
+              <div className="relative">
+                <div className="absolute left-6 top-2 bottom-2 hidden w-px bg-gradient-to-b from-orbit-gold/60 via-orbit-gold/15 to-transparent sm:block" />
+                <div className="space-y-5">
+                  {STEPS.map(([Icon, num, title, blurb], i) => (
+                    <Reveal delay={i * 0.05} key={num}>
+                      <TiltCard
+                        maxTilt={5}
+                        className={`rounded-2xl ${i % 2 === 1 ? "sm:ml-12" : ""}`}
+                      >
+                        <div className="flex items-start gap-5 rounded-2xl border border-black/[0.07] bg-white p-6 shadow-[0_18px_46px_rgba(20,20,26,0.07)]">
+                          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-orbit-text text-white">
+                            <Icon className="h-6 w-6" />
+                          </span>
+                          <div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="font-display text-[12.5px] font-semibold text-orbit-goldink">
+                                {num}
+                              </span>
+                              <div className="font-display text-[18px] font-semibold tracking-tight">
+                                {title}
+                              </div>
+                            </div>
+                            <p className="mt-1.5 text-[14.5px] leading-relaxed text-orbit-text/55">
+                              {blurb}
+                            </p>
+                          </div>
+                        </div>
+                      </TiltCard>
+                    </Reveal>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* TEAM */}
-        <section id="team" className="border-y border-black/[0.06] bg-orbit-sand py-20 lg:py-24">
-          <div className="mx-auto max-w-7xl px-6 lg:px-10">
+        {/* TEAM
+            HOW answers "what happens when we sign up." This section answers
+            a different question a visitor is silently asking: "is this built
+            for MY kind of business, or some generic one." The pale gold
+            bloom behind the showcase is there so the section reads as a
+            deliberate, filled panel rather than a card floating in empty
+            space — the exact "incomplete" feeling this section used to
+            leave on a full-width monitor. */}
+        <section id="team" className="relative overflow-hidden border-y border-black/[0.06] bg-orbit-sand py-24 lg:py-28">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+            <div className="absolute -left-[10%] top-[15%] h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.14),transparent_65%)] blur-3xl" />
+          </div>
+          <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
             <Reveal>
               <div className="max-w-3xl">
-                <Eyebrow>Your team</Eyebrow>
-                <H2 className="mt-5">An employee built for your line of work.</H2>
+                <Eyebrow>Built for your business</Eyebrow>
+                <H2 className="mt-5">Not a generic bot. Your line of work, specifically.</H2>
                 <p className="mt-6 text-[17px] leading-relaxed text-orbit-text/60">
-                  Every ORBIT employee is configured for one kind of business, then customised again
-                  for yours. These are the ones running today — if your business isn&rsquo;t here, we
-                  build one for it.
+                  Pick your business below and watch the same employee answer the way a hotel, a
+                  restaurant, a clinic or an agent actually needs to.
                 </p>
               </div>
             </Reveal>
 
-            <div className="mt-12">
+            <div className="mt-14">
               <VerticalShowcase />
             </div>
           </div>
@@ -331,49 +364,66 @@ export default function Landing() {
           <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
             <Reveal>
               <div className="max-w-3xl">
-                <Eyebrow onDark>One ordinary day</Eyebrow>
+                <Eyebrow onDark>Before / after</Eyebrow>
                 <H2 onDark className="mt-5">
-                  The calls you are losing right now.
+                  Every missed call has a cost.
                 </H2>
                 <p className="mt-6 text-[17px] leading-relaxed text-orbit-cream/55">
-                  Not a pitch — just a normal Tuesday at a 40-room property, and what ORBIT does
-                  with it.
+                  Five situations that come up at any hotel, any week. Same situation, two
+                  outcomes — one with ORBIT answering, one without.
                 </p>
               </div>
             </Reveal>
 
-            {/* A day-at-a-glance strip rather than a list to read top to
-                bottom — the time is the headline, everything else is a
-                glance. The connecting line is the "graph" cue: one employee,
-                on duty across the whole day. */}
-            <div className="relative mt-16">
-              <div className="absolute inset-x-0 top-[26px] hidden h-px bg-white/[0.09] sm:block" />
-              <div className="grid gap-3 sm:grid-cols-5">
-                {DAY.map(([Icon, time, headline, outcome, good], i) => (
-                  <Reveal delay={i * 0.045} key={time}>
-                    <div className="relative flex flex-col items-start gap-3 rounded-2xl border border-white/[0.09] bg-white/[0.04] p-5 sm:items-center sm:p-4 sm:text-center">
-                      <span
-                        className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${
-                          good ? "bg-orbit-live/20 text-orbit-live" : "bg-orbit-gold/20 text-orbit-gold"
-                        }`}
-                      >
+            <div className="mt-14 space-y-3">
+              {/* Column headers once, above the rows — repeating "Without /
+                  With" on every row would be the exact re-reading tax this
+                  section used to impose. */}
+              <div className="hidden gap-6 px-6 sm:grid sm:grid-cols-[240px_1fr_1fr]">
+                <span />
+                <span className="text-[11px] uppercase tracking-[0.16em] text-orbit-cream/30">
+                  Without ORBIT
+                </span>
+                <span className="text-[11px] uppercase tracking-[0.16em] text-orbit-live/60">
+                  With ORBIT
+                </span>
+              </div>
+              {WITHOUT_WITH.map(([Icon, scenario, without, withIt], i) => (
+                <Reveal delay={i * 0.05} key={scenario}>
+                  <div className="rounded-2xl border border-white/[0.09] bg-white/[0.04] p-5 sm:grid sm:grid-cols-[240px_1fr_1fr] sm:items-center sm:gap-6 sm:p-6">
+                    <div className="flex items-center gap-3">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/[0.08] text-orbit-cream/70">
                         <Icon className="h-4 w-4" />
                       </span>
-                      <div className="font-display text-[20px] font-semibold text-orbit-cream">
-                        {time}
+                      <span className="text-[14.5px] font-medium leading-snug text-orbit-cream/85">
+                        {scenario}
+                      </span>
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-0 sm:contents">
+                      <div className="rounded-xl bg-black/25 px-4 py-3 sm:bg-transparent sm:px-0 sm:py-0">
+                        <div className="text-[10px] uppercase tracking-[0.14em] text-orbit-cream/30 sm:hidden">
+                          Without ORBIT
+                        </div>
+                        <div className="mt-1 text-[13.5px] leading-snug text-orbit-cream/45 line-through decoration-orbit-cream/25 sm:mt-0">
+                          {without}
+                        </div>
                       </div>
-                      <div className="text-[12px] leading-snug text-orbit-cream/40">{headline}</div>
-                      <div className="text-[13px] font-medium leading-snug text-orbit-cream/75">
-                        {outcome}
+                      <div className="rounded-xl border border-orbit-live/20 bg-orbit-live/[0.1] px-4 py-3 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
+                        <div className="text-[10px] uppercase tracking-[0.14em] text-orbit-live/60 sm:hidden">
+                          With ORBIT
+                        </div>
+                        <div className="mt-1 text-[13.5px] font-medium leading-snug text-orbit-cream sm:mt-0">
+                          {withIt}
+                        </div>
                       </div>
                     </div>
-                  </Reveal>
-                ))}
-              </div>
+                  </div>
+                </Reveal>
+              ))}
             </div>
 
             <p className="mt-8 text-[13px] text-orbit-cream/35">
-              Illustrative day, built from the kinds of calls ORBIT handles.
+              Illustrative situations, built from the kinds of calls ORBIT handles.
             </p>
           </div>
         </section>
@@ -420,31 +470,38 @@ export default function Landing() {
 
             <div className="lg:col-span-7">
               <Reveal delay={0.08}>
-                <div className="rounded-[26px] border border-black/[0.07] bg-orbit-sand p-7">
-                  <div className="text-[12px] uppercase tracking-[0.16em] text-orbit-text/40">
-                    Live tool call · during a call
+                {/* No function-call syntax any more — check_availability(...)
+                    read as a debugger, not a demo, and needed a technical
+                    reader to make sense of it. A plain-English tag under the
+                    message that earned it says the same thing (it looked
+                    something up, it acted) without asking anyone to read
+                    code. */}
+                <TiltCard maxTilt={4} className="rounded-[26px]">
+                  <div className="rounded-[26px] border border-black/[0.07] bg-orbit-sand p-7">
+                    <div className="text-[12px] uppercase tracking-[0.16em] text-orbit-text/40">
+                      What happened on this call
+                    </div>
+                    <div className="mt-4 space-y-3">
+                      <div className="rounded-xl border border-black/[0.06] bg-white px-4 py-3 text-[14px]">
+                        <span className="text-orbit-text/40">Guest:</span> Do you have a sea-view
+                        room on the 14th?
+                      </div>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-orbit-gold/15 px-3 py-1.5 text-[12.5px] font-medium text-orbit-goldink">
+                        <Database className="h-3.5 w-3.5" /> Checked real-time room availability
+                      </span>
+                      <div className="rounded-xl bg-orbit-text px-4 py-3 text-[14px] text-white">
+                        Yes — two sea-view rooms are open on the 14th at ₹16,800 plus GST.
+                      </div>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-orbit-gold/15 px-3 py-1.5 text-[12.5px] font-medium text-orbit-goldink">
+                        <Zap className="h-3.5 w-3.5" /> Started the booking, right there in the call
+                      </span>
+                    </div>
+                    <div className="mt-5 flex items-center gap-2 border-t border-black/[0.08] pt-4 text-[13px] text-orbit-text/50">
+                      <span className="h-2 w-2 rounded-full bg-orbit-live" />
+                      Bookings and payments always wait for the guest&rsquo;s explicit yes.
+                    </div>
                   </div>
-                  <div className="mt-4 space-y-2.5">
-                    <div className="rounded-xl border border-black/[0.06] bg-white px-4 py-3 text-[14px]">
-                      <span className="text-orbit-text/40">Guest:</span> Do you have a sea-view room
-                      on the 14th?
-                    </div>
-                    <div className="rounded-xl border border-orbit-goldink/25 bg-orbit-gold/[0.12] px-4 py-3 font-mono text-[13px] text-orbit-goldink">
-                      check_availability(date: &quot;14 Mar&quot;, type: &quot;sea view&quot;) → 2
-                      rooms, ₹16,800
-                    </div>
-                    <div className="rounded-xl bg-orbit-text px-4 py-3 text-[14px] text-white">
-                      Yes — two sea-view rooms are open on the 14th at ₹16,800 plus GST.
-                    </div>
-                    <div className="rounded-xl border border-orbit-goldink/25 bg-orbit-gold/[0.12] px-4 py-3 font-mono text-[13px] text-orbit-goldink">
-                      create_booking(…) → awaiting guest confirmation
-                    </div>
-                  </div>
-                  <div className="mt-5 flex items-center gap-2 border-t border-black/[0.08] pt-4 text-[13px] text-orbit-text/50">
-                    <span className="h-2 w-2 rounded-full bg-orbit-live" />
-                    Bookings and payments always need an explicit confirmation.
-                  </div>
-                </div>
+                </TiltCard>
               </Reveal>
             </div>
           </div>
@@ -467,6 +524,7 @@ export default function Landing() {
             <Reveal delay={0.1}>
               <div className="relative mt-14">
                 <div className="absolute inset-x-16 -top-8 h-48 rounded-full bg-orbit-gold/50 blur-[100px]" />
+                <TiltCard maxTilt={3} className="rounded-[26px]">
                 <div className="relative rounded-[26px] border border-black/[0.08] bg-orbit-ink p-3 shadow-[0_40px_110px_rgba(20,20,26,0.3)]">
                   <div className="overflow-hidden rounded-[18px] border border-white/[0.08] bg-[#0B0B0F]">
                     {/* A screen recording of the real dashboard replaces the mock
@@ -541,6 +599,7 @@ export default function Landing() {
                     )}
                   </div>
                 </div>
+                </TiltCard>
               </div>
             </Reveal>
           </div>
@@ -558,6 +617,7 @@ export default function Landing() {
 
             <div className="mt-14 grid gap-4 lg:grid-cols-2">
               <Reveal>
+                <TiltCard maxTilt={4} className="h-full rounded-[26px]">
                 <div className="h-full rounded-[26px] border border-black/[0.07] bg-orbit-sand p-9">
                   <div className="flex items-center justify-between">
                     <h3 className="font-display text-2xl font-semibold tracking-tight">Phone</h3>
@@ -584,9 +644,11 @@ export default function Landing() {
                     </div>
                   </div>
                 </div>
+                </TiltCard>
               </Reveal>
 
               <Reveal delay={0.08}>
+                <TiltCard maxTilt={4} className="h-full rounded-[26px]">
                 <div className="h-full rounded-[26px] border border-black/[0.07] bg-orbit-sand p-9">
                   <div className="flex items-center justify-between">
                     <h3 className="font-display text-2xl font-semibold tracking-tight">WhatsApp</h3>
@@ -613,6 +675,7 @@ export default function Landing() {
                     </div>
                   </div>
                 </div>
+                </TiltCard>
               </Reveal>
             </div>
           </div>
@@ -630,15 +693,17 @@ export default function Landing() {
             <div className="mt-14 grid gap-4 md:grid-cols-3">
               {SECURITY.map(([Icon, title, desc], i) => (
                 <Reveal delay={i * 0.08} key={title}>
-                  <div className="h-full rounded-[22px] border border-black/[0.07] bg-orbit-sand p-8">
-                    <span className="grid h-11 w-11 place-items-center rounded-2xl bg-orbit-text text-white">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <h3 className="mt-6 font-display text-xl font-semibold tracking-tight">
-                      {title}
-                    </h3>
-                    <p className="mt-2.5 text-[15px] leading-relaxed text-orbit-text/55">{desc}</p>
-                  </div>
+                  <TiltCard maxTilt={5} className="h-full rounded-[22px]">
+                    <div className="h-full rounded-[22px] border border-black/[0.07] bg-orbit-sand p-8">
+                      <span className="grid h-11 w-11 place-items-center rounded-2xl bg-orbit-text text-white">
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <h3 className="mt-6 font-display text-xl font-semibold tracking-tight">
+                        {title}
+                      </h3>
+                      <p className="mt-2.5 text-[15px] leading-relaxed text-orbit-text/55">{desc}</p>
+                    </div>
+                  </TiltCard>
                 </Reveal>
               ))}
             </div>

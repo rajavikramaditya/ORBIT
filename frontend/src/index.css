@@ -138,10 +138,48 @@ body {
 .animate-orbit-drift { animation: orbit-drift 26s ease-in-out infinite; }
 .animate-orbit-drift-slow { animation: orbit-drift-slow 34s ease-in-out infinite; }
 
+/* A rotating hairline of gold light around a glass panel — used where the
+   panel itself has to stay clear (no blur) so the footage or content behind
+   it reads crisp, but the edge still needs to feel alive rather than a flat
+   static stroke. `border-radius: inherit` lets the same class ring the card
+   and, at a smaller scale, each message bubble inside it. */
+@keyframes orbit-ring-spin {
+    to { transform: rotate(360deg); }
+}
+.orbit-glow-border {
+    position: relative;
+    isolation: isolate;
+}
+.orbit-glow-border::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    padding: 1.5px;
+    background: conic-gradient(
+        from 0deg,
+        transparent 0%,
+        rgba(228, 184, 113, 1) 10%,
+        rgba(246, 226, 184, 0.55) 18%,
+        transparent 30%,
+        transparent 70%,
+        rgba(228, 184, 113, 0.65) 84%,
+        transparent 96%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    filter: drop-shadow(0 0 5px rgba(228, 184, 113, 0.5)) blur(0.3px);
+    animation: orbit-ring-spin 7s linear infinite;
+    pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .animate-orbit-drift,
     .animate-orbit-drift-slow,
     .animate-orbit-breathe,
+    .orbit-glow-border::before,
     .marquee-track {
         animation: none !important;
     }
