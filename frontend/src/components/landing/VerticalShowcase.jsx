@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Phone, MessageCircle, Languages, Check } from "lucide-react";
+import {
+  Phone, MessageCircle, Languages, Check, BedDouble, UtensilsCrossed, Stethoscope, Building2,
+} from "lucide-react";
 
 /**
  * "An employee built for your line of work", as something to watch.
@@ -36,6 +38,8 @@ export const VERTICALS = [
     caps: ["Checks live availability", "Takes the booking", "Answers amenities", "Sends confirmation"],
     reading: "Live availability",
     action: "Hold room",
+    icon: BedDouble,
+    glow: "rgba(228,184,113,0.24)",
   },
   {
     key: "restaurant",
@@ -52,6 +56,8 @@ export const VERTICALS = [
     caps: ["Table reservations", "Takes orders", "Today's specials", "Timings & directions"],
     reading: "Table availability",
     action: "Book table",
+    icon: UtensilsCrossed,
+    glow: "rgba(232,138,74,0.22)",
   },
   {
     key: "clinic",
@@ -68,6 +74,8 @@ export const VERTICALS = [
     caps: ["Books appointments", "Sends reminders", "Doctor availability", "Patient queries"],
     reading: "Doctor's calendar",
     action: "Book slot",
+    icon: Stethoscope,
+    glow: "rgba(74,196,163,0.22)",
   },
   {
     key: "realestate",
@@ -84,6 +92,8 @@ export const VERTICALS = [
     caps: ["Captures leads", "Property details", "Schedules site visits", "Qualifies buyers"],
     reading: "Live inventory",
     action: "Log site visit",
+    icon: Building2,
+    glow: "rgba(99,150,214,0.22)",
   },
 ];
 
@@ -169,10 +179,31 @@ export function VerticalShowcase() {
       <div className="mt-8 grid gap-5 lg:grid-cols-12">
         {/* The call */}
         <div className="relative overflow-hidden rounded-[26px] bg-orbit-ink p-6 sm:p-8 lg:col-span-7">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.22),transparent_68%)] blur-3xl"
-          />
+          {/* A backdrop that changes with the tab — a huge, barely-there line
+              icon for the business type plus a colour-tinted glow, crossfading
+              on switch. Real photography would have fought the transcript
+              text and dated fast; this keeps the "this changed" cue without
+              either problem, and costs nothing to load. */}
+          <AnimatePresence mode="sync">
+            <motion.div
+              key={active.key}
+              aria-hidden="true"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.55, ease: "easeOut" }}
+              className="pointer-events-none absolute inset-0 overflow-hidden"
+            >
+              <div
+                className="absolute -right-24 -top-24 h-80 w-80 rounded-full blur-3xl"
+                style={{ background: `radial-gradient(circle, ${active.glow}, transparent 68%)` }}
+              />
+              <active.icon
+                className="absolute -bottom-10 -right-10 h-56 w-56 text-white/[0.05] sm:h-64 sm:w-64"
+                strokeWidth={1}
+              />
+            </motion.div>
+          </AnimatePresence>
           <div className="relative flex items-center gap-3 border-b border-white/10 pb-5">
             <div className="grid h-11 w-11 place-items-center rounded-full bg-orbit-gold font-display font-semibold text-orbit-ink">
               {active.initial}
