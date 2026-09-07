@@ -3,7 +3,10 @@ import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import Lenis from "lenis";
 import {
-  ArrowRight, Check, Lock, ShieldCheck, CheckCheck, Menu, X, ChevronDown,
+  ArrowRight, Lock, ShieldCheck, CheckCheck, Menu, X, ChevronDown,
+  PhoneCall, Cpu, Link2, PlayCircle, RefreshCw,
+  PhoneIncoming, HelpCircle, MessageCircle, CalendarX,
+  Database, Zap, Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/Reveal";
@@ -27,41 +30,22 @@ import { ConversationProvider } from "@/components/landing/useDemoSession";
  */
 
 const STEPS = [
-  ["01", "We learn your business",
-   "One call. We study your rooms, menu, services and policies.",
-   "You send us what you have. We do the rest."],
-  ["02", "We build your employee",
-   "Personality, knowledge and rules — built for how you talk.",
-   "Typically live in under a week."],
-  ["03", "We connect your number",
-   "Your number and WhatsApp, wired up by us. Nothing technical for you.",
-   "Phone + WhatsApp, one employee."],
-  ["04", "We test it with you",
-   "You hear real test calls first. It goes live once you approve.",
-   "Draft → Testing → Approved → Live."],
-  ["05", "We keep improving it",
-   "Every month we review calls and teach it what's new.",
-   "Included. Forever."],
+  [PhoneCall, "01", "We learn your business", "One onboarding call. That's your whole part."],
+  [Cpu, "02", "We build your employee", "Personality + knowledge, live in under a week."],
+  [Link2, "03", "We connect your number", "Phone and WhatsApp, wired up by us."],
+  [PlayCircle, "04", "We test it with you", "You approve real test calls before it goes live."],
+  [RefreshCw, "05", "We keep improving it", "Included every month — not an extra."],
 ];
 
 
 // An illustrative day, labelled as such — built from the kinds of calls ORBIT
 // handles, not from a customer's real logs (AGENT.md rule 7).
 const DAY = [
-  ["02:14", "Nobody's at the desk", "Early check-in request — handled instantly.", true],
-  ["09:40", "Three calls at once", "All three answered — 2 booked, 1 lead.", false],
-  ["14:05", "A question staff can't answer", "Jain menu query — answered from your live menu.", true],
-  ["21:30", "WhatsApp, not a call", "Booking confirmed — resent in seconds.", true],
-  ["23:50", "After everyone's gone home", "Cancellation captured. Room freed by morning.", false],
-];
-
-const INCLUDED = [
-  ["Business study & setup", "We read your rooms, menu, services, policies and timings."],
-  ["Employee build", "Personality, knowledge and rules written by our team."],
-  ["Phone + WhatsApp", "Number provisioning, routing and Meta approval — all ours."],
-  ["Testing with you", "Real test calls until you say it sounds right."],
-  ["Monthly tuning", "We review real conversations and keep improving it."],
-  ["Support in your language", "Talk to a person, in Hindi or English, when you need to."],
+  [PhoneIncoming, "02:14", "Nobody's at the desk", "Handled instantly", true],
+  [PhoneCall, "09:40", "Three calls at once", "2 booked, 1 lead", false],
+  [HelpCircle, "14:05", "Staff can't answer", "Answered from live menu", true],
+  [MessageCircle, "21:30", "Not a call — WhatsApp", "Confirmed in seconds", true],
+  [CalendarX, "23:50", "Everyone's gone home", "Room freed by morning", false],
 ];
 
 const SECURITY = [
@@ -123,6 +107,22 @@ export default function Landing() {
   // reads six paragraphs to find the one question they had. A tap now
   // reveals just the answer they asked for.
   const [openFaq, setOpenFaq] = useState(null);
+  // Nav no longer stays pinned. It reads as clutter when it never moves, and
+  // it steals space from the page on a phone. Instead it slides up out of
+  // the way once you've scrolled past the hero, and slides back the moment
+  // you scroll up — so it's there when you want it, gone when you don't.
+  const [navHidden, setNavHidden] = useState(false);
+
+  useEffect(() => {
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      setNavHidden(y > lastY && y > 140);
+      lastY = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return undefined;
@@ -159,7 +159,11 @@ export default function Landing() {
             was the least readable thing on the page. Vapi's bar is solid for
             exactly this reason: the brand should never have to compete with
             whatever is playing behind it. */}
-        <header className="fixed inset-x-0 top-0 z-50">
+        <header
+          className={`fixed inset-x-0 top-0 z-50 transition-transform duration-300 ease-out ${
+            navHidden && !menuOpen ? "-translate-y-full" : "translate-y-0"
+          }`}
+        >
           <div className="border-b border-black/[0.07] bg-white/90 backdrop-blur-2xl">
             <nav className="mx-auto flex h-[68px] max-w-7xl items-center justify-between px-6 lg:px-10">
               <Link
@@ -272,22 +276,22 @@ export default function Landing() {
             </div>
 
             <div className="lg:col-span-7">
-              <div className="border-l border-black/[0.08] pl-9">
-                {STEPS.map(([num, title, desc, note], i) => (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {STEPS.map(([Icon, num, title, blurb], i) => (
                   <Reveal delay={i * 0.04} key={num}>
-                    <div className="relative pb-10 last:pb-0">
-                      <div className="absolute -left-[49px] grid h-9 w-9 place-items-center rounded-full bg-orbit-text text-[12px] font-semibold text-white">
+                    <div className="relative h-full rounded-2xl border border-black/[0.07] bg-white p-6">
+                      <span className="absolute right-5 top-5 font-display text-[13px] font-semibold text-orbit-text/25">
                         {num}
-                      </div>
-                      <div className="font-display text-[22px] font-semibold tracking-tight">
+                      </span>
+                      <span className="grid h-11 w-11 place-items-center rounded-2xl bg-orbit-text text-white">
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <div className="mt-4 font-display text-[17px] font-semibold tracking-tight">
                         {title}
                       </div>
-                      <p className="mt-2.5 max-w-lg text-[16px] leading-relaxed text-orbit-text/60">
-                        {desc}
+                      <p className="mt-1.5 text-[14px] leading-relaxed text-orbit-text/55">
+                        {blurb}
                       </p>
-                      <div className="mt-3 inline-flex rounded-lg bg-orbit-sand px-3 py-1.5 text-[13px] text-orbit-text/55">
-                        {note}
-                      </div>
                     </div>
                   </Reveal>
                 ))}
@@ -338,32 +342,37 @@ export default function Landing() {
               </div>
             </Reveal>
 
-            <div className="mt-14 space-y-3">
-              {DAY.map(([time, headline, outcome, good], i) => (
-                <Reveal delay={i * 0.035} key={time}>
-                  <div className="grid items-center gap-4 rounded-2xl border border-white/[0.09] bg-white/[0.04] px-6 py-5 sm:grid-cols-12">
-                    <div className="sm:col-span-4">
-                      <div className="font-display text-[26px] font-semibold text-orbit-cream">
+            {/* A day-at-a-glance strip rather than a list to read top to
+                bottom — the time is the headline, everything else is a
+                glance. The connecting line is the "graph" cue: one employee,
+                on duty across the whole day. */}
+            <div className="relative mt-16">
+              <div className="absolute inset-x-0 top-[26px] hidden h-px bg-white/[0.09] sm:block" />
+              <div className="grid gap-3 sm:grid-cols-5">
+                {DAY.map(([Icon, time, headline, outcome, good], i) => (
+                  <Reveal delay={i * 0.045} key={time}>
+                    <div className="relative flex flex-col items-start gap-3 rounded-2xl border border-white/[0.09] bg-white/[0.04] p-5 sm:items-center sm:p-4 sm:text-center">
+                      <span
+                        className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${
+                          good ? "bg-orbit-live/20 text-orbit-live" : "bg-orbit-gold/20 text-orbit-gold"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <div className="font-display text-[20px] font-semibold text-orbit-cream">
                         {time}
                       </div>
-                      <div className="text-[13px] text-orbit-cream/40">{headline}</div>
-                    </div>
-                    <div className="flex items-start gap-2.5 sm:col-span-8">
-                      <span
-                        className={`mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full ${
-                          good ? "bg-orbit-live" : "bg-orbit-gold"
-                        }`}
-                      />
-                      <span className="text-[15px] leading-snug text-orbit-cream/70">
+                      <div className="text-[12px] leading-snug text-orbit-cream/40">{headline}</div>
+                      <div className="text-[13px] font-medium leading-snug text-orbit-cream/75">
                         {outcome}
-                      </span>
+                      </div>
                     </div>
-                  </div>
-                </Reveal>
-              ))}
+                  </Reveal>
+                ))}
+              </div>
             </div>
 
-            <p className="mt-8 text-[14px] text-orbit-cream/35">
+            <p className="mt-8 text-[13px] text-orbit-cream/35">
               Illustrative day, built from the kinds of calls ORBIT handles.
             </p>
           </div>
@@ -384,17 +393,25 @@ export default function Landing() {
                   ORBIT connects to your systems, so answers come from real data — not guesses.
                   Nothing connected yet? It says so.
                 </p>
-                <div className="mt-8 space-y-3">
+                <div className="mt-8 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
                   {[
-                    ["Reads", "Availability, bookings, orders, appointments"],
-                    ["Acts", "Creates and changes bookings, captures leads"],
-                    ["Never", "Invents a price, a room or a slot that doesn't exist"],
-                  ].map(([label, value]) => (
-                    <div key={label} className="flex gap-4">
-                      <span className="w-[54px] shrink-0 pt-1 text-[12px] uppercase tracking-[0.14em] text-orbit-goldink">
-                        {label}
+                    [Database, "Reads", "Availability, bookings, orders, appointments"],
+                    [Zap, "Acts", "Creates bookings, captures leads"],
+                    [Ban, "Never", "Invents a price, a room or a slot"],
+                  ].map(([Icon, label, value]) => (
+                    <div
+                      key={label}
+                      className="flex items-center gap-3 rounded-xl border border-black/[0.06] bg-orbit-sand px-4 py-3"
+                    >
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-orbit-text text-white">
+                        <Icon className="h-4 w-4" />
                       </span>
-                      <span className="text-[15px] leading-relaxed text-orbit-text/65">{value}</span>
+                      <div>
+                        <div className="text-[11px] uppercase tracking-[0.14em] text-orbit-goldink">
+                          {label}
+                        </div>
+                        <div className="text-[14px] leading-snug text-orbit-text/70">{value}</div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -597,42 +614,6 @@ export default function Landing() {
                   </div>
                 </div>
               </Reveal>
-            </div>
-          </div>
-        </section>
-
-        {/* INCLUDED */}
-        <section className="border-y border-black/[0.06] bg-orbit-sand py-20 lg:py-24">
-          <div className="mx-auto grid max-w-7xl gap-14 px-6 lg:grid-cols-12 lg:px-10">
-            <div className="lg:col-span-5">
-              <Reveal>
-                <Eyebrow>What&rsquo;s included</Eyebrow>
-                <H2 className="mt-5">Everything. That&rsquo;s the point.</H2>
-                <p className="mt-6 text-[17px] leading-relaxed text-orbit-text/60">
-                  There is no &ldquo;setup tier&rdquo; and no professional-services invoice.
-                  Building and running your AI employee <em>is</em> the product.
-                </p>
-              </Reveal>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 lg:col-span-7">
-              {INCLUDED.map(([title, desc], i) => (
-                <Reveal delay={i * 0.035} key={title}>
-                  <div className="h-full rounded-2xl border border-black/[0.07] bg-white p-6">
-                    <div className="flex items-start gap-3">
-                      <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-orbit-live text-white">
-                        <Check className="h-3 w-3" strokeWidth={3} />
-                      </span>
-                      <div>
-                        <div className="text-[15px] font-semibold">{title}</div>
-                        <p className="mt-1.5 text-[14px] leading-relaxed text-orbit-text/55">
-                          {desc}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </Reveal>
-              ))}
             </div>
           </div>
         </section>
