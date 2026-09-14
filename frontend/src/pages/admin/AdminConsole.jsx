@@ -227,7 +227,12 @@ function AddIntegrationDialog({ tenantId, environment, onDone }) {
   useEffect(() => {
     if (!open) return;
     setF({ type: "pms", name: "", connector_key: isProd ? "custom" : "mock_pms", mode: isProd ? "live" : "mock" });
-    api.get("/admin/connectors").then((r) => setConnectors(r.data)).catch(() => setConnectors([]));
+    api.get("/admin/connectors").then((r) => setConnectors(r.data)).catch((e) => {
+      // A dead connectors list used to just leave the dropdown empty with no
+      // sign of why — indistinguishable from "no connectors configured".
+      setConnectors([]);
+      toast.error(formatApiErrorDetail(e?.response?.data?.detail) || "Couldn't load integration types.");
+    });
   }, [open, isProd]);
   const submit = async () => {
     if (!f.name) { toast.error("Name is required"); return; }
@@ -1084,11 +1089,16 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
   const [kb, setKb] = useState({});
   const ae0 = aiEmployees?.[0];
 
+  const [loadError, setLoadError] = useState(null);
+  // These four used to fail in total silence: a section would just not
+  // appear, indistinguishable from "tenant has nothing here yet".
   const load = useCallback(() => {
-    api.get(`/admin/tenants/${tenantId}/readiness`).then((r) => setReadiness(r.data)).catch(() => {});
-    api.get(`/admin/tenants/${tenantId}/provisioning`).then((r) => setProv(r.data)).catch(() => {});
-    api.get(`/admin/tenants/${tenantId}/pricing`).then((r) => setPricing(r.data)).catch(() => {});
-    api.get(`/admin/tenants/${tenantId}/invoices`).then((r) => setInvoices(r.data)).catch(() => {});
+    setLoadError(null);
+    const onFail = (label) => (e) => setLoadError(formatApiErrorDetail(e?.response?.data?.detail) || `Couldn't load ${label}.`);
+    api.get(`/admin/tenants/${tenantId}/readiness`).then((r) => setReadiness(r.data)).catch(onFail("readiness"));
+    api.get(`/admin/tenants/${tenantId}/provisioning`).then((r) => setProv(r.data)).catch(onFail("provider connections"));
+    api.get(`/admin/tenants/${tenantId}/pricing`).then((r) => setPricing(r.data)).catch(onFail("pricing"));
+    api.get(`/admin/tenants/${tenantId}/invoices`).then((r) => setInvoices(r.data)).catch(onFail("invoices"));
   }, [tenantId]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => { if (ae0) setKb(ae0.knowledge_base || {}); }, [ae0]);
@@ -1126,6 +1136,7 @@ function ProductionPanel({ tenantId, environment, aiEmployees, onChanged }) {
   return (
     <div className="mt-8 space-y-6" data-testid="production-panel">
       <h3 className="font-display font-semibold">Production readiness</h3>
+      {loadError && <LoadError error={loadError} onRetry={load} />}
 
       {readiness && (
         <div className="rounded-xl border border-black/5 p-4" data-testid="readiness-checklist">
@@ -1251,7 +1262,12 @@ export default function AdminConsole() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
-  const loadStats = useCallback(() => api.get("/admin/stats").then((r) => setStats(r.data)).catch(() => {}), []);
+  const [statsError, setStatsError] = useState(null);
+  const loadStats = useCallback(() => api.get("/admin/stats")
+    .then((r) => { setStats(r.data); setStatsError(null); })
+    // Dead stats used to just leave every StatPill on "—" forever, identical
+    // to a brand-new platform with nothing to show yet.
+    .catch((e) => setStatsError(formatApiErrorDetail(e?.response?.data?.detail) || "Couldn't load platform stats.")), []);
   useEffect(() => { loadStats(); }, [loadStats]);
 
   const doLogout = async () => { await logout(); navigate("/login", { replace: true }); };
@@ -1277,6 +1293,7 @@ export default function AdminConsole() {
           subtitle="Tenants, AI employees, channels and the managed-service queue."
         />
 
+        {statsError && <LoadError error={statsError} onRetry={loadStats} />}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           <StatPill icon={Building2} label="Tenants" value={stats?.tenants ?? "—"} testid="admin-stat-tenants" />
           <StatPill icon={Building2} label="Live" value={stats?.live_tenants ?? "—"} testid="admin-stat-live" />
