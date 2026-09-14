@@ -168,11 +168,39 @@ body {
     animation: orbit-border-pulse 4s ease-in-out infinite;
 }
 
+/* ---- Light-section ambient background ----
+   Every dark band on the page has grain + a drifting gold bloom, so it reads
+   as "running". The white sections had none of that — flat by comparison,
+   which is the gap this fills. Two pieces, both plain numeric interpolation
+   (transform / opacity / background-position), on purpose: the conic-gradient
+   mask above already taught this file what happens when a fancier technique
+   is used instead. */
+.orbit-dot-field {
+    background-image: radial-gradient(rgba(11, 11, 15, 0.05) 1px, transparent 1.4px);
+    background-size: 26px 26px;
+    animation: orbit-dot-pan 60s linear infinite;
+}
+@keyframes orbit-dot-pan {
+    from { background-position: 0 0; }
+    to { background-position: 260px 130px; }
+}
+/* A few small gold motes that quietly float and fade — the detail that makes
+   a light section feel inhabited rather than just "textured". */
+@keyframes orbit-particle-float {
+    0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.3; }
+    50% { transform: translate3d(0, -18px, 0); opacity: 0.85; }
+}
+.orbit-particle {
+    animation: orbit-particle-float 5s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .animate-orbit-drift,
     .animate-orbit-drift-slow,
     .animate-orbit-breathe,
     .orbit-glow-border,
+    .orbit-dot-field,
+    .orbit-particle,
     .marquee-track {
         animation: none !important;
     }

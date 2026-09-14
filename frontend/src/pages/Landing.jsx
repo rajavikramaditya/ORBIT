@@ -107,6 +107,45 @@ const H2 = ({ children, onDark = false, className = "" }) => (
   </h2>
 );
 
+// The dark bands all have grain + a drifting gold bloom, so they read as
+// "running". The white sections had nothing moving at all — flat by
+// comparison. This drops in the same feeling without touching the white
+// itself: a faint dot-field that slowly pans, one soft bloom drifting the
+// way the dark sections already do, and a handful of small gold motes that
+// float and fade. Everything here is transform / opacity / background-
+// position only — see the note in index.css on why exotic CSS (masks,
+// clip-path) isn't used for this kind of decoration in this file any more.
+const AmbientField = ({ side = "right" }) => (
+  <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div className="orbit-dot-field absolute inset-0 opacity-60" />
+    <div
+      className={`animate-orbit-drift-slow absolute top-[10%] h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.12),transparent_65%)] blur-3xl ${
+        side === "right" ? "-right-[8%]" : "-left-[8%]"
+      }`}
+    />
+    {[
+      ["7px", "42%", "18%", "0s"],
+      ["5px", "58%", "48%", "1.2s"],
+      ["9px", "70%", "72%", "2.4s"],
+      ["6px", "20%", "60%", "3.1s"],
+      ["5px", "82%", "30%", "0.7s"],
+    ].map(([size, left, top, delay], i) => (
+      <span
+        key={i}
+        className="orbit-particle absolute rounded-full"
+        style={{
+          width: size,
+          height: size,
+          left,
+          top,
+          animationDelay: delay,
+          background: "radial-gradient(circle, rgba(228,184,113,0.9), rgba(228,184,113,0.15) 70%)",
+        }}
+      />
+    ))}
+  </div>
+);
+
 export default function Landing() {
   const [menuOpen, setMenuOpen] = useState(false);
   // Collapsed by default: six full answers stacked open at once was the
@@ -254,8 +293,9 @@ export default function Landing() {
         </section>
 
         {/* HOW — the differentiator */}
-        <section id="how" className="bg-orbit-paper py-14 lg:py-20">
-          <div className="mx-auto grid max-w-7xl gap-16 px-6 lg:grid-cols-12 lg:px-10">
+        <section id="how" className="relative bg-orbit-paper py-14 lg:py-20">
+          <AmbientField side="right" />
+          <div className="relative mx-auto grid max-w-7xl gap-16 px-6 lg:grid-cols-12 lg:px-10">
             <div className="lg:col-span-5">
               <div className="lg:sticky lg:top-28">
                 <Reveal>
@@ -333,9 +373,7 @@ export default function Landing() {
             space — the exact "incomplete" feeling this section used to
             leave on a full-width monitor. */}
         <section id="team" className="relative overflow-hidden border-y border-black/[0.06] bg-orbit-sand py-16 lg:py-20">
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-            <div className="absolute -left-[10%] top-[15%] h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.14),transparent_65%)] blur-3xl" />
-          </div>
+          <AmbientField side="left" />
           <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
             <Reveal>
               <div className="max-w-3xl">
@@ -429,8 +467,9 @@ export default function Landing() {
         </section>
 
         {/* KNOWS — the tool call */}
-        <section className="bg-orbit-paper py-14 lg:py-20">
-          <div className="mx-auto grid max-w-7xl gap-14 px-6 lg:grid-cols-12 lg:gap-20 lg:px-10">
+        <section className="relative bg-orbit-paper py-14 lg:py-20">
+          <AmbientField side="left" />
+          <div className="relative mx-auto grid max-w-7xl gap-14 px-6 lg:grid-cols-12 lg:gap-20 lg:px-10">
             <div className="lg:col-span-5">
               <Reveal>
                 <Eyebrow>More than a chatbot</Eyebrow>
@@ -508,8 +547,9 @@ export default function Landing() {
         </section>
 
         {/* DASHBOARD */}
-        <section className="border-y border-black/[0.06] bg-orbit-sand py-14 lg:py-20">
-          <div className="mx-auto max-w-7xl px-6 lg:px-10">
+        <section className="relative border-y border-black/[0.06] bg-orbit-sand py-14 lg:py-20">
+          <AmbientField side="right" />
+          <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
             <Reveal>
               <div className="max-w-3xl">
                 <Eyebrow>Your dashboard</Eyebrow>
@@ -606,8 +646,9 @@ export default function Landing() {
         </section>
 
         {/* CHANNELS */}
-        <section id="channels" className="bg-orbit-paper py-14 lg:py-20">
-          <div className="mx-auto max-w-7xl px-6 lg:px-10">
+        <section id="channels" className="relative bg-orbit-paper py-14 lg:py-20">
+          <AmbientField side="left" />
+          <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
             <Reveal>
               <div className="max-w-3xl">
                 <Eyebrow>Channels</Eyebrow>
@@ -690,8 +731,9 @@ export default function Landing() {
             than a form's fine print, and it's the same "showcase card"
             language as Dashboard and Knows, so the page stops feeling like a
             pile of unrelated blocks. */}
-        <section id="security" className="bg-orbit-paper py-14 lg:py-20">
-          <div className="mx-auto max-w-7xl px-6 lg:px-10">
+        <section id="security" className="relative bg-orbit-paper py-14 lg:py-20">
+          <AmbientField side="right" />
+          <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
             <Reveal>
               <div className="max-w-3xl">
                 <Eyebrow>Security</Eyebrow>
@@ -729,8 +771,9 @@ export default function Landing() {
         </section>
 
         {/* FAQ */}
-        <section className="border-t border-black/[0.06] bg-orbit-paper py-14 lg:py-20">
-          <div className="mx-auto grid max-w-7xl gap-14 px-6 lg:grid-cols-12 lg:px-10">
+        <section className="relative border-t border-black/[0.06] bg-orbit-paper py-14 lg:py-20">
+          <AmbientField side="left" />
+          <div className="relative mx-auto grid max-w-7xl gap-14 px-6 lg:grid-cols-12 lg:px-10">
             <div className="lg:col-span-4">
               <Reveal>
                 <Eyebrow>Questions</Eyebrow>
