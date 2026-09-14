@@ -254,7 +254,7 @@ export default function Landing() {
         </section>
 
         {/* HOW — the differentiator */}
-        <section id="how" className="bg-orbit-paper py-20 lg:py-24">
+        <section id="how" className="bg-orbit-paper py-14 lg:py-20">
           <div className="mx-auto grid max-w-7xl gap-16 px-6 lg:grid-cols-12 lg:px-10">
             <div className="lg:col-span-5">
               <div className="lg:sticky lg:top-28">
@@ -332,7 +332,7 @@ export default function Landing() {
             deliberate, filled panel rather than a card floating in empty
             space — the exact "incomplete" feeling this section used to
             leave on a full-width monitor. */}
-        <section id="team" className="relative overflow-hidden border-y border-black/[0.06] bg-orbit-sand py-24 lg:py-28">
+        <section id="team" className="relative overflow-hidden border-y border-black/[0.06] bg-orbit-sand py-16 lg:py-20">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0">
             <div className="absolute -left-[10%] top-[15%] h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.14),transparent_65%)] blur-3xl" />
           </div>
@@ -348,14 +348,14 @@ export default function Landing() {
               </div>
             </Reveal>
 
-            <div className="mt-14">
+            <div className="mt-10">
               <VerticalShowcase />
             </div>
           </div>
         </section>
 
         {/* ── DARK BAND 2: one ordinary day ── */}
-        <section className="relative overflow-hidden bg-orbit-ink py-20 lg:py-24">
+        <section className="relative overflow-hidden bg-orbit-ink py-14 lg:py-20">
           <div aria-hidden="true" className="absolute inset-0">
             <div className="animate-orbit-drift-slow absolute -right-[12%] top-[10%] h-[700px] w-[700px] rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.16),transparent_62%)] blur-3xl" />
             <div className="grain absolute inset-0" />
@@ -368,18 +368,18 @@ export default function Landing() {
                 <H2 onDark className="mt-5">
                   Every missed call has a cost.
                 </H2>
-                <p className="mt-6 text-[17px] leading-relaxed text-orbit-cream/55">
+                <p className="mt-4 text-[16px] leading-relaxed text-orbit-cream/55">
                   Five situations that come up at any hotel, any week. Same situation, two
                   outcomes — one with ORBIT answering, one without.
                 </p>
               </div>
             </Reveal>
 
-            <div className="mt-14 space-y-3">
+            <div className="mt-7 space-y-2">
               {/* Column headers once, above the rows — repeating "Without /
                   With" on every row would be the exact re-reading tax this
                   section used to impose. */}
-              <div className="hidden gap-6 px-6 sm:grid sm:grid-cols-[240px_1fr_1fr]">
+              <div className="hidden gap-6 px-5 sm:grid sm:grid-cols-[220px_1fr_1fr]">
                 <span />
                 <span className="text-[11px] uppercase tracking-[0.16em] text-orbit-cream/30">
                   Without ORBIT
@@ -390,29 +390,29 @@ export default function Landing() {
               </div>
               {WITHOUT_WITH.map(([Icon, scenario, without, withIt], i) => (
                 <Reveal delay={i * 0.05} key={scenario}>
-                  <div className="rounded-2xl border border-white/[0.09] bg-white/[0.04] p-5 sm:grid sm:grid-cols-[240px_1fr_1fr] sm:items-center sm:gap-6 sm:p-6">
+                  <div className="rounded-xl border border-white/[0.09] bg-white/[0.04] p-4 sm:grid sm:grid-cols-[220px_1fr_1fr] sm:items-center sm:gap-6 sm:px-5 sm:py-3.5">
                     <div className="flex items-center gap-3">
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/[0.08] text-orbit-cream/70">
-                        <Icon className="h-4 w-4" />
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/[0.08] text-orbit-cream/70">
+                        <Icon className="h-3.5 w-3.5" />
                       </span>
-                      <span className="text-[14.5px] font-medium leading-snug text-orbit-cream/85">
+                      <span className="text-[14px] font-medium leading-snug text-orbit-cream/85">
                         {scenario}
                       </span>
                     </div>
-                    <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-0 sm:contents">
-                      <div className="rounded-xl bg-black/25 px-4 py-3 sm:bg-transparent sm:px-0 sm:py-0">
+                    <div className="mt-3 grid grid-cols-2 gap-2.5 sm:mt-0 sm:contents">
+                      <div className="rounded-lg bg-black/25 px-3 py-2 sm:bg-transparent sm:px-0 sm:py-0">
                         <div className="text-[10px] uppercase tracking-[0.14em] text-orbit-cream/30 sm:hidden">
                           Without ORBIT
                         </div>
-                        <div className="mt-1 text-[13.5px] leading-snug text-orbit-cream/45 line-through decoration-orbit-cream/25 sm:mt-0">
+                        <div className="mt-0.5 text-[13px] leading-snug text-orbit-cream/45 line-through decoration-orbit-cream/25 sm:mt-0">
                           {without}
                         </div>
                       </div>
-                      <div className="rounded-xl border border-orbit-live/20 bg-orbit-live/[0.1] px-4 py-3 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
+                      <div className="rounded-lg border border-orbit-live/20 bg-orbit-live/[0.1] px-3 py-2 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
                         <div className="text-[10px] uppercase tracking-[0.14em] text-orbit-live/60 sm:hidden">
                           With ORBIT
                         </div>
-                        <div className="mt-1 text-[13.5px] font-medium leading-snug text-orbit-cream sm:mt-0">
+                        <div className="mt-0.5 text-[13px] font-medium leading-snug text-orbit-cream sm:mt-0">
                           {withIt}
                         </div>
                       </div>
@@ -422,14 +422,14 @@ export default function Landing() {
               ))}
             </div>
 
-            <p className="mt-8 text-[13px] text-orbit-cream/35">
+            <p className="mt-5 text-[12.5px] text-orbit-cream/35">
               Illustrative situations, built from the kinds of calls ORBIT handles.
             </p>
           </div>
         </section>
 
         {/* KNOWS — the tool call */}
-        <section className="bg-orbit-paper py-20 lg:py-24">
+        <section className="bg-orbit-paper py-14 lg:py-20">
           <div className="mx-auto grid max-w-7xl gap-14 px-6 lg:grid-cols-12 lg:gap-20 lg:px-10">
             <div className="lg:col-span-5">
               <Reveal>
@@ -508,7 +508,7 @@ export default function Landing() {
         </section>
 
         {/* DASHBOARD */}
-        <section className="border-y border-black/[0.06] bg-orbit-sand py-20 lg:py-24">
+        <section className="border-y border-black/[0.06] bg-orbit-sand py-14 lg:py-20">
           <div className="mx-auto max-w-7xl px-6 lg:px-10">
             <Reveal>
               <div className="max-w-3xl">
@@ -522,7 +522,7 @@ export default function Landing() {
             </Reveal>
 
             <Reveal delay={0.1}>
-              <div className="relative mt-14">
+              <div className="relative mt-10">
                 <div className="absolute inset-x-16 -top-8 h-48 rounded-full bg-orbit-gold/50 blur-[100px]" />
                 <TiltCard maxTilt={3} className="rounded-[26px]">
                 <div className="relative rounded-[26px] border border-black/[0.08] bg-orbit-ink p-3 shadow-[0_40px_110px_rgba(20,20,26,0.3)]">
@@ -606,7 +606,7 @@ export default function Landing() {
         </section>
 
         {/* CHANNELS */}
-        <section id="channels" className="bg-orbit-paper py-20 lg:py-24">
+        <section id="channels" className="bg-orbit-paper py-14 lg:py-20">
           <div className="mx-auto max-w-7xl px-6 lg:px-10">
             <Reveal>
               <div className="max-w-3xl">
@@ -615,7 +615,7 @@ export default function Landing() {
               </div>
             </Reveal>
 
-            <div className="mt-14 grid gap-4 lg:grid-cols-2">
+            <div className="mt-10 grid gap-4 lg:grid-cols-2">
               <Reveal>
                 <TiltCard maxTilt={4} className="h-full rounded-[26px]">
                 <div className="h-full rounded-[26px] border border-black/[0.07] bg-orbit-sand p-9">
@@ -682,7 +682,15 @@ export default function Landing() {
         </section>
 
         {/* SECURITY */}
-        <section id="security" className="bg-orbit-paper py-20 lg:py-24">
+        {/* SECURITY
+            Three plain white cards used to sit here — correct, but the
+            flattest moment on the page, and it broke the site's own rhythm
+            (every other proof section is a dark showcase panel). One panel
+            with a pulsing shield as the anchor reads as a statement rather
+            than a form's fine print, and it's the same "showcase card"
+            language as Dashboard and Knows, so the page stops feeling like a
+            pile of unrelated blocks. */}
+        <section id="security" className="bg-orbit-paper py-14 lg:py-20">
           <div className="mx-auto max-w-7xl px-6 lg:px-10">
             <Reveal>
               <div className="max-w-3xl">
@@ -690,28 +698,38 @@ export default function Landing() {
                 <H2 className="mt-5">Built so the boring parts never bite you.</H2>
               </div>
             </Reveal>
-            <div className="mt-14 grid gap-4 md:grid-cols-3">
-              {SECURITY.map(([Icon, title, desc], i) => (
-                <Reveal delay={i * 0.08} key={title}>
-                  <TiltCard maxTilt={5} className="h-full rounded-[22px]">
-                    <div className="h-full rounded-[22px] border border-black/[0.07] bg-orbit-sand p-8">
-                      <span className="grid h-11 w-11 place-items-center rounded-2xl bg-orbit-text text-white">
-                        <Icon className="h-5 w-5" />
+            <Reveal delay={0.1}>
+              <TiltCard maxTilt={3} className="mt-9 rounded-[28px]">
+                <div className="rounded-[28px] bg-orbit-ink p-8 sm:p-10 lg:p-12">
+                  <div className="grid gap-10 lg:grid-cols-[auto_1fr] lg:items-center lg:gap-14">
+                    <div className="relative mx-auto grid h-24 w-24 shrink-0 place-items-center">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orbit-gold/20" />
+                      <span className="relative grid h-20 w-20 place-items-center rounded-full bg-white/[0.06] text-orbit-gold ring-1 ring-white/10">
+                        <ShieldCheck className="h-9 w-9" />
                       </span>
-                      <h3 className="mt-6 font-display text-xl font-semibold tracking-tight">
-                        {title}
-                      </h3>
-                      <p className="mt-2.5 text-[15px] leading-relaxed text-orbit-text/55">{desc}</p>
                     </div>
-                  </TiltCard>
-                </Reveal>
-              ))}
-            </div>
+                    <div className="grid gap-7 sm:grid-cols-3">
+                      {SECURITY.map(([Icon, title, desc]) => (
+                        <div key={title}>
+                          <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/[0.08] text-orbit-gold">
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <h3 className="mt-4 font-display text-[16px] font-semibold text-white">
+                            {title}
+                          </h3>
+                          <p className="mt-1.5 text-[13.5px] leading-relaxed text-white/50">{desc}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </TiltCard>
+            </Reveal>
           </div>
         </section>
 
         {/* FAQ */}
-        <section className="border-t border-black/[0.06] bg-orbit-paper py-20 lg:py-24">
+        <section className="border-t border-black/[0.06] bg-orbit-paper py-14 lg:py-20">
           <div className="mx-auto grid max-w-7xl gap-14 px-6 lg:grid-cols-12 lg:px-10">
             <div className="lg:col-span-4">
               <Reveal>
@@ -765,7 +783,7 @@ export default function Landing() {
         </section>
 
         {/* ── DARK BAND 3: CTA ── */}
-        <section className="relative overflow-hidden bg-orbit-ink py-24 lg:py-28">
+        <section className="relative overflow-hidden bg-orbit-ink py-16 lg:py-24">
           <div aria-hidden="true" className="absolute inset-0">
             <VideoLayer
               media={LANDING_MEDIA.cta}

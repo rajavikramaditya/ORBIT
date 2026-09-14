@@ -88,7 +88,7 @@ function TypingBubble() {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ duration: 0.22 }}
-      className="orbit-glow-border flex w-fit items-center gap-1.5 rounded-2xl rounded-bl-md bg-white px-4 py-3.5"
+      className="flex w-fit items-center gap-1.5 rounded-2xl rounded-bl-md bg-white px-4 py-3.5"
       aria-hidden="true"
     >
       {[0, 1, 2].map((i) => (
@@ -167,11 +167,12 @@ export function ConversationCard({
       layout
       // No blur at all now — even the light 14px blur softened the footage
       // behind the card into a smear. The panel is just a hint of tint over
-      // the video, with a thin rotating gold ring (.orbit-glow-border) doing
-      // the work a frosted background used to: it reads as glass without
-      // ever touching what's visible through it.
+      // the video, with a slow gold pulse (.orbit-glow-border, in index.css)
+      // doing the work a frosted background used to: it reads as glass
+      // without ever touching what's visible through it. The ambient drop
+      // shadow lives inside that class's keyframes now, not as an inline
+      // style — see the comment there for why.
       className="orbit-glow-border relative rounded-[28px] bg-white/[0.025] p-5"
-      style={{ boxShadow: "0 30px 90px rgba(0,0,0,0.45)" }}
     >
       {/* A slow warm breath behind the card — the difference between "a screenshot
           of a product" and "a product that is running". */}
@@ -224,8 +225,8 @@ export function ConversationCard({
               transition={{ duration: 0.34, ease: [0.16, 1, 0.3, 1] }}
               className={
                 turn.role === "user"
-                  ? "orbit-glow-border ml-auto w-fit max-w-[75%] rounded-2xl rounded-br-md bg-white/[0.13] px-4 py-2.5 text-[14px] leading-snug text-white/85"
-                  : "orbit-glow-border w-fit max-w-[88%] rounded-2xl rounded-bl-md bg-white px-4 py-3 text-[14px] leading-snug text-orbit-ink"
+                  ? "ml-auto w-fit max-w-[75%] rounded-2xl rounded-br-md bg-white/[0.13] px-4 py-2.5 text-[14px] leading-snug text-white/85"
+                  : "w-fit max-w-[88%] rounded-2xl rounded-bl-md bg-white px-4 py-3 text-[14px] leading-snug text-orbit-ink"
               }
             >
               {turn.text}
