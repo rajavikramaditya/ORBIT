@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/Reveal";
 import { VerticalShowcase } from "@/components/landing/VerticalShowcase";
 import { TiltCard } from "@/components/landing/TiltCard";
+import { NetworkField } from "@/components/landing/NetworkField";
 import { HeroStage } from "@/components/landing/HeroStage";
 import { VideoLayer } from "@/components/landing/VideoLayer";
 import { LANDING_MEDIA } from "@/components/landing/media";
@@ -109,40 +110,20 @@ const H2 = ({ children, onDark = false, className = "" }) => (
 
 // The dark bands all have grain + a drifting gold bloom, so they read as
 // "running". The white sections had nothing moving at all — flat by
-// comparison. This drops in the same feeling without touching the white
-// itself: a faint dot-field that slowly pans, one soft bloom drifting the
-// way the dark sections already do, and a handful of small gold motes that
-// float and fade. Everything here is transform / opacity / background-
-// position only — see the note in index.css on why exotic CSS (masks,
-// clip-path) isn't used for this kind of decoration in this file any more.
+// comparison. First pass here was a faint dot-field + floating motes; it was
+// too quiet to actually notice. This is the louder, more literal version
+// asked for instead: a satellite-network mesh — nodes drifting on their own,
+// linked to whatever is nearby, with the cursor pulling the nearest ones
+// toward it like a soft magnet. See NetworkField for why that needs canvas
+// rather than another CSS trick.
 const AmbientField = ({ side = "right" }) => (
   <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-    <div className="orbit-dot-field absolute inset-0 opacity-60" />
     <div
-      className={`animate-orbit-drift-slow absolute top-[10%] h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.12),transparent_65%)] blur-3xl ${
+      className={`animate-orbit-drift-slow absolute top-[10%] h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.10),transparent_65%)] blur-3xl ${
         side === "right" ? "-right-[8%]" : "-left-[8%]"
       }`}
     />
-    {[
-      ["7px", "42%", "18%", "0s"],
-      ["5px", "58%", "48%", "1.2s"],
-      ["9px", "70%", "72%", "2.4s"],
-      ["6px", "20%", "60%", "3.1s"],
-      ["5px", "82%", "30%", "0.7s"],
-    ].map(([size, left, top, delay], i) => (
-      <span
-        key={i}
-        className="orbit-particle absolute rounded-full"
-        style={{
-          width: size,
-          height: size,
-          left,
-          top,
-          animationDelay: delay,
-          background: "radial-gradient(circle, rgba(228,184,113,0.9), rgba(228,184,113,0.15) 70%)",
-        }}
-      />
-    ))}
+    <NetworkField />
   </div>
 );
 
@@ -392,75 +373,85 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ── DARK BAND 2: one ordinary day ── */}
-        <section className="relative overflow-hidden bg-orbit-ink py-14 lg:py-20">
-          <div aria-hidden="true" className="absolute inset-0">
-            <div className="animate-orbit-drift-slow absolute -right-[12%] top-[10%] h-[700px] w-[700px] rounded-full bg-[radial-gradient(circle,rgba(228,184,113,0.16),transparent_62%)] blur-3xl" />
-            <div className="grain absolute inset-0" />
-          </div>
-
+        {/* BEFORE / AFTER
+            This used to be a full-bleed black band — a flat wall of dark
+            that read as the least inviting thing on the page, nothing here
+            asked to be read. Vapi's own pattern for a section like this is
+            the opposite: a light page, with the one dark, glowing card as
+            the thing your eye actually goes to. Same "elevated showcase"
+            language already used for Dashboard, just applied here instead
+            of a full-width dark section. */}
+        <section className="relative bg-orbit-paper py-14 lg:py-20">
+          <AmbientField side="right" />
           <div className="relative mx-auto max-w-7xl px-6 lg:px-10">
             <Reveal>
               <div className="max-w-3xl">
-                <Eyebrow onDark>Before / after</Eyebrow>
-                <H2 onDark className="mt-5">
-                  Every missed call has a cost.
-                </H2>
-                <p className="mt-4 text-[16px] leading-relaxed text-orbit-cream/55">
+                <Eyebrow>Before / after</Eyebrow>
+                <H2 className="mt-5">Every missed call has a cost.</H2>
+                <p className="mt-4 text-[16px] leading-relaxed text-orbit-text/60">
                   Five situations that come up at any hotel, any week. Same situation, two
                   outcomes — one with ORBIT answering, one without.
                 </p>
               </div>
             </Reveal>
 
-            <div className="mt-7 space-y-2">
-              {/* Column headers once, above the rows — repeating "Without /
-                  With" on every row would be the exact re-reading tax this
-                  section used to impose. */}
-              <div className="hidden gap-6 px-5 sm:grid sm:grid-cols-[220px_1fr_1fr]">
-                <span />
-                <span className="text-[11px] uppercase tracking-[0.16em] text-orbit-cream/30">
-                  Without ORBIT
-                </span>
-                <span className="text-[11px] uppercase tracking-[0.16em] text-orbit-live/60">
-                  With ORBIT
-                </span>
-              </div>
-              {WITHOUT_WITH.map(([Icon, scenario, without, withIt], i) => (
-                <Reveal delay={i * 0.05} key={scenario}>
-                  <div className="rounded-xl border border-white/[0.09] bg-white/[0.04] p-4 sm:grid sm:grid-cols-[220px_1fr_1fr] sm:items-center sm:gap-6 sm:px-5 sm:py-3.5">
-                    <div className="flex items-center gap-3">
-                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/[0.08] text-orbit-cream/70">
-                        <Icon className="h-3.5 w-3.5" />
-                      </span>
-                      <span className="text-[14px] font-medium leading-snug text-orbit-cream/85">
-                        {scenario}
-                      </span>
-                    </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2.5 sm:mt-0 sm:contents">
-                      <div className="rounded-lg bg-black/25 px-3 py-2 sm:bg-transparent sm:px-0 sm:py-0">
-                        <div className="text-[10px] uppercase tracking-[0.14em] text-orbit-cream/30 sm:hidden">
+            <Reveal delay={0.1}>
+              <div className="relative mt-10">
+                <div className="absolute inset-x-16 -top-8 h-48 rounded-full bg-orbit-gold/50 blur-[100px]" />
+                <TiltCard maxTilt={3} className="rounded-[28px]">
+                  <div className="relative rounded-[28px] border border-black/[0.08] bg-orbit-ink p-5 shadow-[0_40px_110px_rgba(20,20,26,0.3)] sm:p-7 lg:p-8">
+                    <div className="space-y-2">
+                      {/* Column headers once, above the rows — repeating
+                          "Without / With" on every row would be the exact
+                          re-reading tax this section used to impose. */}
+                      <div className="hidden gap-6 px-5 sm:grid sm:grid-cols-[220px_1fr_1fr]">
+                        <span />
+                        <span className="text-[11px] uppercase tracking-[0.16em] text-orbit-cream/30">
                           Without ORBIT
-                        </div>
-                        <div className="mt-0.5 text-[13px] leading-snug text-orbit-cream/45 line-through decoration-orbit-cream/25 sm:mt-0">
-                          {without}
-                        </div>
-                      </div>
-                      <div className="rounded-lg border border-orbit-live/20 bg-orbit-live/[0.1] px-3 py-2 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
-                        <div className="text-[10px] uppercase tracking-[0.14em] text-orbit-live/60 sm:hidden">
+                        </span>
+                        <span className="text-[11px] uppercase tracking-[0.16em] text-orbit-live/60">
                           With ORBIT
-                        </div>
-                        <div className="mt-0.5 text-[13px] font-medium leading-snug text-orbit-cream sm:mt-0">
-                          {withIt}
-                        </div>
+                        </span>
                       </div>
+                      {WITHOUT_WITH.map(([Icon, scenario, without, withIt], i) => (
+                        <Reveal delay={i * 0.05} key={scenario}>
+                          <div className="rounded-xl border border-white/[0.09] bg-white/[0.04] p-4 sm:grid sm:grid-cols-[220px_1fr_1fr] sm:items-center sm:gap-6 sm:px-5 sm:py-3.5">
+                            <div className="flex items-center gap-3">
+                              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/[0.08] text-orbit-cream/70">
+                                <Icon className="h-3.5 w-3.5" />
+                              </span>
+                              <span className="text-[14px] font-medium leading-snug text-orbit-cream/85">
+                                {scenario}
+                              </span>
+                            </div>
+                            <div className="mt-3 grid grid-cols-2 gap-2.5 sm:mt-0 sm:contents">
+                              <div className="rounded-lg bg-black/25 px-3 py-2 sm:bg-transparent sm:px-0 sm:py-0">
+                                <div className="text-[10px] uppercase tracking-[0.14em] text-orbit-cream/30 sm:hidden">
+                                  Without ORBIT
+                                </div>
+                                <div className="mt-0.5 text-[13px] leading-snug text-orbit-cream/45 line-through decoration-orbit-cream/25 sm:mt-0">
+                                  {without}
+                                </div>
+                              </div>
+                              <div className="rounded-lg border border-orbit-live/20 bg-orbit-live/[0.1] px-3 py-2 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
+                                <div className="text-[10px] uppercase tracking-[0.14em] text-orbit-live/60 sm:hidden">
+                                  With ORBIT
+                                </div>
+                                <div className="mt-0.5 text-[13px] font-medium leading-snug text-orbit-cream sm:mt-0">
+                                  {withIt}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </Reveal>
+                      ))}
                     </div>
                   </div>
-                </Reveal>
-              ))}
-            </div>
+                </TiltCard>
+              </div>
+            </Reveal>
 
-            <p className="mt-5 text-[12.5px] text-orbit-cream/35">
+            <p className="mt-5 text-[12.5px] text-orbit-text/40">
               Illustrative situations, built from the kinds of calls ORBIT handles.
             </p>
           </div>
@@ -825,7 +816,7 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ── DARK BAND 3: CTA ── */}
+        {/* ── DARK BAND 2: CTA ── */}
         <section className="relative overflow-hidden bg-orbit-ink py-16 lg:py-24">
           <div aria-hidden="true" className="absolute inset-0">
             <VideoLayer
