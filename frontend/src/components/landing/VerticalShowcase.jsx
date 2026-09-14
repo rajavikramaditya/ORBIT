@@ -41,6 +41,8 @@ export const VERTICALS = [
     action: "Hold room",
     icon: BedDouble,
     glow: "rgba(228,184,113,0.24)",
+    photo: "/team-hotel.jpg",
+    photoPosition: "50% 22%",
   },
   {
     key: "restaurant",
@@ -59,6 +61,8 @@ export const VERTICALS = [
     action: "Book table",
     icon: UtensilsCrossed,
     glow: "rgba(232,138,74,0.22)",
+    photo: "/team-restaurant.jpg",
+    photoPosition: "50% 20%",
   },
   {
     key: "clinic",
@@ -77,6 +81,8 @@ export const VERTICALS = [
     action: "Book slot",
     icon: Stethoscope,
     glow: "rgba(74,196,163,0.22)",
+    photo: "/team-clinic.jpg",
+    photoPosition: "50% 15%",
   },
   {
     key: "realestate",
@@ -95,6 +101,8 @@ export const VERTICALS = [
     action: "Log site visit",
     icon: Building2,
     glow: "rgba(99,150,214,0.22)",
+    photo: "/team-realestate.jpg",
+    photoPosition: "45% 20%",
   },
 ];
 
@@ -181,11 +189,13 @@ export function VerticalShowcase() {
         {/* The call */}
         <TiltCard maxTilt={4} className="rounded-[26px] lg:col-span-7">
         <div className="relative flex h-full flex-col overflow-hidden rounded-[26px] bg-orbit-ink p-6 sm:p-8">
-          {/* A backdrop that changes with the tab — a huge, barely-there line
-              icon for the business type plus a colour-tinted glow, crossfading
-              on switch. Real photography would have fought the transcript
-              text and dated fast; this keeps the "this changed" cue without
-              either problem, and costs nothing to load. */}
+          {/* A backdrop that changes with the tab — a real photo of the kind
+              of person answering that phone (a hotel desk, a clinic, an
+              agent's site visit), darkened and colour-tinted so it reads as
+              ORBIT's own dark surface rather than a stock photo pasted on,
+              crossfading on switch. This replaced an earlier icon-only
+              placeholder that never felt like "your business" to anyone
+              looking at it. */}
           <AnimatePresence mode="sync">
             <motion.div
               key={active.key}
@@ -196,13 +206,19 @@ export function VerticalShowcase() {
               transition={{ duration: 0.55, ease: "easeOut" }}
               className="pointer-events-none absolute inset-0 overflow-hidden"
             >
-              <div
-                className="absolute -right-24 -top-24 h-80 w-80 rounded-full blur-3xl"
-                style={{ background: `radial-gradient(circle, ${active.glow}, transparent 68%)` }}
+              <img
+                src={active.photo}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+                style={{
+                  objectPosition: active.photoPosition || "center",
+                  filter: "grayscale(0.2) brightness(0.5) contrast(1.05)",
+                }}
               />
-              <active.icon
-                className="absolute -bottom-10 -right-10 h-56 w-56 text-white/[0.05] sm:h-64 sm:w-64"
-                strokeWidth={1}
+              <div className="absolute inset-0 bg-gradient-to-t from-orbit-ink via-orbit-ink/75 to-orbit-ink/35" />
+              <div
+                className="absolute -right-24 -top-24 h-80 w-80 rounded-full mix-blend-screen blur-3xl"
+                style={{ background: `radial-gradient(circle, ${active.glow}, transparent 68%)` }}
               />
             </motion.div>
           </AnimatePresence>
