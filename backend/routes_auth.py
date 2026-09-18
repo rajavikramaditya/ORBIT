@@ -240,13 +240,23 @@ async def forgot_password(request: Request):
         "expires_at": expires_at,
         "created_at": now_iso(),
     })
+    frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+    reset_url = f"{frontend_url}/reset-password?token={token}"
+
+    from emailing import send_email, reset_password_email_html
+    sent = await asyncio.to_thread(
+        send_email, email, "Reset your ORBIT password", reset_password_email_html(reset_url)
+    )
+
     logger = logging.getLogger("orbit.auth")
-    if os.environ.get("ORBIT_ENV") != "production":
-        # Dev mode only: log token for local test validation without transactional email
-        logger.warning("=== PASSWORD RESET TOKEN (dev only) ===")
-        logger.warning("Email: %s | Token: %s", email, token)
-        logger.warning("Reset URL: http://localhost:3000/reset-password?token=%s", token)
-        logger.warning("========================================")
+    if not sent:
+        # No email provider configured (local dev) or the send failed — log the
+        # link so testing isn't blocked. This never fires once Resend is
+        # configured and working, so a real reset link is never also written
+        # to logs.
+        logger.warning("=== PASSWORD RESET LINK (email not sent) ===")
+        logger.warning("Email: %s | Reset URL: %s", email, reset_url)
+        logger.warning("=============================================")
     return {"status": "ok", "message": "If an account with that email exists, a reset link has been sent."}
 
 
